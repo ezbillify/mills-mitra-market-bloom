@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Edit, Trash2, Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,7 +53,7 @@ const BannerSlider = () => {
   const fetchBanners = async () => {
     try {
       const { data, error } = await supabase
-        .from('banners')
+        .from('banners' as any)
         .select('*')
         .order('display_order', { ascending: true });
 
@@ -68,7 +67,7 @@ const BannerSlider = () => {
         return;
       }
 
-      setBanners(data || []);
+      setBanners((data || []) as Banner[]);
     } catch (error) {
       console.error('Error fetching banners:', error);
       toast({
@@ -99,8 +98,8 @@ const BannerSlider = () => {
     try {
       if (editingId) {
         const { error } = await supabase
-          .from('banners')
-          .update(formData)
+          .from('banners' as any)
+          .update(formData as any)
           .eq('id', editingId);
 
         if (error) {
@@ -119,8 +118,8 @@ const BannerSlider = () => {
         });
       } else {
         const { error } = await supabase
-          .from('banners')
-          .insert([formData]);
+          .from('banners' as any)
+          .insert([formData as any]);
 
         if (error) {
           console.error('Error creating banner:', error);
@@ -167,7 +166,7 @@ const BannerSlider = () => {
   const handleDelete = async (bannerId: string) => {
     try {
       const { error } = await supabase
-        .from('banners')
+        .from('banners' as any)
         .delete()
         .eq('id', bannerId);
 
