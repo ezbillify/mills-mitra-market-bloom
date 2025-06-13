@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import CheckoutDialog from "@/components/customer/CheckoutDialog";
 
 interface CartItem {
   id: string;
@@ -27,6 +28,7 @@ const Cart = () => {
   const { toast } = useToast();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -115,10 +117,11 @@ const Cart = () => {
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
 
-  const handleCheckout = () => {
+  const handleOrderComplete = () => {
+    fetchCartItems(); // Refresh cart after order completion
     toast({
-      title: "Checkout initiated",
-      description: "Redirecting to payment...",
+      title: "Order placed successfully!",
+      description: "You will receive a confirmation email shortly.",
     });
   };
 
@@ -141,7 +144,9 @@ const Cart = () => {
           <ShoppingBag className="h-16 w-16 mx-auto text-gray-400 mb-4" />
           <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
           <p className="text-gray-600 mb-6">Start shopping to add items to your cart</p>
-          <Button>Continue Shopping</Button>
+          <Link to="/products">
+            <Button>Continue Shopping</Button>
+          </Link>
         </div>
       </div>
     );
@@ -167,7 +172,7 @@ const Cart = () => {
                     <Badge variant="secondary" className="mt-1">
                       {item.products.category}
                     </Badge>
-                    <p className="text-xl font-bold mt-2">${item.products.price.toFixed(2)}</p>
+                    <p className="text-xl font-bold mt-2">₹{item.products.price.toFixed(2)}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <Button
@@ -207,36 +212,50 @@ const Cart = () => {
             <CardContent className="space-y-4">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>₹{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping</span>
-                <span>{shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}</span>
+                <span>{shipping === 0 ? 'Free' : `₹${shipping.toFixed(2)}`}</span>
               </div>
               <div className="flex justify-between">
                 <span>Tax</span>
-                <span>${tax.toFixed(2)}</span>
+                <span>₹{tax.toFixed(2)}</span>
               </div>
               <hr />
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span>₹{total.toFixed(2)}</span>
               </div>
               {subtotal < 100 && (
                 <p className="text-sm text-gray-600">
-                  Add ${(100 - subtotal).toFixed(2)} more for free shipping!
+                  Add ₹{(100 - subtotal).toFixed(2)} more for free shipping!
                 </p>
               )}
-              <Button className="w-full" size="lg" onClick={handleCheckout}>
+              <Button 
+                className="w-full" 
+                size="lg" 
+                onClick={() => setCheckoutOpen(true)}
+              >
                 Proceed to Checkout
               </Button>
-              <Button variant="outline" className="w-full">
-                Continue Shopping
-              </Button>
+              <Link to="/products">
+                <Button variant="outline" className="w-full">
+                  Continue Shopping
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      <CheckoutDialog
+        open={checkoutOpen}
+        onOpenChange={setCheckoutOpen}
+        cartItems={cartItems}
+        total={total}
+        onOrderComplete={handleOrderComplete}
+      />
     </div>
   );
 };

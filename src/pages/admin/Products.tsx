@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Edit, Trash2, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import AddProductDialog from "@/components/admin/AddProductDialog";
 
 interface Product {
   id: string;
@@ -90,6 +90,38 @@ const AdminProducts = () => {
     }
   };
 
+  const deleteProduct = async (productId: string) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId);
+
+      if (error) {
+        console.error('Error deleting product:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete product",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await fetchProducts();
+      toast({
+        title: "Success",
+        description: "Product deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete product",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusBadge = (featured: boolean) => {
     return (
       <Badge variant={featured ? 'default' : 'secondary'}>
@@ -119,10 +151,7 @@ const AdminProducts = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Products Management</h1>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Product
-        </Button>
+        <AddProductDialog onProductAdded={fetchProducts} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -222,7 +251,11 @@ const AdminProducts = () => {
                       >
                         {product.featured ? 'Unfeature' : 'Feature'}
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => deleteProduct(product.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
