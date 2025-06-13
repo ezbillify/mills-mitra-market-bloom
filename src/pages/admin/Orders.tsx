@@ -16,7 +16,7 @@ interface Order {
   created_at: string;
   shipping_address: string;
   tracking_number: string | null;
-  profiles: {
+  profiles?: {
     first_name: string | null;
     last_name: string | null;
     email: string | null;
@@ -34,20 +34,14 @@ const AdminOrders = () => {
 
   const fetchOrders = async () => {
     try {
-      const { data, error } = await supabase
+      // First, fetch orders without the problematic join
+      const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          profiles!orders_user_id_fkey (
-            first_name,
-            last_name,
-            email
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching orders:', error);
+      if (ordersError) {
+        console.error('Error fetching orders:', ordersError);
         toast({
           title: "Error",
           description: "Failed to fetch orders",
@@ -56,7 +50,33 @@ const AdminOrders = () => {
         return;
       }
 
-      setOrders(data || []);
+      // Then fetch profiles separately
+      const userIds = [...new Set(ordersData?.map(order => order.user_id) || [])];
+      
+      if (userIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, email')
+          .in('id', userIds);
+
+        if (profilesError) {
+          console.warn('Error fetching profiles:', profilesError);
+        }
+
+        // Combine the data
+        const profilesMap = new Map(
+          (profilesData || []).map(profile => [profile.id, profile])
+        );
+
+        const ordersWithProfiles = (ordersData || []).map(order => ({
+          ...order,
+          profiles: profilesMap.get(order.user_id) || null
+        })) as Order[];
+
+        setOrders(ordersWithProfiles);
+      } else {
+        setOrders(ordersData || []);
+      }
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast({
