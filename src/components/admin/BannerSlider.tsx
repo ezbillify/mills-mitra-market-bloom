@@ -53,7 +53,7 @@ const BannerSlider = () => {
   const fetchBanners = async () => {
     try {
       const { data, error } = await supabase
-        .from('banners' as any)
+        .from('banners')
         .select('*')
         .order('display_order', { ascending: true });
 
@@ -67,7 +67,7 @@ const BannerSlider = () => {
         return;
       }
 
-      setBanners((data || []) as Banner[]);
+      setBanners(data || []);
     } catch (error) {
       console.error('Error fetching banners:', error);
       toast({
@@ -98,8 +98,8 @@ const BannerSlider = () => {
     try {
       if (editingId) {
         const { error } = await supabase
-          .from('banners' as any)
-          .update(formData as any)
+          .from('banners')
+          .update(formData)
           .eq('id', editingId);
 
         if (error) {
@@ -118,8 +118,8 @@ const BannerSlider = () => {
         });
       } else {
         const { error } = await supabase
-          .from('banners' as any)
-          .insert([formData as any]);
+          .from('banners')
+          .insert([formData]);
 
         if (error) {
           console.error('Error creating banner:', error);
@@ -166,7 +166,7 @@ const BannerSlider = () => {
   const handleDelete = async (bannerId: string) => {
     try {
       const { error } = await supabase
-        .from('banners' as any)
+        .from('banners')
         .delete()
         .eq('id', bannerId);
 

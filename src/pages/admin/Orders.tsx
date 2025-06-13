@@ -12,7 +12,7 @@ interface Order {
   id: string;
   user_id: string;
   total: number;
-  status: string;
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "accepted" | "out_for_delivery" | "completed";
   created_at: string;
   shipping_address: string;
   tracking_number: string | null;
@@ -38,7 +38,7 @@ const AdminOrders = () => {
         .from('orders')
         .select(`
           *,
-          profiles:user_id (
+          profiles!orders_user_id_fkey (
             first_name,
             last_name,
             email
@@ -84,7 +84,7 @@ const AdminOrders = () => {
     return <Badge variant={variants[status] || "default"}>{status.replace('_', ' ')}</Badge>;
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+  const updateOrderStatus = async (orderId: string, newStatus: "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "accepted" | "out_for_delivery" | "completed") => {
     try {
       const { error } = await supabase
         .from('orders')

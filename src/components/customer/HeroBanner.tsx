@@ -37,7 +37,7 @@ const HeroBanner = () => {
   const fetchBanners = async () => {
     try {
       const { data, error } = await supabase
-        .from('banners' as any)
+        .from('banners')
         .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
@@ -47,7 +47,7 @@ const HeroBanner = () => {
         return;
       }
 
-      setBanners((data || []) as Banner[]);
+      setBanners(data || []);
     } catch (error) {
       console.error('Error fetching banners:', error);
     } finally {
