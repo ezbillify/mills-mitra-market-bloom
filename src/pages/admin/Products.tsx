@@ -5,6 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Edit, Trash2, Eye } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: string;
@@ -12,56 +14,86 @@ interface Product {
   category: string;
   price: number;
   stock: number;
-  status: 'active' | 'inactive';
-  image: string;
+  featured: boolean;
+  image: string | null;
+  description: string | null;
 }
 
 const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  // Mock data for demonstration
   useEffect(() => {
-    const mockProducts: Product[] = [
-      {
-        id: "PRD-001",
-        name: "Premium Headphones",
-        category: "Electronics",
-        price: 199.99,
-        stock: 25,
-        status: "active",
-        image: "/placeholder.svg"
-      },
-      {
-        id: "PRD-002",
-        name: "Wireless Mouse",
-        category: "Electronics",
-        price: 49.99,
-        stock: 50,
-        status: "active",
-        image: "/placeholder.svg"
-      },
-      {
-        id: "PRD-003",
-        name: "Gaming Keyboard",
-        category: "Electronics",
-        price: 129.99,
-        stock: 0,
-        status: "inactive",
-        image: "/placeholder.svg"
-      }
-    ];
-    
-    setTimeout(() => {
-      setProducts(mockProducts);
-      setLoading(false);
-    }, 1000);
+    fetchProducts();
   }, []);
 
-  const getStatusBadge = (status: string) => {
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching products:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch products",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch products",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleProductStatus = async (productId: string, currentFeatured: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ featured: !currentFeatured })
+        .eq('id', productId);
+
+      if (error) {
+        console.error('Error updating product:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update product status",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await fetchProducts();
+      toast({
+        title: "Success",
+        description: "Product status updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update product status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getStatusBadge = (featured: boolean) => {
     return (
-      <Badge variant={status === 'active' ? 'default' : 'secondary'}>
-        {status}
+      <Badge variant={featured ? 'default' : 'secondary'}>
+        {featured ? 'Featured' : 'Regular'}
       </Badge>
     );
   };
@@ -104,11 +136,11 @@ const AdminProducts = () => {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Products</CardTitle>
+            <CardTitle className="text-sm font-medium">Featured Products</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {products.filter(p => p.status === 'active').length}
+              {products.filter(p => p.featured).length}
             </div>
           </CardContent>
         </Card>
@@ -156,7 +188,7 @@ const AdminProducts = () => {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <img 
-                        src={product.image} 
+                        src={product.image || '/placeholder.svg'} 
                         alt={product.name}
                         className="w-10 h-10 rounded object-cover"
                       />
@@ -166,15 +198,15 @@ const AdminProducts = () => {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{product.category}</TableCell>
-                  <TableCell>${product.price.toFixed(2)}</TableCell>
+                  <TableCell className="capitalize">{product.category}</TableCell>
+                  <TableCell>₹{product.price.toFixed(2)}</TableCell>
                   <TableCell>
                     <div className="space-y-1">
                       <div>{product.stock} units</div>
                       {getStockBadge(product.stock)}
                     </div>
                   </TableCell>
-                  <TableCell>{getStatusBadge(product.status)}</TableCell>
+                  <TableCell>{getStatusBadge(product.featured)}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm">
@@ -182,6 +214,13 @@ const AdminProducts = () => {
                       </Button>
                       <Button variant="outline" size="sm">
                         <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => toggleProductStatus(product.id, product.featured)}
+                      >
+                        {product.featured ? 'Unfeature' : 'Feature'}
                       </Button>
                       <Button variant="outline" size="sm">
                         <Trash2 className="h-4 w-4" />

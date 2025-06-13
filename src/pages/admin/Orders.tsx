@@ -5,74 +5,122 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, Package, Truck } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Order {
   id: string;
-  customer: string;
-  email: string;
+  user_id: string;
   total: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered';
-  date: string;
-  items: number;
+  status: string;
+  created_at: string;
+  shipping_address: string;
+  tracking_number: string | null;
+  profiles: {
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+  } | null;
 }
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  // Mock data for demonstration
   useEffect(() => {
-    const mockOrders: Order[] = [
-      {
-        id: "ORD-001",
-        customer: "John Doe",
-        email: "john@example.com",
-        total: 299.99,
-        status: "pending",
-        date: "2024-01-15",
-        items: 3
-      },
-      {
-        id: "ORD-002",
-        customer: "Jane Smith",
-        email: "jane@example.com",
-        total: 149.50,
-        status: "processing",
-        date: "2024-01-14",
-        items: 2
-      },
-      {
-        id: "ORD-003",
-        customer: "Bob Johnson",
-        email: "bob@example.com",
-        total: 89.99,
-        status: "shipped",
-        date: "2024-01-13",
-        items: 1
-      }
-    ];
-    
-    setTimeout(() => {
-      setOrders(mockOrders);
-      setLoading(false);
-    }, 1000);
+    fetchOrders();
   }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          profiles:user_id (
+            first_name,
+            last_name,
+            email
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching orders:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch orders",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setOrders(data || []);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch orders",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       pending: "outline",
       processing: "default",
       shipped: "secondary",
-      delivered: "default"
+      delivered: "default",
+      accepted: "default",
+      out_for_delivery: "secondary",
+      completed: "default",
+      cancelled: "destructive"
     };
     
-    return <Badge variant={variants[status] || "default"}>{status}</Badge>;
+    return <Badge variant={variants[status] || "default"}>{status.replace('_', ' ')}</Badge>;
   };
 
-  const updateOrderStatus = (orderId: string, newStatus: Order['status']) => {
-    setOrders(orders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
-    ));
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId);
+
+      if (error) {
+        console.error('Error updating order:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update order status",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await fetchOrders();
+      toast({
+        title: "Success",
+        description: "Order status updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update order status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getCustomerName = (order: Order) => {
+    if (order.profiles?.first_name || order.profiles?.last_name) {
+      return `${order.profiles.first_name || ''} ${order.profiles.last_name || ''}`.trim();
+    }
+    return order.profiles?.email || 'Unknown Customer';
   };
 
   if (loading) {
@@ -130,7 +178,7 @@ const AdminOrders = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${orders.reduce((sum, order) => sum + order.total, 0).toFixed(2)}
+              ₹{orders.reduce((sum, order) => sum + Number(order.total), 0).toFixed(2)}
             </div>
           </CardContent>
         </Card>
@@ -147,7 +195,6 @@ const AdminOrders = () => {
                 <TableHead>Order ID</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Items</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Date</TableHead>
@@ -157,19 +204,26 @@ const AdminOrders = () => {
             <TableBody>
               {orders.map((order) => (
                 <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.id}</TableCell>
-                  <TableCell>{order.customer}</TableCell>
-                  <TableCell>{order.email}</TableCell>
-                  <TableCell>{order.items}</TableCell>
-                  <TableCell>${order.total.toFixed(2)}</TableCell>
+                  <TableCell className="font-medium">{order.id.slice(0, 8)}...</TableCell>
+                  <TableCell>{getCustomerName(order)}</TableCell>
+                  <TableCell>{order.profiles?.email || 'N/A'}</TableCell>
+                  <TableCell>₹{Number(order.total).toFixed(2)}</TableCell>
                   <TableCell>{getStatusBadge(order.status)}</TableCell>
-                  <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm">
                         <Eye className="h-4 w-4" />
                       </Button>
                       {order.status === 'pending' && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => updateOrderStatus(order.id, 'accepted')}
+                        >
+                          Accept
+                        </Button>
+                      )}
+                      {order.status === 'accepted' && (
                         <Button 
                           size="sm" 
                           onClick={() => updateOrderStatus(order.id, 'processing')}
@@ -184,6 +238,22 @@ const AdminOrders = () => {
                         >
                           <Truck className="h-4 w-4 mr-1" />
                           Ship
+                        </Button>
+                      )}
+                      {order.status === 'shipped' && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => updateOrderStatus(order.id, 'out_for_delivery')}
+                        >
+                          Out for Delivery
+                        </Button>
+                      )}
+                      {order.status === 'out_for_delivery' && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => updateOrderStatus(order.id, 'delivered')}
+                        >
+                          Mark Delivered
                         </Button>
                       )}
                     </div>

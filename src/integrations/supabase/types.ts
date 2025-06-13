@@ -238,6 +238,9 @@ export type Database = {
         | "shipped"
         | "delivered"
         | "cancelled"
+        | "accepted"
+        | "out_for_delivery"
+        | "completed"
       product_category: "electronics" | "clothing" | "books" | "home" | "sports"
     }
     CompositeTypes: {
@@ -360,6 +363,9 @@ export const Constants = {
         "shipped",
         "delivered",
         "cancelled",
+        "accepted",
+        "out_for_delivery",
+        "completed",
       ],
       product_category: ["electronics", "clothing", "books", "home", "sports"],
     },

@@ -3,60 +3,51 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import HeroBanner from "@/components/customer/HeroBanner";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  image: string | null;
+  category: string;
+}
 
 const Home = () => {
-  // Mock featured products
-  const featuredProducts = [
-    {
-      id: 1,
-      name: "Premium Cotton Fabric",
-      price: 299,
-      originalPrice: 399,
-      image: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=300&h=300&fit=crop",
-      badge: "Best Seller"
-    },
-    {
-      id: 2,
-      name: "Silk Blend Material",
-      price: 599,
-      originalPrice: 799,
-      image: "https://images.unsplash.com/photo-1558618047-1c4b9c3b0e70?w=300&h=300&fit=crop",
-      badge: "New"
-    },
-    {
-      id: 3,
-      name: "Linen Collection",
-      price: 449,
-      originalPrice: 549,
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop",
-      badge: "Limited"
-    },
-    {
-      id: 4,
-      name: "Wool Fabric",
-      price: 699,
-      originalPrice: 899,
-      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=300&fit=crop",
-      badge: "Premium"
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchFeaturedProducts();
+  }, []);
+
+  const fetchFeaturedProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, price, image, category')
+        .eq('featured', true)
+        .limit(4);
+
+      if (error) {
+        console.error('Error fetching featured products:', error);
+        return;
+      }
+
+      setFeaturedProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching featured products:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   return (
     <div>
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-primary to-primary/80 text-white py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">
-            Premium Fabrics & Materials
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 opacity-90">
-            Discover our exclusive collection of high-quality fabrics
-          </p>
-          <Button size="lg" variant="secondary" asChild>
-            <Link to="/products">Shop Now</Link>
-          </Button>
-        </div>
-      </section>
+      {/* Hero Section with Dynamic Banner */}
+      <HeroBanner />
 
       {/* Features */}
       <section className="py-16 bg-gray-50">
@@ -91,32 +82,47 @@ const Home = () => {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">Featured Products</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
-              <Card key={product.id} className="group hover:shadow-lg transition-shadow">
-                <CardContent className="p-0">
-                  <div className="relative">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-48 object-cover rounded-t-lg group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <Badge className="absolute top-2 left-2">{product.badge}</Badge>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold mb-2">{product.name}</h3>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-lg font-bold text-primary">₹{product.price}</span>
-                      <span className="text-sm text-gray-500 line-through">₹{product.originalPrice}</span>
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-0">
+                    <div className="bg-gray-200 h-48 rounded-t-lg"></div>
+                    <div className="p-4">
+                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-2/3"></div>
                     </div>
-                    <Button className="w-full mt-3" asChild>
-                      <Link to={`/products/${product.id}`}>View Details</Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredProducts.map((product) => (
+                <Card key={product.id} className="group hover:shadow-lg transition-shadow">
+                  <CardContent className="p-0">
+                    <div className="relative">
+                      <img
+                        src={product.image || '/placeholder.svg'}
+                        alt={product.name}
+                        className="w-full h-48 object-cover rounded-t-lg group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <Badge className="absolute top-2 left-2">Featured</Badge>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-semibold mb-2">{product.name}</h3>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg font-bold text-primary">₹{Number(product.price).toFixed(2)}</span>
+                      </div>
+                      <Button className="w-full mt-3" asChild>
+                        <Link to={`/products/${product.id}`}>View Details</Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
           <div className="text-center mt-8">
             <Button variant="outline" size="lg" asChild>
               <Link to="/products">View All Products</Link>
