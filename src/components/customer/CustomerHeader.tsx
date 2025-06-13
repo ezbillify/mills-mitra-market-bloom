@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, User, Cart as CartIcon, Menu, X } from "lucide-react";
+import { Search, User, ShoppingCart, Menu, X } from "lucide-react";
 
 const CustomerHeader = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -66,7 +66,7 @@ const CustomerHeader = () => {
               <User className="h-5 w-5" />
             </Link>
             <Link to="/cart" className="relative hover:text-primary transition-colors">
-              <CartIcon className="h-5 w-5" />
+              <ShoppingCart className="h-5 w-5" />
               {cartItemsCount > 0 && (
                 <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
                   {cartItemsCount}
