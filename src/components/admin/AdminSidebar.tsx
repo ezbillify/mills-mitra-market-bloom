@@ -6,9 +6,9 @@ import {
   ShoppingCart, 
   Users, 
   Package,
-  FileText,
-  Settings 
+  ArrowLeft 
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -18,8 +18,6 @@ const AdminSidebar = () => {
     { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
     { name: "Customers", href: "/admin/customers", icon: Users },
     { name: "Products", href: "/admin/products", icon: Package },
-    { name: "Invoices", href: "/admin/invoices", icon: FileText },
-    { name: "Settings", href: "/admin/settings", icon: Settings },
   ];
 
   return (
@@ -51,6 +49,15 @@ const AdminSidebar = () => {
           );
         })}
       </nav>
+
+      <div className="absolute bottom-6 left-6">
+        <Link to="/">
+          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Store
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 };

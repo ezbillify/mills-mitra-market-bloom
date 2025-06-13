@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import CustomerLayout from "./layouts/CustomerLayout";
 import AdminLayout from "./layouts/AdminLayout";
+import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import Home from "./pages/customer/Home";
 import Products from "./pages/customer/Products";
 import ProductDetail from "./pages/customer/ProductDetail";
@@ -43,8 +44,12 @@ const App = () => (
               <Route path="register" element={<Register />} />
             </Route>
             
-            {/* Admin Routes */}
-            <Route path="/admin" element={<AdminLayout />}>
+            {/* Admin Routes - Protected */}
+            <Route path="/admin" element={
+              <AdminProtectedRoute>
+                <AdminLayout />
+              </AdminProtectedRoute>
+            }>
               <Route index element={<AdminDashboard />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="customers" element={<AdminCustomers />} />
