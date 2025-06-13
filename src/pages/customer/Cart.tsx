@@ -1,59 +1,116 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CartItem {
   id: string;
-  name: string;
-  price: number;
+  product_id: string;
   quantity: number;
-  image: string;
-  category: string;
+  products: {
+    id: string;
+    name: string;
+    price: number;
+    image: string | null;
+    category: string;
+  };
 }
 
 const Cart = () => {
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: "1",
-      name: "Premium Headphones",
-      price: 199.99,
-      quantity: 1,
-      image: "/placeholder.svg",
-      category: "Electronics"
-    },
-    {
-      id: "2", 
-      name: "Wireless Mouse",
-      price: 49.99,
-      quantity: 2,
-      image: "/placeholder.svg",
-      category: "Electronics"
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      fetchCartItems();
     }
-  ]);
+  }, [user]);
 
-  const updateQuantity = (id: string, newQuantity: number) => {
+  const fetchCartItems = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('cart_items')
+      .select(`
+        id,
+        product_id,
+        quantity,
+        products (
+          id,
+          name,
+          price,
+          image,
+          category
+        )
+      `)
+      .eq('user_id', user.id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load cart items",
+        variant: "destructive",
+      });
+    } else {
+      setCartItems(data || []);
+    }
+    setLoading(false);
+  };
+
+  const updateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
-    setCartItems(items =>
-      items.map(item =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
-    );
+    
+    const { error } = await supabase
+      .from('cart_items')
+      .update({ quantity: newQuantity })
+      .eq('id', itemId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update quantity",
+        variant: "destructive",
+      });
+    } else {
+      setCartItems(items =>
+        items.map(item =>
+          item.id === itemId ? { ...item, quantity: newQuantity } : item
+        )
+      );
+    }
   };
 
-  const removeItem = (id: string) => {
-    setCartItems(items => items.filter(item => item.id !== id));
-    toast({
-      title: "Item removed",
-      description: "Item has been removed from your cart",
-    });
+  const removeItem = async (itemId: string) => {
+    const { error } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('id', itemId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to remove item",
+        variant: "destructive",
+      });
+    } else {
+      setCartItems(items => items.filter(item => item.id !== itemId));
+      toast({
+        title: "Item removed",
+        description: "Item has been removed from your cart",
+      });
+    }
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.products.price * item.quantity), 0);
   const shipping = subtotal > 100 ? 0 : 9.99;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
@@ -64,6 +121,18 @@ const Cart = () => {
       description: "Redirecting to payment...",
     });
   };
+
+  if (authLoading || loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
   if (cartItems.length === 0) {
     return (
@@ -89,16 +158,16 @@ const Cart = () => {
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <img
-                    src={item.image}
-                    alt={item.name}
+                    src={item.products.image || "/placeholder.svg"}
+                    alt={item.products.name}
                     className="w-20 h-20 rounded-lg object-cover"
                   />
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg">{item.name}</h3>
+                    <h3 className="font-semibold text-lg">{item.products.name}</h3>
                     <Badge variant="secondary" className="mt-1">
-                      {item.category}
+                      {item.products.category}
                     </Badge>
-                    <p className="text-xl font-bold mt-2">${item.price.toFixed(2)}</p>
+                    <p className="text-xl font-bold mt-2">${item.products.price.toFixed(2)}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <Button
