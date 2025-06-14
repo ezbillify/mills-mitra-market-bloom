@@ -91,13 +91,13 @@ const AdminOrders = () => {
     try {
       console.log("Fetching orders...");
 
-      // Correct join: profiles:id refers to profiles.id = orders.user_id
+      // Use explicit join: profiles:profiles!user_id matches orders.user_id -> profiles.id
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(
           `
           *,
-          profiles:id (
+          profiles:profiles!user_id (
             first_name,
             last_name,
             email,
@@ -123,7 +123,6 @@ const AdminOrders = () => {
       const sanitizedOrders =
         ordersData?.map((order: any) => ({
           ...order,
-          // with dot notation, "profiles" is either a single object or null
           profiles: sanitizeProfile(order.profiles),
         })) || [];
 
