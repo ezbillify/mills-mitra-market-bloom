@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Package } from "lucide-react";
@@ -90,13 +91,13 @@ const AdminOrders = () => {
     try {
       console.log("Fetching orders...");
 
-      // Fetch orders with profile information using a proper join
+      // Correct join: profiles:id refers to profiles.id = orders.user_id
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(
           `
           *,
-          profiles!orders_user_id_fkey (
+          profiles:id (
             first_name,
             last_name,
             email,
@@ -122,6 +123,7 @@ const AdminOrders = () => {
       const sanitizedOrders =
         ordersData?.map((order: any) => ({
           ...order,
+          // with dot notation, "profiles" is either a single object or null
           profiles: sanitizeProfile(order.profiles),
         })) || [];
 
