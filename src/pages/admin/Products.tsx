@@ -18,6 +18,8 @@ interface Product {
   category: string;
   price: number;
   discounted_price: number | null;
+  gst_percentage: number | null;
+  selling_price_with_tax: number | null;
   stock: number;
   featured: boolean;
   image: string | null;
@@ -209,7 +211,7 @@ const AdminProducts = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Products Management</h1>
-          <p className="text-gray-600 mt-1">Manage your product inventory and pricing</p>
+          <p className="text-gray-600 mt-1">Manage your product inventory, pricing, and GST</p>
         </div>
         <AddProductDialog onProductAdded={fetchProducts} />
       </div>
@@ -314,7 +316,7 @@ const AdminProducts = () => {
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">Product</TableHead>
                   <TableHead className="font-semibold">Category</TableHead>
-                  <TableHead className="font-semibold">Price</TableHead>
+                  <TableHead className="font-semibold">Price & GST</TableHead>
                   <TableHead className="font-semibold">Stock</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold">Actions</TableHead>
@@ -357,6 +359,14 @@ const AdminProducts = () => {
                           </div>
                         ) : (
                           <div className="font-medium">₹{Number(product.price).toFixed(2)}</div>
+                        )}
+                        <div className="text-xs text-gray-500">
+                          GST: {product.gst_percentage || 18}%
+                        </div>
+                        {product.selling_price_with_tax && (
+                          <div className="text-xs font-medium text-blue-600">
+                            Final: ₹{Number(product.selling_price_with_tax).toFixed(2)}
+                          </div>
                         )}
                       </div>
                     </TableCell>

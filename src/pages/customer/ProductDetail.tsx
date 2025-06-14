@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Heart, Share2 } from "lucide-react";
+import { ArrowLeft, Heart, Share2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AddToCartButton from "@/components/customer/AddToCartButton";
 
@@ -14,6 +14,8 @@ interface Product {
   description: string | null;
   price: number;
   discounted_price: number | null;
+  gst_percentage: number | null;
+  selling_price_with_tax: number | null;
   image: string | null;
   category: string;
   stock: number;
@@ -56,6 +58,16 @@ const ProductDetail = () => {
     return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
   };
 
+  const getBasePrice = (product: Product) => {
+    return product.discounted_price || product.price;
+  };
+
+  const getGSTAmount = (product: Product) => {
+    const basePrice = getBasePrice(product);
+    const gstPercentage = product.gst_percentage || 18;
+    return (basePrice * gstPercentage) / 100;
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -79,6 +91,10 @@ const ProductDetail = () => {
       </div>
     );
   }
+
+  const basePrice = getBasePrice(product);
+  const gstAmount = getGSTAmount(product);
+  const finalPrice = product.selling_price_with_tax || (basePrice + gstAmount);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -120,23 +136,49 @@ const ProductDetail = () => {
                 <p className="text-sm text-gray-600 capitalize">Category: {product.category}</p>
               </div>
 
-              {/* Price */}
-              <div>
-                {product.discounted_price ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <p className="text-2xl sm:text-3xl font-bold text-primary">₹{Number(product.discounted_price).toFixed(2)}</p>
-                      <p className="text-lg text-gray-500 line-through">₹{Number(product.price).toFixed(2)}</p>
+              {/* Price Breakdown */}
+              <div className="space-y-3">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-base font-semibold mb-3">Price Details</h3>
+                  
+                  {product.discounted_price ? (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Original Price:</span>
+                        <span className="text-sm line-through text-gray-500">₹{Number(product.price).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Discounted Price:</span>
+                        <span className="text-sm font-medium text-green-600">₹{Number(product.discounted_price).toFixed(2)}</span>
+                      </div>
                     </div>
-                    <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                      <p className="text-sm text-green-700">
-                        <span className="font-medium">You save: </span>
-                        ₹{(product.price - product.discounted_price).toFixed(2)} ({calculateDiscountPercentage(product.price, product.discounted_price)}% discount)
-                      </p>
+                  ) : (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Base Price:</span>
+                      <span className="text-sm font-medium">₹{Number(product.price).toFixed(2)}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-sm text-gray-600">GST ({product.gst_percentage || 18}%):</span>
+                    <span className="text-sm">₹{gstAmount.toFixed(2)}</span>
+                  </div>
+                  
+                  <div className="border-t pt-2 mt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-base font-semibold">Final Price:</span>
+                      <span className="text-xl font-bold text-primary">₹{finalPrice.toFixed(2)}</span>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-2xl sm:text-3xl font-bold text-primary">₹{Number(product.price).toFixed(2)}</p>
+                </div>
+
+                {product.discounted_price && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                    <p className="text-sm text-green-700">
+                      <span className="font-medium">You save: </span>
+                      ₹{(product.price - product.discounted_price).toFixed(2)} ({calculateDiscountPercentage(product.price, product.discounted_price)}% discount)
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -159,6 +201,17 @@ const ProductDetail = () => {
                   <p className="text-gray-700 text-sm sm:text-base leading-relaxed">{product.description}</p>
                 </div>
               )}
+
+              {/* GST Information */}
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                  <div className="text-sm text-blue-700">
+                    <p className="font-medium mb-1">Tax Information</p>
+                    <p>This product includes {product.gst_percentage || 18}% GST. The final price shown is inclusive of all taxes.</p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 

@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AddToCartButton from "@/components/customer/AddToCartButton";
 
@@ -15,6 +15,8 @@ interface Product {
   name: string;
   price: number;
   discounted_price: number | null;
+  gst_percentage: number | null;
+  selling_price_with_tax: number | null;
   image: string | null;
   category: string;
   stock: number;
@@ -62,8 +64,8 @@ const Products = () => {
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
-      const aPrice = a.discounted_price || a.price;
-      const bPrice = b.discounted_price || b.price;
+      const aPrice = a.selling_price_with_tax || a.discounted_price || a.price;
+      const bPrice = b.selling_price_with_tax || b.discounted_price || b.price;
       
       switch (sortBy) {
         case "price-low":
@@ -78,6 +80,10 @@ const Products = () => {
 
   const calculateDiscountPercentage = (originalPrice: number, discountedPrice: number) => {
     return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
+  };
+
+  const getDisplayPrice = (product: Product) => {
+    return product.selling_price_with_tax || product.discounted_price || product.price;
   };
 
   if (loading) {
@@ -156,6 +162,16 @@ const Products = () => {
               ))}
             </div>
           </div>
+
+          {/* Price Information Banner */}
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-blue-600 shrink-0" />
+              <p className="text-sm text-blue-700">
+                All prices shown include GST. Final price breakdown available on product detail page.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -186,16 +202,25 @@ const Products = () => {
                 <div className="p-3 sm:p-4">
                   <h3 className="font-semibold text-sm sm:text-base mb-1 line-clamp-2">{product.name}</h3>
                   <p className="text-xs text-gray-500 mb-2 capitalize">{product.category}</p>
-                  <div className="flex items-center space-x-2 mb-3">
+                  
+                  <div className="space-y-2 mb-3">
                     {product.discounted_price ? (
-                      <>
-                        <span className="text-lg font-bold text-primary">₹{Number(product.discounted_price).toFixed(2)}</span>
-                        <span className="text-sm text-gray-500 line-through">₹{Number(product.price).toFixed(2)}</span>
-                      </>
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-500 line-through">₹{Number(product.price).toFixed(2)}</span>
+                          <span className="text-sm font-medium text-green-600">₹{Number(product.discounted_price).toFixed(2)}</span>
+                        </div>
+                        <div className="text-lg font-bold text-primary">₹{Number(getDisplayPrice(product)).toFixed(2)}</div>
+                        <div className="text-xs text-gray-500">incl. GST</div>
+                      </div>
                     ) : (
-                      <span className="text-lg font-bold text-primary">₹{Number(product.price).toFixed(2)}</span>
+                      <div className="space-y-1">
+                        <div className="text-lg font-bold text-primary">₹{Number(getDisplayPrice(product)).toFixed(2)}</div>
+                        <div className="text-xs text-gray-500">incl. {product.gst_percentage || 18}% GST</div>
+                      </div>
                     )}
                   </div>
+                  
                   <div className="space-y-2">
                     <Link to={`/products/${product.id}`}>
                       <Button variant="outline" size="sm" className="w-full h-9 text-xs">

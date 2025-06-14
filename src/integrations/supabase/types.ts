@@ -264,10 +264,12 @@ export type Database = {
           description: string | null
           discounted_price: number | null
           featured: boolean | null
+          gst_percentage: number | null
           id: string
           image: string | null
           name: string
           price: number
+          selling_price_with_tax: number | null
           stock: number
           updated_at: string
         }
@@ -278,10 +280,12 @@ export type Database = {
           description?: string | null
           discounted_price?: number | null
           featured?: boolean | null
+          gst_percentage?: number | null
           id?: string
           image?: string | null
           name: string
           price: number
+          selling_price_with_tax?: number | null
           stock?: number
           updated_at?: string
         }
@@ -292,10 +296,12 @@ export type Database = {
           description?: string | null
           discounted_price?: number | null
           featured?: boolean | null
+          gst_percentage?: number | null
           id?: string
           image?: string | null
           name?: string
           price?: number
+          selling_price_with_tax?: number | null
           stock?: number
           updated_at?: string
         }
