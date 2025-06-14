@@ -2,8 +2,19 @@
 import { Customer } from "@/types/customer";
 
 export const generateCustomerName = (profile: any): string => {
+  console.log('🏭 generateCustomerName called with profile:', profile);
+  
   const rawFirstName = profile.first_name;
   const rawLastName = profile.last_name;
+  const rawEmail = profile.email;
+  const userId = profile.id;
+
+  console.log('🔍 Raw profile values:', {
+    first_name: rawFirstName,
+    last_name: rawLastName,
+    email: rawEmail,
+    id: userId
+  });
 
   // First priority: use first_name and last_name from profile
   if (rawFirstName || rawLastName) {
@@ -12,13 +23,12 @@ export const generateCustomerName = (profile: any): string => {
     
     if (firstName || lastName) {
       const fullName = `${firstName} ${lastName}`.trim();
+      console.log('✅ Generated name from first/last name:', fullName);
       return fullName;
     }
   }
 
   // Second priority: extract name from email (only for real emails)
-  const rawEmail = profile.email;
-  
   if (rawEmail && typeof rawEmail === 'string' && !rawEmail.startsWith('user-') && rawEmail !== 'No email provided') {
     const emailPrefix = rawEmail.split('@')[0];
     
@@ -30,12 +40,14 @@ export const generateCustomerName = (profile: any): string => {
       const capitalizedName = cleanName.split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
+      console.log('✅ Generated name from email:', capitalizedName);
       return capitalizedName;
     }
   }
 
   // Fallback: use a simple customer identifier
-  const fallbackName = `Customer ${profile.id?.substring(0, 8) || 'Unknown'}`;
+  const fallbackName = `Customer ${userId?.substring(0, 8) || 'Unknown'}`;
+  console.log('⚠️ Using fallback name:', fallbackName);
   return fallbackName;
 };
 

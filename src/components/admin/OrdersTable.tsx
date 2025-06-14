@@ -29,27 +29,30 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   };
 
   const getCustomerName = (order: Order) => {
-    console.log(`🔍 Processing order ${order.id.substring(0, 8)} for customer name`);
-    console.log('📝 Profile data:', order.profiles);
+    console.log(`🔍 OrdersTable - Processing order ${order.id.substring(0, 8)} for customer name`);
+    console.log('📝 OrdersTable - Profile data received:', order.profiles);
     
     if (order.profiles) {
-      return generateCustomerName({
+      const customerName = generateCustomerName({
         id: order.user_id,
         first_name: order.profiles.first_name,
         last_name: order.profiles.last_name,
         email: order.profiles.email
       });
+      console.log(`✅ OrdersTable - Generated customer name: "${customerName}"`);
+      return customerName;
     }
     
     // Fallback if no profile
-    return `Customer ${order.user_id?.substring(0, 8) || 'Unknown'}`;
+    const fallbackName = `Customer ${order.user_id?.substring(0, 8) || 'Unknown'}`;
+    console.log(`⚠️ OrdersTable - Using fallback name: "${fallbackName}"`);
+    return fallbackName;
   };
 
   const getCustomerEmail = (order: Order) => {
-    if (order.profiles?.email) {
-      return order.profiles.email;
-    }
-    return 'No email';
+    const email = order.profiles?.email || 'No email';
+    console.log(`📧 OrdersTable - Email for order ${order.id.substring(0, 8)}: "${email}"`);
+    return email;
   };
 
   if (orders.length === 0) {
@@ -68,6 +71,11 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   }
 
   console.log(`📊 OrdersTable rendering ${orders.length} orders`);
+  
+  // Log each order's profile data for debugging
+  orders.forEach((order, index) => {
+    console.log(`🔢 Order ${index + 1}/${orders.length} - ID: ${order.id.substring(0, 8)}, User: ${order.user_id.substring(0, 8)}, Profile:`, order.profiles);
+  });
 
   return (
     <Card>
@@ -88,9 +96,13 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order) => {
+            {orders.map((order, index) => {
+              console.log(`🎨 Rendering table row ${index + 1} for order ${order.id.substring(0, 8)}`);
+              
               const customerName = getCustomerName(order);
               const customerEmail = getCustomerEmail(order);
+              
+              console.log(`✨ Final display values - Name: "${customerName}", Email: "${customerEmail}"`);
               
               return (
                 <TableRow key={order.id}>

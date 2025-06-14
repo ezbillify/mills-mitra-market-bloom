@@ -4,9 +4,9 @@ import { Order, OrderProfile, OrderStatus } from "@/types/order";
 
 export class OrderService {
   static async fetchOrders(): Promise<Order[]> {
-    console.log("🔍 Fetching orders with profile data...");
+    console.log("🔍 Fetching orders with profile data using JOIN...");
 
-    // First, get all orders
+    // Use a single query with JOIN to get orders and profiles together
     const { data: ordersData, error: ordersError } = await supabase
       .from("orders")
       .select(`
@@ -16,68 +16,49 @@ export class OrderService {
         status,
         created_at,
         shipping_address,
-        tracking_number
+        tracking_number,
+        profiles!orders_user_id_profiles_fkey (
+          first_name,
+          last_name,
+          email,
+          phone
+        )
       `)
       .order("created_at", { ascending: false });
 
     if (ordersError) {
-      console.error("❌ Error fetching orders:", ordersError);
+      console.error("❌ Error fetching orders with profiles:", ordersError);
       throw new Error(`Failed to fetch orders: ${ordersError.message}`);
     }
 
-    console.log(`✅ Fetched ${ordersData?.length || 0} orders`);
+    console.log(`✅ Fetched ${ordersData?.length || 0} orders with profiles`);
     
     if (!ordersData || ordersData.length === 0) {
       console.log('📭 No orders found');
       return [];
     }
 
-    // Get unique user IDs from orders
-    const userIds = [...new Set(ordersData.map(order => order.user_id))];
-    console.log(`👥 Found ${userIds.length} unique users in orders`);
-
-    // Fetch all profiles for these users
-    const { data: profilesData, error: profilesError } = await supabase
-      .from("profiles")
-      .select("id, first_name, last_name, email, phone")
-      .in("id", userIds);
-
-    if (profilesError) {
-      console.error("❌ Error fetching profiles:", profilesError);
-      // Continue without profiles rather than failing completely
-    }
-
-    console.log(`📋 Fetched ${profilesData?.length || 0} profiles`);
-
-    // Create a map of user_id to profile for quick lookup
-    const profilesMap = new Map();
-    if (profilesData) {
-      profilesData.forEach(profile => {
-        profilesMap.set(profile.id, profile);
-        console.log(`📝 Mapped profile for user ${profile.id.substring(0, 8)}: ${profile.first_name} ${profile.last_name} (${profile.email})`);
-      });
-    }
-
-    // Process orders and attach profile data
+    // Process orders and ensure profile data is properly structured
     const processedOrders = ordersData.map((order: any) => {
       console.log(`🔄 Processing order ${order.id.substring(0, 8)} for user ${order.user_id.substring(0, 8)}`);
+      console.log('📋 Raw profile data:', order.profiles);
       
-      const profile = profilesMap.get(order.user_id);
       let orderProfile: OrderProfile | null = null;
 
-      if (profile) {
+      // Handle the profile data - it might be an object or null
+      if (order.profiles && typeof order.profiles === 'object') {
         orderProfile = {
-          first_name: profile.first_name || null,
-          last_name: profile.last_name || null,
-          email: profile.email || null,
-          phone: profile.phone || null
+          first_name: order.profiles.first_name || null,
+          last_name: order.profiles.last_name || null,
+          email: order.profiles.email || null,
+          phone: order.profiles.phone || null
         };
-        console.log(`✅ Found profile for user ${order.user_id.substring(0, 8)}: ${profile.first_name} ${profile.last_name}`);
+        console.log(`✅ Processed profile for user ${order.user_id.substring(0, 8)}:`, orderProfile);
       } else {
         console.log(`⚠️ No profile found for user ${order.user_id.substring(0, 8)}`);
       }
 
-      return {
+      const processedOrder: Order = {
         id: order.id,
         user_id: order.user_id,
         total: order.total,
@@ -87,14 +68,20 @@ export class OrderService {
         tracking_number: order.tracking_number,
         profiles: orderProfile
       };
+
+      console.log(`🎯 Final processed order:`, {
+        id: processedOrder.id.substring(0, 8),
+        user_id: processedOrder.user_id.substring(0, 8),
+        profiles: processedOrder.profiles
+      });
+
+      return processedOrder;
     });
 
-    console.log(`🎯 Processed ${processedOrders.length} orders with profile data`);
-    
     // Log summary of profile data
     const ordersWithProfiles = processedOrders.filter(order => order.profiles);
     const ordersWithoutProfiles = processedOrders.filter(order => !order.profiles);
-    console.log(`📊 Orders with profiles: ${ordersWithProfiles.length}, without profiles: ${ordersWithoutProfiles.length}`);
+    console.log(`📊 Final summary - Orders with profiles: ${ordersWithProfiles.length}, without profiles: ${ordersWithoutProfiles.length}`);
 
     return processedOrders;
   }
