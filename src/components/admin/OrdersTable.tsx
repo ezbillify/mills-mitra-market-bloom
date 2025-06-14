@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
-import { Order } from "@/hooks/useOrders";
+import { Order } from "@/types/order";
 import { generateCustomerName } from "@/utils/customerUtils";
 
 interface OrdersTableProps {
@@ -14,6 +14,8 @@ interface OrdersTableProps {
 }
 
 const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps) => {
+  console.log(`🔥 OrdersTable received ${orders.length} orders:`, orders);
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       pending: "outline",
@@ -29,29 +31,36 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   };
 
   const getCustomerName = (order: Order) => {
-    console.log(`🔍 OrdersTable - Processing order ${order.id.substring(0, 8)} for customer name`);
-    console.log('📝 OrdersTable - Profile data received:', order.profiles);
+    console.log(`🎯 getCustomerName called for order ${order.id.substring(0, 8)}`);
+    console.log(`📊 Raw order.profiles data:`, order.profiles);
     
-    if (order.profiles) {
-      const customerName = generateCustomerName({
-        id: order.user_id,
-        first_name: order.profiles.first_name,
-        last_name: order.profiles.last_name,
-        email: order.profiles.email
-      });
-      console.log(`✅ OrdersTable - Generated customer name: "${customerName}"`);
-      return customerName;
+    if (!order.profiles) {
+      console.log(`❌ No profiles data for order ${order.id.substring(0, 8)}`);
+      const fallbackName = `Customer ${order.user_id?.substring(0, 8) || 'Unknown'}`;
+      console.log(`🔄 Using fallback name: "${fallbackName}"`);
+      return fallbackName;
     }
     
-    // Fallback if no profile
-    const fallbackName = `Customer ${order.user_id?.substring(0, 8) || 'Unknown'}`;
-    console.log(`⚠️ OrdersTable - Using fallback name: "${fallbackName}"`);
-    return fallbackName;
+    console.log(`✅ Profiles data exists:`, {
+      first_name: order.profiles.first_name,
+      last_name: order.profiles.last_name,
+      email: order.profiles.email
+    });
+    
+    const customerName = generateCustomerName({
+      id: order.user_id,
+      first_name: order.profiles.first_name,
+      last_name: order.profiles.last_name,
+      email: order.profiles.email
+    });
+    
+    console.log(`🎉 Generated customer name: "${customerName}"`);
+    return customerName;
   };
 
   const getCustomerEmail = (order: Order) => {
     const email = order.profiles?.email || 'No email';
-    console.log(`📧 OrdersTable - Email for order ${order.id.substring(0, 8)}: "${email}"`);
+    console.log(`📧 Email for order ${order.id.substring(0, 8)}: "${email}"`);
     return email;
   };
 
@@ -70,11 +79,18 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     );
   }
 
-  console.log(`📊 OrdersTable rendering ${orders.length} orders`);
+  console.log(`📋 OrdersTable rendering table with ${orders.length} orders`);
   
-  // Log each order's profile data for debugging
+  // Detailed logging for each order's data structure
   orders.forEach((order, index) => {
-    console.log(`🔢 Order ${index + 1}/${orders.length} - ID: ${order.id.substring(0, 8)}, User: ${order.user_id.substring(0, 8)}, Profile:`, order.profiles);
+    console.log(`🔢 Order ${index + 1}:`, {
+      id: order.id.substring(0, 8),
+      user_id: order.user_id.substring(0, 8),
+      profiles_exists: !!order.profiles,
+      profiles_data: order.profiles,
+      total: order.total,
+      status: order.status
+    });
   });
 
   return (
@@ -97,12 +113,12 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
           </TableHeader>
           <TableBody>
             {orders.map((order, index) => {
-              console.log(`🎨 Rendering table row ${index + 1} for order ${order.id.substring(0, 8)}`);
+              console.log(`🎨 Rendering row ${index + 1} for order ${order.id.substring(0, 8)}`);
               
               const customerName = getCustomerName(order);
               const customerEmail = getCustomerEmail(order);
               
-              console.log(`✨ Final display values - Name: "${customerName}", Email: "${customerEmail}"`);
+              console.log(`✨ Final display values for row ${index + 1} - Name: "${customerName}", Email: "${customerEmail}"`);
               
               return (
                 <TableRow key={order.id}>
