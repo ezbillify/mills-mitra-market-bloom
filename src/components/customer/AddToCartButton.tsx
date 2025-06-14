@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useCartCount } from "@/hooks/useCartCount";
 
 interface AddToCartButtonProps {
   productId: string;
@@ -18,6 +19,7 @@ const AddToCartButton = ({ productId, productName, disabled }: AddToCartButtonPr
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { refetchCartCount } = useCartCount();
 
   const handleAddToCart = async () => {
     if (!user) {
@@ -31,6 +33,7 @@ const AddToCartButton = ({ productId, productName, disabled }: AddToCartButtonPr
     }
 
     setLoading(true);
+    console.log('🛒 Adding product to cart:', productId);
     
     try {
       // Check if item already exists in cart
@@ -49,6 +52,7 @@ const AddToCartButton = ({ productId, productName, disabled }: AddToCartButtonPr
           .eq('id', existingItem.id);
 
         if (error) throw error;
+        console.log('🛒 Updated existing cart item quantity');
       } else {
         // Add new item to cart
         const { error } = await supabase
@@ -60,7 +64,11 @@ const AddToCartButton = ({ productId, productName, disabled }: AddToCartButtonPr
           });
 
         if (error) throw error;
+        console.log('🛒 Added new item to cart');
       }
+
+      // Immediately refresh cart count to ensure UI updates
+      await refetchCartCount();
 
       toast({
         title: "Added to cart",
