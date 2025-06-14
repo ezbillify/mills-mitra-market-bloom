@@ -44,6 +44,35 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const signIn = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+    return data;
+  };
+
+  const signUp = async (email: string, password: string, userData?: any) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: userData,
+      },
+    });
+    if (error) throw error;
+    return data;
+  };
+
+  const signInWithGoogle = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+    });
+    if (error) throw error;
+    return data;
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -52,5 +81,18 @@ export const useAuth = () => {
     }
   };
 
-  return { user, session, loading, signOut };
+  return { 
+    user, 
+    session, 
+    loading, 
+    signIn,
+    signUp,
+    signInWithGoogle,
+    signOut 
+  };
+};
+
+// Create AuthProvider component
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  return <>{children}</>;
 };

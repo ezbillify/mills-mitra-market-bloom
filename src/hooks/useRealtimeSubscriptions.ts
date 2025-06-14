@@ -11,11 +11,11 @@ export const useRealtimeSubscriptions = ({ onDataChange }: UseRealtimeSubscripti
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
-    console.log('📡 Setting up real-time subscriptions...');
+    console.log('📡 Setting up enhanced real-time subscriptions...');
     
     // Create a single channel for all table changes
     const channel = supabase
-      .channel('customer-data-changes')
+      .channel('customer-data-changes-enhanced')
       .on(
         'postgres_changes',
         {
@@ -24,9 +24,15 @@ export const useRealtimeSubscriptions = ({ onDataChange }: UseRealtimeSubscripti
           table: 'profiles'
         },
         (payload) => {
-          console.log('🔴 Profile change detected:', payload.eventType);
+          console.log('🔴 Profile change detected:', {
+            event: payload.eventType,
+            table: payload.table,
+            record: payload.new || payload.old,
+            timestamp: new Date().toISOString()
+          });
           if (mountedRef.current) {
-            setTimeout(() => onDataChange(), 300);
+            // Immediate trigger for profile changes
+            onDataChange();
           }
         }
       )
@@ -38,21 +44,36 @@ export const useRealtimeSubscriptions = ({ onDataChange }: UseRealtimeSubscripti
           table: 'orders'
         },
         (payload) => {
-          console.log('🟡 Order change detected:', payload.eventType);
+          console.log('🟡 Order change detected:', {
+            event: payload.eventType,
+            table: payload.table,
+            record: payload.new || payload.old,
+            timestamp: new Date().toISOString()
+          });
           if (mountedRef.current) {
-            setTimeout(() => onDataChange(), 300);
+            // Immediate trigger for order changes
+            onDataChange();
           }
         }
       )
       .subscribe((status) => {
-        console.log('📡 Subscription status:', status);
+        console.log('📡 Enhanced subscription status:', status, new Date().toISOString());
       });
 
     channelRef.current = channel;
 
+    // Also set up a periodic refresh to catch any missed updates
+    const intervalId = setInterval(() => {
+      if (mountedRef.current) {
+        console.log('⏰ Periodic refresh triggered');
+        onDataChange();
+      }
+    }, 30000); // Every 30 seconds
+
     return () => {
-      console.log('🧹 Cleaning up subscriptions...');
+      console.log('🧹 Cleaning up enhanced subscriptions...');
       mountedRef.current = false;
+      clearInterval(intervalId);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
       }

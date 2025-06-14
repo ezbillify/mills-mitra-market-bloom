@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Mail, Phone, User, Wifi } from "lucide-react";
+import { Eye, Mail, Phone, User, Wifi, Clock } from "lucide-react";
 
 interface Customer {
   id: string;
@@ -21,7 +21,13 @@ interface CustomerTableProps {
 }
 
 const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
-  console.log('🔥 CustomerTable render - customers:', customers.length);
+  console.log('🔥 CustomerTable render - customers:', customers.length, 'at', new Date().toISOString());
+  console.log('🔥 Latest customers:', customers.slice(0, 3).map(c => ({
+    id: c.id.substring(0, 8),
+    name: c.name,
+    email: c.email,
+    joinDate: c.joinDate
+  })));
   
   const getStatusBadge = (status: string) => {
     return (
@@ -38,6 +44,7 @@ const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
           <User className="h-12 w-12 mx-auto mb-2 opacity-50" />
           <p>No customers found</p>
           <p className="text-sm">New customers will appear here automatically</p>
+          <p className="text-xs mt-2 text-blue-600">Debug: Checking all auth users and profiles...</p>
         </div>
       </div>
     );
@@ -48,10 +55,13 @@ const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
       <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200">
         <div className="flex items-center gap-2">
           <Wifi className="w-4 h-4 text-green-600" />
-          <span className="text-sm text-green-700 font-medium">Real-time Updates Active</span>
+          <span className="text-sm text-green-700 font-medium">Enhanced Real-time Updates Active</span>
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
         </div>
-        <span className="text-sm text-green-600">{customers.length} customers loaded</span>
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-green-600" />
+          <span className="text-sm text-green-600">{customers.length} customers loaded at {new Date().toLocaleTimeString()}</span>
+        </div>
       </div>
       
       <Table>
