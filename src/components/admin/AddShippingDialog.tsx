@@ -90,43 +90,45 @@ const AddShippingDialog = ({ onShippingAdded }: AddShippingDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-[#C9A350] hover:bg-[#D49847] text-white">
+        <Button className="bg-golden-millet hover:bg-golden-millet/90 text-warm-brown shadow-lg hover:shadow-xl transition-all duration-200">
           <Plus className="h-4 w-4 mr-2" />
           Add Shipping Option
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-white border-warm-beige/20">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
+          <DialogTitle className="flex items-center gap-2 text-warm-brown">
+            <Plus className="h-5 w-5 text-olive-leaf" />
             Add New Shipping Option
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Option Name</Label>
+            <Label htmlFor="name" className="text-warm-brown">Option Name</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               required
+              className="border-warm-beige/30 focus:border-golden-millet focus:ring-golden-millet/20"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description" className="text-warm-brown">Description</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={3}
               placeholder="Optional description for the shipping option"
+              className="border-warm-beige/30 focus:border-golden-millet focus:ring-golden-millet/20"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price">Price (₹)</Label>
+              <Label htmlFor="price" className="text-warm-brown">Price (₹)</Label>
               <Input
                 id="price"
                 type="number"
@@ -135,11 +137,12 @@ const AddShippingDialog = ({ onShippingAdded }: AddShippingDialogProps) => {
                 value={formData.price}
                 onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
                 required
+                className="border-warm-beige/30 focus:border-golden-millet focus:ring-golden-millet/20"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="minOrderValue">Min Order Value (₹)</Label>
+              <Label htmlFor="minOrderValue" className="text-warm-brown">Min Order Value (₹)</Label>
               <Input
                 id="minOrderValue"
                 type="number"
@@ -148,13 +151,14 @@ const AddShippingDialog = ({ onShippingAdded }: AddShippingDialogProps) => {
                 value={formData.minOrderValue}
                 onChange={(e) => setFormData(prev => ({ ...prev, minOrderValue: e.target.value }))}
                 placeholder="Optional"
+                className="border-warm-beige/30 focus:border-golden-millet focus:ring-golden-millet/20"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="deliveryDaysMin">Min Delivery Days</Label>
+              <Label htmlFor="deliveryDaysMin" className="text-warm-brown">Min Delivery Days</Label>
               <Input
                 id="deliveryDaysMin"
                 type="number"
@@ -162,11 +166,12 @@ const AddShippingDialog = ({ onShippingAdded }: AddShippingDialogProps) => {
                 value={formData.deliveryDaysMin}
                 onChange={(e) => setFormData(prev => ({ ...prev, deliveryDaysMin: e.target.value }))}
                 placeholder="1"
+                className="border-warm-beige/30 focus:border-golden-millet focus:ring-golden-millet/20"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="deliveryDaysMax">Max Delivery Days</Label>
+              <Label htmlFor="deliveryDaysMax" className="text-warm-brown">Max Delivery Days</Label>
               <Input
                 id="deliveryDaysMax"
                 type="number"
@@ -174,12 +179,13 @@ const AddShippingDialog = ({ onShippingAdded }: AddShippingDialogProps) => {
                 value={formData.deliveryDaysMax}
                 onChange={(e) => setFormData(prev => ({ ...prev, deliveryDaysMax: e.target.value }))}
                 placeholder="7"
+                className="border-warm-beige/30 focus:border-golden-millet focus:ring-golden-millet/20"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="maxWeight">Max Weight (kg)</Label>
+            <Label htmlFor="maxWeight" className="text-warm-brown">Max Weight (kg)</Label>
             <Input
               id="maxWeight"
               type="number"
@@ -188,6 +194,7 @@ const AddShippingDialog = ({ onShippingAdded }: AddShippingDialogProps) => {
               value={formData.maxWeight}
               onChange={(e) => setFormData(prev => ({ ...prev, maxWeight: e.target.value }))}
               placeholder="Optional"
+              className="border-warm-beige/30 focus:border-golden-millet focus:ring-golden-millet/20"
             />
           </div>
 
@@ -197,7 +204,7 @@ const AddShippingDialog = ({ onShippingAdded }: AddShippingDialogProps) => {
               checked={formData.isActive}
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
             />
-            <Label htmlFor="isActive">Active Shipping Option</Label>
+            <Label htmlFor="isActive" className="text-warm-brown">Active Shipping Option</Label>
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -205,11 +212,15 @@ const AddShippingDialog = ({ onShippingAdded }: AddShippingDialogProps) => {
               type="button" 
               variant="outline" 
               onClick={() => setOpen(false)}
-              className="flex-1"
+              className="flex-1 border-warm-beige/30 text-earth-brown hover:bg-warm-beige/10"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="flex-1 bg-[#C9A350] hover:bg-[#D49847]">
+            <Button 
+              type="submit" 
+              disabled={loading} 
+              className="flex-1 bg-golden-millet hover:bg-golden-millet/90 text-warm-brown"
+            >
               {loading ? "Adding..." : "Add Shipping Option"}
             </Button>
           </div>

@@ -158,48 +158,48 @@ const AdminShippingSettings = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-golden-millet"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Shipping Settings</h1>
-          <p className="text-gray-600 mt-1">Manage shipping options and pricing</p>
+          <h1 className="text-4xl font-bold text-warm-brown">Shipping Settings</h1>
+          <p className="text-earth-brown/70 mt-1">Manage shipping options and pricing</p>
         </div>
         <AddShippingDialog onShippingAdded={fetchShippingOptions} />
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-l-4 border-l-blue-500">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="border-l-4 border-l-olive-leaf bg-white shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Options</CardTitle>
+            <CardTitle className="text-sm font-medium text-earth-brown">Total Options</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{shippingOptions.length}</div>
+            <div className="text-3xl font-bold text-warm-brown">{shippingOptions.length}</div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-golden-millet bg-white shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Active Options</CardTitle>
+            <CardTitle className="text-sm font-medium text-earth-brown">Active Options</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">
+            <div className="text-3xl font-bold text-warm-brown">
               {shippingOptions.filter(o => o.is_active).length}
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-orange-500">
+        <Card className="border-l-4 border-l-earth-brown bg-white shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Average Price</CardTitle>
+            <CardTitle className="text-sm font-medium text-earth-brown">Average Price</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">
+            <div className="text-3xl font-bold text-warm-brown">
               ₹{shippingOptions.length > 0 
                 ? (shippingOptions.reduce((sum, o) => sum + Number(o.price), 0) / shippingOptions.length).toFixed(0)
                 : '0'}
@@ -209,31 +209,31 @@ const AdminShippingSettings = () => {
       </div>
 
       {/* Search Section */}
-      <Card>
+      <Card className="bg-white shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-warm-brown">
+            <Search className="h-5 w-5 text-olive-leaf" />
             Search Shipping Options
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-earth-brown/50" />
             <Input
               placeholder="Search shipping options..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 border-warm-beige/30 focus:border-golden-millet focus:ring-golden-millet/20"
             />
           </div>
         </CardContent>
       </Card>
 
       {/* Shipping Options Table */}
-      <Card>
+      <Card className="bg-white shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Truck className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-warm-brown">
+            <Truck className="h-5 w-5 text-olive-leaf" />
             Shipping Options ({filteredOptions.length} options)
           </CardTitle>
         </CardHeader>
@@ -241,41 +241,44 @@ const AdminShippingSettings = () => {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="font-semibold">Name</TableHead>
-                  <TableHead className="font-semibold">Price</TableHead>
-                  <TableHead className="font-semibold">Delivery Time</TableHead>
-                  <TableHead className="font-semibold">Min Order</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
-                  <TableHead className="font-semibold">Actions</TableHead>
+                <TableRow className="bg-warm-beige/10 border-b border-warm-beige/20">
+                  <TableHead className="font-semibold text-warm-brown">Name</TableHead>
+                  <TableHead className="font-semibold text-warm-brown">Price</TableHead>
+                  <TableHead className="font-semibold text-warm-brown">Delivery Time</TableHead>
+                  <TableHead className="font-semibold text-warm-brown">Min Order</TableHead>
+                  <TableHead className="font-semibold text-warm-brown">Status</TableHead>
+                  <TableHead className="font-semibold text-warm-brown">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredOptions.map((option) => (
-                  <TableRow key={option.id} className="hover:bg-gray-50">
+                  <TableRow key={option.id} className="hover:bg-warm-beige/5 border-b border-warm-beige/10">
                     <TableCell>
                       <div>
-                        <div className="font-medium text-gray-900">{option.name}</div>
-                        <div className="text-sm text-gray-500 max-w-[200px] truncate">
+                        <div className="font-medium text-warm-brown">{option.name}</div>
+                        <div className="text-sm text-earth-brown/70 max-w-[200px] truncate">
                           {option.description || "No description"}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium">₹{Number(option.price).toFixed(2)}</div>
+                      <div className="font-medium text-warm-brown">₹{Number(option.price).toFixed(2)}</div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">
+                      <div className="text-sm text-earth-brown">
                         {option.delivery_days_min}-{option.delivery_days_max} days
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">
+                      <div className="text-sm text-earth-brown">
                         {option.min_order_value ? `₹${Number(option.min_order_value).toFixed(2)}` : 'No minimum'}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={option.is_active ? 'default' : 'secondary'}>
+                      <Badge 
+                        variant={option.is_active ? 'default' : 'secondary'}
+                        className={option.is_active ? 'bg-olive-leaf text-warm-cream' : 'bg-warm-beige text-earth-brown'}
+                      >
                         {option.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
@@ -285,7 +288,7 @@ const AdminShippingSettings = () => {
                           variant="outline" 
                           size="sm"
                           onClick={() => handleEditOption(option)}
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 border-olive-leaf/30 text-olive-leaf hover:bg-olive-leaf hover:text-warm-cream"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -293,7 +296,7 @@ const AdminShippingSettings = () => {
                           variant="outline" 
                           size="sm"
                           onClick={() => toggleOptionStatus(option.id, option.is_active)}
-                          className="h-8 px-2 text-xs"
+                          className="h-8 px-2 text-xs border-golden-millet/30 text-golden-millet hover:bg-golden-millet hover:text-warm-brown"
                         >
                           {option.is_active ? 'Deactivate' : 'Activate'}
                         </Button>
@@ -301,7 +304,7 @@ const AdminShippingSettings = () => {
                           variant="outline" 
                           size="sm"
                           onClick={() => deleteShippingOption(option.id)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="h-8 w-8 p-0 border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -314,7 +317,7 @@ const AdminShippingSettings = () => {
           </div>
           
           {filteredOptions.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-earth-brown/70">
               <p>No shipping options found matching your search.</p>
             </div>
           )}

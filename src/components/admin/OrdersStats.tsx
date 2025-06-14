@@ -13,36 +13,40 @@ const OrdersStats = ({ orders }: OrdersStatsProps) => {
       title: "Total Orders",
       value: orders.length,
       icon: Package,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50"
+      color: "text-olive-leaf",
+      bgColor: "bg-olive-leaf/10",
+      borderColor: "border-l-olive-leaf"
     },
     {
       title: "Pending",
       value: orders.filter(o => o.status === 'pending').length,
       icon: Clock,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50"
+      color: "text-golden-millet",
+      bgColor: "bg-golden-millet/10",
+      borderColor: "border-l-golden-millet"
     },
     {
       title: "Processing",
       value: orders.filter(o => o.status === 'processing').length,
       icon: Truck,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50"
+      color: "text-earth-brown",
+      bgColor: "bg-earth-brown/10",
+      borderColor: "border-l-earth-brown"
     },
     {
       title: "Revenue",
       value: `₹${orders.reduce((sum, order) => sum + Number(order.total), 0).toFixed(2)}`,
       icon: CheckCircle,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50"
+      color: "text-olive-leaf",
+      bgColor: "bg-olive-leaf/10",
+      borderColor: "border-l-olive-leaf"
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       {stats.map((stat, index) => (
-        <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <Card key={index} className={`border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${stat.borderColor} border-l-4 bg-white`}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-earth-brown">{stat.title}</CardTitle>
             <div className={`p-2 rounded-lg ${stat.bgColor}`}>

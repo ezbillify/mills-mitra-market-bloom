@@ -17,7 +17,7 @@ const OrdersHeader = ({ onRefresh }: OrdersHeaderProps) => {
   };
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between mb-8">
       <div>
         <h1 className="text-4xl font-bold text-warm-brown mb-2">Orders Management</h1>
         <p className="text-earth-brown/70">Track and manage all customer orders</p>
@@ -32,9 +32,7 @@ const OrdersHeader = ({ onRefresh }: OrdersHeaderProps) => {
           <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
           {refreshing ? 'Refreshing...' : 'Refresh Orders'}
         </Button>
-        <Button 
-          className="bg-golden-millet hover:bg-golden-millet/90 text-warm-brown shadow-lg hover:shadow-xl transition-all duration-200"
-        >
+        <Button className="bg-golden-millet hover:bg-golden-millet/90 text-warm-brown shadow-lg hover:shadow-xl transition-all duration-200">
           <Package className="h-4 w-4 mr-2" />
           Export Data
         </Button>
