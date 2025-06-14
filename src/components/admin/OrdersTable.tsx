@@ -25,25 +25,24 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
       completed: "default",
       cancelled: "destructive"
     };
-    
-    return <Badge variant={variants[status] || "default"}>{status.replace('_', ' ')}</Badge>;
+    return <Badge variant={variants[status] || "default"}>{status.replace("_", " ")}</Badge>;
   };
 
-  // Use shared customer generation util for consistent naming
+  // Fix: Ensure id is present and provide correct fallbacks for missing profile
   const getCustomerName = (order: Order) => {
-    // Order's profiles property may be null, so we need a fallback
-    const profile = order.profiles || {
-      id: order.user_id,
-      first_name: null,
-      last_name: null,
-      email: order.user_id ? `user-${order.user_id.substring(0, 8)}@unknown.com` : null,
-      phone: null,
+    const fallbackId = order.user_id || (order.profiles && (order.profiles as any).id) || "Unknown";
+    // Construct a synthetic profile object with id + existing profile shape
+    const profile = {
+      id: fallbackId,
+      first_name: order.profiles?.first_name ?? null,
+      last_name: order.profiles?.last_name ?? null,
+      email:
+        order.profiles?.email ??
+        (fallbackId && `user-${fallbackId.substring(0, 8)}@unknown.com`) ??
+        null,
+      phone: order.profiles?.phone ?? null,
     };
-    // generateCustomerName expects a shape that includes id, first_name, last_name, email
-    return generateCustomerName({
-      id: order.user_id,
-      ...profile
-    });
+    return generateCustomerName(profile);
   };
 
   const getCustomerEmail = (order: Order) => {
@@ -96,8 +95,8 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                 <TableCell>{getStatusBadge(order.status)}</TableCell>
                 <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => onViewDetails(order.id)}
                   >
