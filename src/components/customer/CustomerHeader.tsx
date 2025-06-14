@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, User, LogOut, Package, Menu } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
+import { useCartCount } from "@/hooks/useCartCount";
 import AdminAccessButton from "./AdminAccessButton";
 import { useState } from "react";
 import {
@@ -21,6 +22,7 @@ import {
 
 const CustomerHeader = () => {
   const { user, signOut } = useAuth();
+  const { cartCount } = useCartCount();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -57,12 +59,14 @@ const CustomerHeader = () => {
                 <Link to="/cart">
                   <Button variant="ghost" size="sm" className="relative p-2">
                     <ShoppingCart className="h-5 w-5" />
-                    <Badge 
-                      variant="destructive" 
-                      className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-xs p-0"
-                    >
-                      0
-                    </Badge>
+                    {cartCount > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center text-xs p-0 min-w-4"
+                      >
+                        {cartCount > 99 ? '99+' : cartCount}
+                      </Badge>
+                    )}
                   </Button>
                 </Link>
 
