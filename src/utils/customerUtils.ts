@@ -1,9 +1,15 @@
-
 interface CustomerData {
   id: string;
   first_name?: string | null;
   last_name?: string | null;
   email?: string | null;
+}
+
+interface OrderProfile {
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone?: string | null;
 }
 
 interface UserData {
@@ -47,7 +53,7 @@ interface Customer {
   };
 }
 
-export const generateCustomerName = (customer: CustomerData): string => {
+export const generateCustomerName = (customer: CustomerData | OrderProfile): string => {
   console.log(`🎯 generateCustomerName called with data:`, customer);
   
   // If we have both first and last name, use them
@@ -76,13 +82,19 @@ export const generateCustomerName = (customer: CustomerData): string => {
     return emailName;
   }
   
-  // Fallback to customer ID
-  const fallbackName = `Customer ${customer.id.substring(0, 8)}`;
-  console.log(`🔄 Using fallback name: "${fallbackName}"`);
-  return fallbackName;
+  // Fallback - for CustomerData use ID, for OrderProfile use generic fallback
+  if ('id' in customer) {
+    const fallbackName = `Customer ${customer.id.substring(0, 8)}`;
+    console.log(`🔄 Using fallback name: "${fallbackName}"`);
+    return fallbackName;
+  } else {
+    const fallbackName = 'Customer';
+    console.log(`🔄 Using generic fallback name: "${fallbackName}"`);
+    return fallbackName;
+  }
 };
 
-export const getCustomerEmail = (customer: CustomerData): string => {
+export const getCustomerEmail = (customer: CustomerData | OrderProfile): string => {
   return customer.email && customer.email !== 'No email provided' ? customer.email : 'No email';
 };
 
