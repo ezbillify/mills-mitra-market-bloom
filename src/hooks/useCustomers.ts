@@ -37,9 +37,9 @@ export const useCustomers = () => {
         setLoading(true);
       }
 
-      console.log('Fetching comprehensive customer data...');
+      console.log('=== STARTING CUSTOMER FETCH ===');
       
-      // Get all profiles with better data handling
+      // Get all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -50,68 +50,74 @@ export const useCustomers = () => {
         throw profilesError;
       }
 
-      console.log('Raw profiles data:', profiles);
+      console.log('=== PROFILES FETCHED ===');
+      console.log('Profiles count:', profiles?.length || 0);
+      console.log('Sample profiles:', profiles?.slice(0, 3));
 
-      // Fetch all orders to get order statistics
-      const { data: orderStats, error: orderStatsError } = await supabase
+      // Fetch all orders
+      const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select('user_id, total, status');
 
-      if (orderStatsError) {
-        console.error('Error fetching order stats:', orderStatsError);
+      if (ordersError) {
+        console.error('Error fetching orders:', ordersError);
       }
 
-      console.log('Raw order stats:', orderStats);
+      console.log('=== ORDERS FETCHED ===');
+      console.log('Orders count:', orders?.length || 0);
+      console.log('Sample orders:', orders?.slice(0, 3));
 
-      // Create a map of user orders for quick lookup
-      const userOrdersMap = new Map<string, { count: number; total: number }>();
-      orderStats?.forEach(order => {
+      // Process order statistics
+      const orderStatsMap = new Map();
+      orders?.forEach(order => {
         if (order.status !== 'cancelled') {
-          const existing = userOrdersMap.get(order.user_id) || { count: 0, total: 0 };
-          userOrdersMap.set(order.user_id, {
+          const existing = orderStatsMap.get(order.user_id) || { count: 0, total: 0 };
+          orderStatsMap.set(order.user_id, {
             count: existing.count + 1,
-            total: existing.total + Number(order.total)
+            total: existing.total + Number(order.total || 0)
           });
         }
       });
 
-      // Create customers from profiles with improved name logic
-      const customersFromProfiles: Customer[] = (profiles || []).map(profile => {
-        console.log('Processing profile:', profile);
-        
-        const userOrders = userOrdersMap.get(profile.id) || { count: 0, total: 0 };
-        
-        // Improved customer name generation with better fallbacks
-        let customerName = 'Unknown Customer';
-        
-        if (profile.first_name && profile.last_name) {
-          customerName = `${profile.first_name} ${profile.last_name}`.trim();
-        } else if (profile.first_name) {
-          customerName = profile.first_name.trim();
-        } else if (profile.last_name) {
-          customerName = profile.last_name.trim();
-        } else if (profile.email) {
-          // Extract name from email prefix
-          const emailPrefix = profile.email.split('@')[0];
-          customerName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
-        } else {
-          customerName = `User ${profile.id.substring(0, 8)}`;
-        }
-        
-        console.log('Generated customer name:', customerName, 'from profile:', {
+      console.log('=== ORDER STATS PROCESSED ===');
+      console.log('Order stats map size:', orderStatsMap.size);
+
+      // Process profiles into customers
+      const processedCustomers: Customer[] = (profiles || []).map(profile => {
+        console.log('Processing profile:', {
+          id: profile.id,
           first_name: profile.first_name,
           last_name: profile.last_name,
           email: profile.email
         });
+
+        const orderStats = orderStatsMap.get(profile.id) || { count: 0, total: 0 };
         
-        return {
+        // Generate customer name with detailed logging
+        let customerName = 'Unknown Customer';
+        
+        if (profile.first_name || profile.last_name) {
+          const firstName = profile.first_name?.trim() || '';
+          const lastName = profile.last_name?.trim() || '';
+          customerName = `${firstName} ${lastName}`.trim();
+          console.log(`Name from profile names: "${customerName}"`);
+        } else if (profile.email) {
+          const emailPrefix = profile.email.split('@')[0];
+          customerName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+          console.log(`Name from email: "${customerName}"`);
+        } else {
+          customerName = `Customer ${profile.id.substring(0, 8)}`;
+          console.log(`Default name: "${customerName}"`);
+        }
+
+        const customer: Customer = {
           id: profile.id,
           name: customerName,
           email: profile.email || 'No email provided',
           phone: profile.phone || '',
-          totalOrders: userOrders.count,
-          totalSpent: userOrders.total,
-          status: (userOrders.count > 0 ? 'active' : 'inactive') as 'active' | 'inactive',
+          totalOrders: orderStats.count,
+          totalSpent: orderStats.total,
+          status: (orderStats.count > 0 ? 'active' : 'inactive') as 'active' | 'inactive',
           joinDate: profile.created_at,
           profile: {
             first_name: profile.first_name,
@@ -122,47 +128,31 @@ export const useCustomers = () => {
             country: profile.country
           }
         };
+
+        console.log('Generated customer:', {
+          id: customer.id,
+          name: customer.name,
+          email: customer.email,
+          totalOrders: customer.totalOrders
+        });
+
+        return customer;
       });
 
-      // Get users with orders but no profiles (edge case)
-      const profileUserIds = new Set(profiles?.map(p => p.id) || []);
-      const orderUserIds = [...new Set(orderStats?.map(order => order.user_id) || [])];
-      const missingProfileUserIds = orderUserIds.filter(userId => !profileUserIds.has(userId));
-
-      console.log('Users with orders but no profiles:', missingProfileUserIds.length);
-
-      // Create customers for users with orders but no profiles
-      const customersFromOrders: Customer[] = missingProfileUserIds.map(userId => {
-        const userOrders = userOrdersMap.get(userId) || { count: 0, total: 0 };
-        
-        return {
-          id: userId,
-          name: `Customer ${userId.substring(0, 8)}`,
-          email: 'Profile not found',
-          phone: '',
-          totalOrders: userOrders.count,
-          totalSpent: userOrders.total,
-          status: 'active' as 'active' | 'inactive',
-          joinDate: new Date().toISOString(),
-          profile: undefined
-        };
-      });
-
-      const allCustomers = [...customersFromProfiles, ...customersFromOrders];
+      console.log('=== FINAL CUSTOMERS ===');
+      console.log('Total customers:', processedCustomers.length);
+      console.log('Customer names:', processedCustomers.map(c => c.name));
       
-      console.log('Final processed customers:', allCustomers);
-      console.log('Customer names:', allCustomers.map(c => ({ id: c.id, name: c.name, email: c.email })));
-      
-      setCustomers(allCustomers);
+      setCustomers(processedCustomers);
 
       if (showRefreshToast) {
         toast({
           title: "Success",
-          description: `Refreshed customer data - found ${allCustomers.length} customers`,
+          description: `Refreshed customer data - found ${processedCustomers.length} customers`,
         });
       }
     } catch (error) {
-      console.error('Error fetching customers:', error);
+      console.error('=== ERROR IN FETCH CUSTOMERS ===', error);
       toast({
         title: "Error",
         description: "Failed to load customers",

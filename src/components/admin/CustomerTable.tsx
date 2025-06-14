@@ -21,7 +21,9 @@ interface CustomerTableProps {
 }
 
 const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
-  console.log('CustomerTable rendering with customers:', customers);
+  console.log('=== CUSTOMER TABLE RENDER ===');
+  console.log('Customers received:', customers.length);
+  console.log('Sample customer data:', customers[0]);
   
   const getStatusBadge = (status: string) => {
     return (
@@ -40,21 +42,6 @@ const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
     return <Badge variant="outline">Regular</Badge>;
   };
 
-  const formatCustomerName = (name: string) => {
-    // Ensure we always have a proper display name
-    if (!name || name.trim() === '') {
-      return 'Unknown Customer';
-    }
-    return name;
-  };
-
-  const formatEmail = (email: string) => {
-    if (!email || email === 'No email provided' || email === 'Profile not found') {
-      return <span className="text-gray-400 italic">{email || 'No email'}</span>;
-    }
-    return email;
-  };
-
   return (
     <Table>
       <TableHeader>
@@ -71,7 +58,12 @@ const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
       </TableHeader>
       <TableBody>
         {customers.map((customer) => {
-          console.log('Rendering customer row:', customer);
+          console.log('Rendering customer:', {
+            id: customer.id,
+            name: customer.name,
+            email: customer.email
+          });
+          
           return (
             <TableRow key={customer.id}>
               <TableCell>
@@ -80,14 +72,14 @@ const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
                     <User className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="font-medium">{formatCustomerName(customer.name)}</div>
+                    <div className="font-medium">{customer.name || 'No Name'}</div>
                     <div className="text-sm text-gray-500">{customer.id.substring(0, 8)}...</div>
                   </div>
                 </div>
               </TableCell>
               <TableCell>
                 <div className="space-y-1">
-                  <div className="text-sm">{formatEmail(customer.email)}</div>
+                  <div className="text-sm">{customer.email || 'No email'}</div>
                   <div className="text-sm text-gray-500">{customer.phone || 'Not provided'}</div>
                 </div>
               </TableCell>
