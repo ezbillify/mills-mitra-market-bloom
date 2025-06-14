@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Package } from "lucide-react";
@@ -91,13 +90,13 @@ const AdminOrders = () => {
     try {
       console.log("Fetching orders...");
 
-      // Correct join: profiles!user_id joins orders.user_id = profiles.id
+      // Use the foreign key relationship: orders.user_id -> profiles.id
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(
           `
           *,
-          profiles!user_id (
+          profiles:orders_user_id_fkey (
             first_name,
             last_name,
             email,
