@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Package } from "lucide-react";
@@ -8,15 +7,13 @@ import OrdersStats from "@/components/admin/OrdersStats";
 import OrdersTable from "@/components/admin/OrdersTable";
 import OrderDetailsDialog from "@/components/admin/OrderDetailsDialog";
 
-type OrderProfile =
-  | {
-      first_name: string | null;
-      last_name: string | null;
-      email: string | null;
-      phone?: string | null;
-    }
-  | null
-  | { error: true };
+// The OrderProfile type should only allow a valid profile object or null (NEVER { error: true }).
+type OrderProfile = {
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone?: string | null;
+} | null;
 
 interface Order {
   id: string;
@@ -71,10 +68,18 @@ const AdminOrders = () => {
 
   // Helper to sanitize profiles so the UI never gets the error object
   function sanitizeProfile(profile: any): OrderProfile {
-    if (!profile) return null;
     if (
-      typeof profile === "object" &&
-      Object.prototype.hasOwnProperty.call(profile, "error")
+      !profile ||
+      (typeof profile === "object" &&
+        Object.prototype.hasOwnProperty.call(profile, "error"))
+    ) {
+      return null;
+    }
+    // check minimal shape
+    if (
+      typeof profile.first_name === "undefined" ||
+      typeof profile.last_name === "undefined" ||
+      typeof profile.email === "undefined"
     ) {
       return null;
     }
@@ -113,7 +118,7 @@ const AdminOrders = () => {
 
       console.log("Orders fetched successfully:", ordersData);
 
-      // Map profiles to guarantee safe value
+      // Only valid profile shape or null goes into order.profiles
       const sanitizedOrders =
         ordersData?.map((order: any) => ({
           ...order,
