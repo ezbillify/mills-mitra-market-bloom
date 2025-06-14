@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -59,8 +58,33 @@ export const useOrders = () => {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      console.log("Fetching orders with profile data...");
+      console.log("🔍 Fetching orders with profile data...");
 
+      // First, let's test the basic orders query
+      const { data: basicOrdersData, error: basicError } = await supabase
+        .from("orders")
+        .select("*")
+        .limit(5);
+
+      console.log("📋 Basic orders query result:", {
+        count: basicOrdersData?.length || 0,
+        error: basicError,
+        sampleOrder: basicOrdersData?.[0]
+      });
+
+      // Now let's test if profiles table has data
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*")
+        .limit(5);
+
+      console.log("👤 Profiles table check:", {
+        count: profilesData?.length || 0,
+        error: profilesError,
+        sampleProfile: profilesData?.[0]
+      });
+
+      // Now the full query with join
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(
@@ -82,8 +106,14 @@ export const useOrders = () => {
         )
         .order("created_at", { ascending: false });
 
+      console.log("🔗 Orders with profiles join result:", {
+        count: ordersData?.length || 0,
+        error: ordersError,
+        rawData: ordersData?.slice(0, 2)
+      });
+
       if (ordersError) {
-        console.error("Error fetching orders:", ordersError);
+        console.error("❌ Error fetching orders:", ordersError);
         toast({
           title: "Error",
           description: `Failed to fetch orders: ${ordersError.message}`,
@@ -93,7 +123,7 @@ export const useOrders = () => {
         return;
       }
 
-      console.log(`Fetched ${ordersData?.length || 0} orders`);
+      console.log(`✅ Fetched ${ordersData?.length || 0} orders`);
       
       if (!ordersData || ordersData.length === 0) {
         setOrders([]);
@@ -101,15 +131,26 @@ export const useOrders = () => {
       }
       
       // Process and sanitize orders
-      const sanitizedOrders = ordersData.map((order: any) => ({
-        ...order,
-        profiles: sanitizeProfile(order.profiles),
-      }));
+      const sanitizedOrders = ordersData.map((order: any, index: number) => {
+        const sanitized = {
+          ...order,
+          profiles: sanitizeProfile(order.profiles),
+        };
+        
+        console.log(`🔍 Order ${index + 1}:`, {
+          id: sanitized.id.substring(0, 8),
+          user_id: sanitized.user_id.substring(0, 8),
+          rawProfiles: order.profiles,
+          sanitizedProfiles: sanitized.profiles
+        });
+        
+        return sanitized;
+      });
 
-      console.log(`Processed ${sanitizedOrders.length} orders successfully`);
+      console.log(`✅ Processed ${sanitizedOrders.length} orders successfully`);
       setOrders(sanitizedOrders);
     } catch (error) {
-      console.error("Unexpected error in fetchOrders:", error);
+      console.error("💥 Unexpected error in fetchOrders:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred while fetching orders",

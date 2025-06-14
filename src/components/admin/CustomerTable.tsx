@@ -121,6 +121,7 @@ const CustomerTable = ({
               <TableHead>Status</TableHead>
               <TableHead>Join Date</TableHead>
               <TableHead>Actions</TableHead>
+              <TableHead className="text-xs text-gray-400">Debug Data</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -205,6 +206,21 @@ const CustomerTable = ({
                         >
                           <Phone className="h-4 w-4" />
                         </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-xs text-gray-400 max-w-xs">
+                      <div>ID: {customer.id.substring(0, 8)}</div>
+                      <div>Name: {customer.name}</div>
+                      <div>Email: {customer.email}</div>
+                      <div>Orders: {customer.totalOrders}</div>
+                      <div>Profile: {customer.profile ? 'EXISTS' : 'NULL'}</div>
+                      {customer.profile && (
+                        <div>
+                          <div>First: {customer.profile.first_name || 'null'}</div>
+                          <div>Last: {customer.profile.last_name || 'null'}</div>
+                        </div>
                       )}
                     </div>
                   </TableCell>

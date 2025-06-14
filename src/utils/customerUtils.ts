@@ -1,12 +1,12 @@
-
 import { Customer } from "@/types/customer";
 
 export const generateCustomerName = (profile: any): string => {
-  console.log('Generating customer name for profile:', {
+  console.log('🔍 generateCustomerName called with profile:', {
     id: profile.id?.substring(0, 8),
     firstName: profile.first_name,
     lastName: profile.last_name,
     email: profile.email,
+    fullProfile: profile
   });
 
   const rawFirstName = profile.first_name;
@@ -19,7 +19,7 @@ export const generateCustomerName = (profile: any): string => {
     
     if (firstName || lastName) {
       const fullName = `${firstName} ${lastName}`.trim();
-      console.log(`Generated name from profile data: "${fullName}"`);
+      console.log(`✅ Generated name from profile data: "${fullName}"`);
       return fullName;
     }
   }
@@ -35,14 +35,14 @@ export const generateCustomerName = (profile: any): string => {
       const capitalizedName = cleanName.split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
-      console.log(`Generated name from email: "${capitalizedName}"`);
+      console.log(`✅ Generated name from email: "${capitalizedName}"`);
       return capitalizedName;
     }
   }
 
   // Fallback: use a simple customer identifier
   const fallbackName = `Customer ${profile.id?.substring(0, 8) || 'Unknown'}`;
-  console.log(`Using fallback name: "${fallbackName}"`);
+  console.log(`⚠️ Using fallback name: "${fallbackName}"`);
   return fallbackName;
 };
 
