@@ -21,6 +21,16 @@ export const useCustomers = () => {
       }
 
       const processedCustomers = await fetchCustomersData();
+      
+      console.log('📊 Setting customers state:', {
+        count: processedCustomers.length,
+        customers: processedCustomers.map(c => ({
+          id: c.id.substring(0, 8),
+          name: c.name,
+          email: c.email
+        }))
+      });
+      
       setCustomers(processedCustomers);
 
       if (showRefreshToast) {
@@ -33,7 +43,7 @@ export const useCustomers = () => {
       console.error('💥 === ERROR IN CUSTOMER FETCH ===', error);
       toast({
         title: "❌ Error",
-        description: "Failed to load customer data",
+        description: "Failed to load customer data. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -47,11 +57,18 @@ export const useCustomers = () => {
     fetchCustomers(true);
   }, [fetchCustomers]);
 
+  // Enhanced real-time data change handler
+  const handleRealtimeDataChange = useCallback(() => {
+    console.log('🔔 Real-time data change detected, refreshing customers...');
+    fetchCustomers(false);
+  }, [fetchCustomers]);
+
   // Set up real-time subscriptions
-  useRealtimeSubscriptions({ onDataChange: fetchCustomers });
+  useRealtimeSubscriptions({ onDataChange: handleRealtimeDataChange });
 
   useEffect(() => {
     // Initial fetch
+    console.log('🚀 Initial customer data fetch...');
     fetchCustomers();
   }, [fetchCustomers]);
 

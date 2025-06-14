@@ -2,22 +2,35 @@
 import { Customer } from "@/types/customer";
 
 export const generateCustomerName = (profile: any): string => {
+  console.log('🏷️ Generating customer name for profile:', {
+    id: profile.id?.substring(0, 8),
+    firstName: profile.first_name,
+    lastName: profile.last_name,
+    email: profile.email
+  });
+
   if (profile.first_name || profile.last_name) {
     const firstName = profile.first_name?.trim() || '';
     const lastName = profile.last_name?.trim() || '';
-    return `${firstName} ${lastName}`.trim();
+    const fullName = `${firstName} ${lastName}`.trim();
+    console.log(`✅ Generated name from profile: "${fullName}"`);
+    return fullName;
   } else if (profile.email) {
     const emailPrefix = profile.email.split('@')[0];
-    return emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+    const capitalizedName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+    console.log(`📧 Generated name from email: "${capitalizedName}"`);
+    return capitalizedName;
   } else {
-    return `Customer ${profile.id.substring(0, 8)}`;
+    const fallbackName = `Customer ${profile.id?.substring(0, 8) || 'Unknown'}`;
+    console.log(`🔄 Using fallback name: "${fallbackName}"`);
+    return fallbackName;
   }
 };
 
 export const processCustomerData = (userData: any): Customer => {
   const { profile, orders, hasProfile } = userData;
   
-  console.log(`🔄 Processing user: ${profile.id.substring(0, 8)}, hasProfile: ${hasProfile}`);
+  console.log(`🔄 Processing user: ${profile.id.substring(0, 8)}, hasProfile: ${hasProfile}, orderCount: ${orders.length}`);
 
   // Calculate order statistics
   const totalOrders = orders.length;
@@ -26,6 +39,16 @@ export const processCustomerData = (userData: any): Customer => {
   // Generate customer name
   const customerName = generateCustomerName(profile);
 
+  // Determine status based on profile existence and orders
+  let status: 'active' | 'inactive' = 'inactive';
+  if (hasProfile && totalOrders > 0) {
+    status = 'active';
+  } else if (hasProfile && totalOrders === 0) {
+    status = 'inactive';
+  } else if (!hasProfile && totalOrders > 0) {
+    status = 'active'; // User with orders but no complete profile
+  }
+
   const customer: Customer = {
     id: profile.id,
     name: customerName,
@@ -33,7 +56,7 @@ export const processCustomerData = (userData: any): Customer => {
     phone: profile.phone || '',
     totalOrders,
     totalSpent,
-    status: (totalOrders > 0 ? 'active' : 'inactive') as 'active' | 'inactive',
+    status,
     joinDate: profile.created_at,
     profile: hasProfile ? {
       first_name: profile.first_name,
@@ -50,6 +73,8 @@ export const processCustomerData = (userData: any): Customer => {
     name: customer.name,
     email: customer.email,
     totalOrders: customer.totalOrders,
+    totalSpent: customer.totalSpent,
+    status: customer.status,
     hasProfile
   });
 
