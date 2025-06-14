@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -104,9 +103,25 @@ export const useOrders = () => {
         return;
       }
       
-      // Process and sanitize orders
-      const sanitizedOrders = ordersData.map((order: any) => {
+      // Process and sanitize orders with detailed logging
+      const sanitizedOrders = ordersData.map((order: any, index: number) => {
+        console.log(`🔄 Processing order ${index + 1}/${ordersData.length}:`, {
+          orderId: order.id.substring(0, 8),
+          userId: order.user_id.substring(0, 8),
+          profileData: order.profiles
+        });
+        
         const sanitizedProfile = sanitizeProfile(order.profiles);
+        
+        if (sanitizedProfile) {
+          console.log(`✅ Valid profile found for order ${order.id.substring(0, 8)}:`, {
+            firstName: sanitizedProfile.first_name,
+            lastName: sanitizedProfile.last_name,
+            email: sanitizedProfile.email
+          });
+        } else {
+          console.log(`⚠️ No valid profile for order ${order.id.substring(0, 8)}`);
+        }
         
         const processed = {
           ...order,

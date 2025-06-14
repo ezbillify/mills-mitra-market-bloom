@@ -29,28 +29,48 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   };
 
   const getCustomerName = (order: Order) => {
-    const fallbackId = order.user_id || (order.profiles && (order.profiles as any).id) || "Unknown";
+    console.log(`🔍 Processing order ${order.id.substring(0, 8)} for customer name`);
+    console.log('📝 Profile data:', order.profiles);
     
-    // Construct a synthetic profile object with id + existing profile shape
-    const profile = {
-      id: fallbackId,
-      first_name: order.profiles?.first_name ?? null,
-      last_name: order.profiles?.last_name ?? null,
-      email:
-        order.profiles?.email ??
-        (fallbackId && `user-${fallbackId.substring(0, 8)}@unknown.com`) ??
-        null,
-      phone: order.profiles?.phone ?? null,
-    };
-
-    return generateCustomerName(profile);
+    // If we have valid profile data, use it directly
+    if (order.profiles && typeof order.profiles === 'object' && !Array.isArray(order.profiles)) {
+      const profile = order.profiles;
+      
+      // Check if we have actual name data
+      if (profile.first_name || profile.last_name) {
+        const firstName = profile.first_name || '';
+        const lastName = profile.last_name || '';
+        const fullName = `${firstName} ${lastName}`.trim();
+        console.log(`✅ Found profile name: "${fullName}"`);
+        return fullName;
+      }
+      
+      // Try to extract from email if it's a real email
+      if (profile.email && !profile.email.startsWith('user-') && profile.email !== 'No email provided') {
+        const emailPrefix = profile.email.split('@')[0];
+        const cleanName = emailPrefix.replace(/[0-9._-]/g, ' ').trim();
+        
+        if (cleanName && cleanName.length > 2) {
+          const capitalizedName = cleanName.split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+          console.log(`📧 Generated name from email: "${capitalizedName}"`);
+          return capitalizedName;
+        }
+      }
+    }
+    
+    // Fallback: use customer ID
+    const fallbackName = `Customer ${order.user_id?.substring(0, 8) || 'Unknown'}`;
+    console.log(`🔄 Using fallback name: "${fallbackName}"`);
+    return fallbackName;
   };
 
   const getCustomerEmail = (order: Order) => {
-    if (!order.profiles?.email) {
-      return 'No email';
+    if (order.profiles && typeof order.profiles === 'object' && !Array.isArray(order.profiles)) {
+      return order.profiles.email || 'No email';
     }
-    return order.profiles.email;
+    return 'No email';
   };
 
   if (orders.length === 0) {
@@ -67,6 +87,8 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
       </Card>
     );
   }
+
+  console.log(`📊 OrdersTable rendering ${orders.length} orders`);
 
   return (
     <Card>
