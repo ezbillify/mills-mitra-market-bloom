@@ -28,7 +28,6 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     return <Badge variant={variants[status] || "default"}>{status.replace("_", " ")}</Badge>;
   };
 
-  // Fix: Ensure id is present and provide correct fallbacks for missing profile
   const getCustomerName = (order: Order) => {
     const fallbackId = order.user_id || (order.profiles && (order.profiles as any).id) || "Unknown";
     // Construct a synthetic profile object with id + existing profile shape
@@ -83,7 +82,6 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Actions</TableHead>
-              <TableHead className="text-xs text-gray-400">Profile Debug</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -104,12 +102,6 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                     <Eye className="h-4 w-4 mr-2" />
                     View Details
                   </Button>
-                </TableCell>
-                <TableCell>
-                  <pre className="whitespace-pre-wrap text-xs text-gray-400 max-w-xs overflow-x-auto">
-                    {/* Display the raw profiles object for debugging */}
-                    {order.profiles ? JSON.stringify(order.profiles, null, 1) : "null"}
-                  </pre>
                 </TableCell>
               </TableRow>
             ))}

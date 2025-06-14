@@ -37,8 +37,6 @@ export const useOrders = () => {
 
   // Helper to sanitize profiles so the UI never gets the error object
   function sanitizeProfile(profile: any): OrderProfile {
-    console.log('Profile sanitization:', { profile, type: typeof profile });
-    
     // Handle null, undefined, or invalid objects
     if (!profile || typeof profile !== "object" || Array.isArray(profile)) {
       return null;
@@ -103,24 +101,12 @@ export const useOrders = () => {
       }
       
       // Process and sanitize orders
-      const sanitizedOrders = ordersData.map((order: any, idx: number) => {
-        const out = {
-          ...order,
-          profiles: sanitizeProfile(order.profiles),
-        };
-        // Add detailed logging for each order's profile
-        console.log(
-          `[Order:${idx}] ID: ${out.id} | user_id: ${out.user_id}\n-> profiles (raw):`,
-          order.profiles,
-          "\n-> profiles (sanitized):",
-          out.profiles
-        );
-        return out;
-      });
+      const sanitizedOrders = ordersData.map((order: any) => ({
+        ...order,
+        profiles: sanitizeProfile(order.profiles),
+      }));
 
-      // Print all sanitized orders for inspection
-      console.log("Sanitized orders FINAL:", sanitizedOrders);
-
+      console.log(`Processed ${sanitizedOrders.length} orders successfully`);
       setOrders(sanitizedOrders);
     } catch (error) {
       console.error("Unexpected error in fetchOrders:", error);
