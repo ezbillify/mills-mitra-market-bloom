@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 import { Order } from "@/hooks/useOrders";
+import { generateCustomerName } from "@/utils/customerUtils";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -28,30 +29,21 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     return <Badge variant={variants[status] || "default"}>{status.replace('_', ' ')}</Badge>;
   };
 
+  // Use shared customer generation util for consistent naming
   const getCustomerName = (order: Order) => {
-    if (!order.profiles) {
-      return `Customer ${order.user_id.substring(0, 8)}`;
-    }
-    
-    const { first_name, last_name, email } = order.profiles;
-    
-    // Try to build name from first and last name
-    if (first_name || last_name) {
-      return `${first_name || ''} ${last_name || ''}`.trim();
-    }
-    
-    // Fall back to email-based name if available
-    if (email && !email.startsWith('user-') && email !== 'No email provided') {
-      const emailPrefix = email.split('@')[0];
-      const cleanName = emailPrefix.replace(/[0-9._-]/g, ' ').trim();
-      if (cleanName && cleanName.length > 2) {
-        return cleanName.split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-          .join(' ');
-      }
-    }
-    
-    return `Customer ${order.user_id.substring(0, 8)}`;
+    // Order's profiles property may be null, so we need a fallback
+    const profile = order.profiles || {
+      id: order.user_id,
+      first_name: null,
+      last_name: null,
+      email: order.user_id ? `user-${order.user_id.substring(0, 8)}@unknown.com` : null,
+      phone: null,
+    };
+    // generateCustomerName expects a shape that includes id, first_name, last_name, email
+    return generateCustomerName({
+      id: order.user_id,
+      ...profile
+    });
   };
 
   const getCustomerEmail = (order: Order) => {
@@ -123,3 +115,4 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
 };
 
 export default OrdersTable;
+
