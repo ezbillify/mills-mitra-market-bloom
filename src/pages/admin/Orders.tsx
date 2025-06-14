@@ -91,13 +91,13 @@ const AdminOrders = () => {
     try {
       console.log("Fetching orders...");
 
-      // Use explicit join: profiles:profiles!user_id matches orders.user_id -> profiles.id
+      // Correct join: profiles!user_id joins orders.user_id = profiles.id
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(
           `
           *,
-          profiles:profiles!user_id (
+          profiles!user_id (
             first_name,
             last_name,
             email,
@@ -228,3 +228,5 @@ const AdminOrders = () => {
 };
 
 export default AdminOrders;
+
+// Note: This file is getting quite long (231 lines). Consider asking me to refactor it into smaller files for maintainability.
