@@ -1,39 +1,17 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Mail, Phone, User, Wifi, Clock, RefreshCw } from "lucide-react";
+import { Eye, Mail, Phone, User } from "lucide-react";
 import { Customer } from "@/types/customer";
 
 interface CustomerTableProps {
-  customers?: Customer[];
+  customers: Customer[];
   onViewCustomer: (customer: Customer) => void;
-  refreshTrigger?: number;
-  supabaseClient?: any;
 }
 
-const CustomerTable = ({ 
-  customers: propCustomers, 
-  onViewCustomer, 
-  refreshTrigger,
-  supabaseClient 
-}: CustomerTableProps) => {
-  const [customers, setCustomers] = useState<Customer[]>(propCustomers || []);
-  const [loading, setLoading] = useState(!propCustomers);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-
-  // Update customers when prop changes
-  useEffect(() => {
-    if (propCustomers) {
-      console.log('📊 CustomerTable received customers:', propCustomers.length);
-      setCustomers(propCustomers);
-      setLastUpdated(new Date());
-      setLoading(false);
-    }
-  }, [propCustomers]);
-
+const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
   const getStatusBadge = (status: 'active' | 'inactive') => {
     return (
       <Badge variant={status === 'active' ? 'default' : 'secondary'}>
@@ -54,28 +32,6 @@ const CustomerTable = ({
     return name.substring(0, 2).toUpperCase();
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="flex items-center gap-2">
-          <RefreshCw className="h-5 w-5 animate-spin" />
-          <span>Loading customers...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <div className="text-red-500 mb-4">
-          <p className="font-medium">Error loading customers</p>
-          <p className="text-sm">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
   if (customers.length === 0) {
     return (
       <div className="text-center py-8">
@@ -88,27 +44,10 @@ const CustomerTable = ({
     );
   }
 
+  console.log(`📊 CustomerTable rendering ${customers.length} customers`);
+
   return (
     <div className="space-y-4">
-      {/* Status Header */}
-      <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200">
-        <div className="flex items-center gap-2">
-          <Wifi className="w-4 h-4 text-green-600" />
-          <span className="text-sm text-green-700 font-medium">
-            {supabaseClient ? 'Real-time Updates Active' : 'Static Data View'}
-          </span>
-          {supabaseClient && <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>}
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-green-600" />
-            <span className="text-sm text-green-600">
-              {customers.length} customers • Updated {lastUpdated.toLocaleTimeString()}
-            </span>
-          </div>
-        </div>
-      </div>
-      
       {/* Customer Table */}
       <div className="rounded-md border">
         <Table>
