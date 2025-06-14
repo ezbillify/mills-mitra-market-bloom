@@ -51,9 +51,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // If user just signed up, ensure profile exists
-        if (event === 'SIGNED_UP' && session?.user) {
-          console.log('🆕 New user signed up, ensuring profile exists...');
+        // If user just signed in and is new, ensure profile exists
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('🆕 User signed in, checking if profile exists...');
           
           // Give the trigger a moment to create the profile
           setTimeout(async () => {
