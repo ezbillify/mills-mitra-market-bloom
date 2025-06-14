@@ -258,7 +258,7 @@ export type Database = {
       }
       products: {
         Row: {
-          category: Database["public"]["Enums"]["product_category"]
+          category: string
           category_id: string | null
           created_at: string
           description: string | null
@@ -274,7 +274,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          category: Database["public"]["Enums"]["product_category"]
+          category: string
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -290,7 +290,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          category?: Database["public"]["Enums"]["product_category"]
+          category?: string
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -458,7 +458,6 @@ export type Database = {
         | "accepted"
         | "out_for_delivery"
         | "completed"
-      product_category: "electronics" | "clothing" | "books" | "home" | "sports"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -584,7 +583,6 @@ export const Constants = {
         "out_for_delivery",
         "completed",
       ],
-      product_category: ["electronics", "clothing", "books", "home", "sports"],
     },
   },
 } as const

@@ -23,6 +23,7 @@ interface Product {
   description: string | null;
   price: number;
   discounted_price: number | null;
+  gst_percentage: number | null;
   category: string;
   stock: number;
   image: string | null;
@@ -52,6 +53,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
     description: "",
     price: "",
     discountedPrice: "",
+    gstPercentage: "",
     category: "",
     stock: "",
     image: "",
@@ -71,6 +73,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
         description: product.description || "",
         price: product.price.toString(),
         discountedPrice: product.discounted_price?.toString() || "",
+        gstPercentage: product.gst_percentage?.toString() || "18",
         category: product.category,
         stock: product.stock.toString(),
         image: product.image || "",
@@ -105,6 +108,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
     try {
       const originalPrice = parseFloat(formData.price);
       const discountedPrice = formData.discountedPrice ? parseFloat(formData.discountedPrice) : null;
+      const gstPercentage = parseFloat(formData.gstPercentage);
 
       // Validate that discounted price is less than original price
       if (discountedPrice && discountedPrice >= originalPrice) {
@@ -124,7 +128,8 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
           description: formData.description || null,
           price: originalPrice,
           discounted_price: discountedPrice,
-          category: formData.category as "electronics" | "clothing" | "books" | "home" | "sports",
+          gst_percentage: gstPercentage,
+          category: formData.category,
           stock: parseInt(formData.stock) || 0,
           image: formData.image || null,
           featured: formData.featured,
@@ -221,7 +226,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="edit-stock">Stock Quantity</Label>
               <Input
@@ -230,6 +235,20 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
                 min="0"
                 value={formData.stock}
                 onChange={(e) => setFormData(prev => ({ ...prev, stock: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-gst-percentage">GST %</Label>
+              <Input
+                id="edit-gst-percentage"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={formData.gstPercentage}
+                onChange={(e) => setFormData(prev => ({ ...prev, gstPercentage: e.target.value }))}
                 required
               />
             </div>
@@ -277,7 +296,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
             <Button type="submit" disabled={loading} className="flex-1">
               {loading ? "Updating..." : "Update Product"}
             </Button>
-          </div>
+            </div>
         </form>
       </DialogContent>
     </Dialog>

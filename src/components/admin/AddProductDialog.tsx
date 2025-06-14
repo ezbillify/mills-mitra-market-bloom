@@ -39,6 +39,7 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
     description: "",
     price: "",
     discountedPrice: "",
+    gstPercentage: "18",
     category: "",
     stock: "",
     image: "",
@@ -75,18 +76,30 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
     setLoading(true);
 
     try {
-      // Use discounted price if provided, otherwise use regular price
-      const finalPrice = formData.discountedPrice 
-        ? parseFloat(formData.discountedPrice) 
-        : parseFloat(formData.price);
+      const originalPrice = parseFloat(formData.price);
+      const discountedPrice = formData.discountedPrice ? parseFloat(formData.discountedPrice) : null;
+      const gstPercentage = parseFloat(formData.gstPercentage);
+
+      // Validate that discounted price is less than original price
+      if (discountedPrice && discountedPrice >= originalPrice) {
+        toast({
+          title: "Error",
+          description: "Discounted price must be less than the original price",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
 
       const { error } = await supabase
         .from('products')
         .insert({
           name: formData.name,
           description: formData.description || null,
-          price: finalPrice,
-          category: formData.category as "electronics" | "clothing" | "books" | "home" | "sports",
+          price: originalPrice,
+          discounted_price: discountedPrice,
+          gst_percentage: gstPercentage,
+          category: formData.category,
           stock: parseInt(formData.stock) || 0,
           image: formData.image || null,
           featured: formData.featured,
@@ -104,6 +117,7 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
         description: "",
         price: "",
         discountedPrice: "",
+        gstPercentage: "18",
         category: "",
         stock: "",
         image: "",
@@ -199,7 +213,7 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="stock">Stock Quantity *</Label>
               <Input
@@ -209,6 +223,21 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
                 value={formData.stock}
                 onChange={(e) => setFormData(prev => ({ ...prev, stock: e.target.value }))}
                 placeholder="0"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gst-percentage">GST % *</Label>
+              <Input
+                id="gst-percentage"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={formData.gstPercentage}
+                onChange={(e) => setFormData(prev => ({ ...prev, gstPercentage: e.target.value }))}
+                placeholder="18"
                 required
               />
             </div>
