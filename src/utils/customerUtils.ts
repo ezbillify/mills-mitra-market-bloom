@@ -1,4 +1,3 @@
-
 import { Customer } from "@/types/customer";
 
 export const generateCustomerName = (profile: any): string => {
@@ -21,7 +20,8 @@ export const generateCustomerName = (profile: any): string => {
   }
 
   // If no name components, try to extract from email
-  if (profile.email) {
+  if (profile.email && !profile.email.startsWith('user-')) {
+    // Only process real emails, not generated ones
     const emailPrefix = profile.email.split('@')[0];
     // Remove numbers and special characters, capitalize first letter
     const cleanName = emailPrefix.replace(/[0-9._-]/g, ' ').trim();
@@ -30,13 +30,9 @@ export const generateCustomerName = (profile: any): string => {
       console.log(`📧 Generated name from email: "${capitalizedName}"`);
       return capitalizedName;
     }
-    // Fallback to just the email prefix
-    const capitalizedEmail = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
-    console.log(`📧 Using email prefix as name: "${capitalizedEmail}"`);
-    return capitalizedEmail;
   }
 
-  // Last resort fallback
+  // For generated emails (user-xxx@unknown.com) or other cases, use a simple fallback
   const fallbackName = `Customer ${profile.id?.substring(0, 8) || 'Unknown'}`;
   console.log(`🔄 Using fallback name: "${fallbackName}"`);
   return fallbackName;
