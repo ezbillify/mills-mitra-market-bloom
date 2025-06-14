@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -60,31 +61,7 @@ export const useOrders = () => {
     try {
       console.log("🔍 Fetching orders with profile data...");
 
-      // First, let's test the basic orders query
-      const { data: basicOrdersData, error: basicError } = await supabase
-        .from("orders")
-        .select("*")
-        .limit(5);
-
-      console.log("📋 Basic orders query result:", {
-        count: basicOrdersData?.length || 0,
-        error: basicError,
-        sampleOrder: basicOrdersData?.[0]
-      });
-
-      // Now let's test if profiles table has data
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("*")
-        .limit(5);
-
-      console.log("👤 Profiles table check:", {
-        count: profilesData?.length || 0,
-        error: profilesError,
-        sampleProfile: profilesData?.[0]
-      });
-
-      // Now the full query with join
+      // Query orders with profiles join - the foreign key constraint should ensure this works properly now
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(
@@ -106,12 +83,6 @@ export const useOrders = () => {
         )
         .order("created_at", { ascending: false });
 
-      console.log("🔗 Orders with profiles join result:", {
-        count: ordersData?.length || 0,
-        error: ordersError,
-        rawData: ordersData?.slice(0, 2)
-      });
-
       if (ordersError) {
         console.error("❌ Error fetching orders:", ordersError);
         toast({
@@ -131,20 +102,11 @@ export const useOrders = () => {
       }
       
       // Process and sanitize orders
-      const sanitizedOrders = ordersData.map((order: any, index: number) => {
-        const sanitized = {
+      const sanitizedOrders = ordersData.map((order: any) => {
+        return {
           ...order,
           profiles: sanitizeProfile(order.profiles),
         };
-        
-        console.log(`🔍 Order ${index + 1}:`, {
-          id: sanitized.id.substring(0, 8),
-          user_id: sanitized.user_id.substring(0, 8),
-          rawProfiles: order.profiles,
-          sanitizedProfiles: sanitized.profiles
-        });
-        
-        return sanitized;
       });
 
       console.log(`✅ Processed ${sanitizedOrders.length} orders successfully`);

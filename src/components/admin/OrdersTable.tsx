@@ -29,15 +29,6 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   };
 
   const getCustomerName = (order: Order) => {
-    console.log('OrdersTable getCustomerName - Raw order data:', {
-      orderId: order.id.substring(0, 8),
-      userId: order.user_id?.substring(0, 8),
-      profilesRaw: order.profiles,
-      profilesType: typeof order.profiles,
-      profilesNull: order.profiles === null,
-      profilesUndefined: order.profiles === undefined
-    });
-
     const fallbackId = order.user_id || (order.profiles && (order.profiles as any).id) || "Unknown";
     // Construct a synthetic profile object with id + existing profile shape
     const profile = {
@@ -51,12 +42,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
       phone: order.profiles?.phone ?? null,
     };
 
-    console.log('OrdersTable getCustomerName - Constructed profile:', profile);
-    
-    const result = generateCustomerName(profile);
-    console.log('OrdersTable getCustomerName - Generated name:', result);
-    
-    return result;
+    return generateCustomerName(profile);
   };
 
   const getCustomerEmail = (order: Order) => {
@@ -97,7 +83,6 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Actions</TableHead>
-              <TableHead className="text-xs text-gray-400">Debug Data</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -118,19 +103,6 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                     <Eye className="h-4 w-4 mr-2" />
                     View Details
                   </Button>
-                </TableCell>
-                <TableCell>
-                  <div className="text-xs text-gray-400 max-w-xs">
-                    <div>UserID: {order.user_id?.substring(0, 8)}</div>
-                    <div>Profile: {order.profiles ? 'EXISTS' : 'NULL'}</div>
-                    {order.profiles && (
-                      <div>
-                        <div>FirstName: {order.profiles.first_name || 'null'}</div>
-                        <div>LastName: {order.profiles.last_name || 'null'}</div>
-                        <div>Email: {order.profiles.email || 'null'}</div>
-                      </div>
-                    )}
-                  </div>
                 </TableCell>
               </TableRow>
             ))}
