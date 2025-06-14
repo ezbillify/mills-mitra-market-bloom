@@ -1,12 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package } from "lucide-react";
-
-interface Order {
-  id: string;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "accepted" | "out_for_delivery" | "completed";
-  total: number;
-}
+import { Order } from "@/hooks/useOrders";
 
 interface OrdersStatsProps {
   orders: Order[];

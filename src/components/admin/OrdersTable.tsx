@@ -4,22 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
-
-interface Order {
-  id: string;
-  user_id: string;
-  total: number;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "accepted" | "out_for_delivery" | "completed";
-  created_at: string;
-  shipping_address: string;
-  tracking_number: string | null;
-  profiles?: {
-    first_name: string | null;
-    last_name: string | null;
-    email: string | null;
-    phone?: string | null;
-  } | null;
-}
+import { Order } from "@/hooks/useOrders";
 
 interface OrdersTableProps {
   orders: Order[];
