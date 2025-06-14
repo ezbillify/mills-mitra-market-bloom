@@ -50,6 +50,45 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // If user just signed up, ensure profile exists
+        if (event === 'SIGNED_UP' && session?.user) {
+          console.log('🆕 New user signed up, ensuring profile exists...');
+          
+          // Give the trigger a moment to create the profile
+          setTimeout(async () => {
+            try {
+              const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+              if (error || !profile) {
+                console.log('📝 Profile not found, creating manually...');
+                // Create profile manually if trigger failed
+                const { error: insertError } = await supabase
+                  .from('profiles')
+                  .insert({
+                    id: session.user.id,
+                    email: session.user.email,
+                    first_name: session.user.user_metadata?.first_name || '',
+                    last_name: session.user.user_metadata?.last_name || '',
+                  });
+
+                if (insertError) {
+                  console.error('❌ Error creating profile manually:', insertError);
+                } else {
+                  console.log('✅ Profile created manually');
+                }
+              } else {
+                console.log('✅ Profile already exists:', profile);
+              }
+            } catch (error) {
+              console.error('❌ Error checking/creating profile:', error);
+            }
+          }, 1000);
+        }
       }
     );
 
@@ -103,8 +142,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
     } else {
       toast({
-        title: "Check your email",
-        description: "We've sent you a confirmation link",
+        title: "Success!",
+        description: "Account created successfully. You can now sign in.",
       });
     }
 
