@@ -45,9 +45,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // Extract user data from various sources with fallbacks
-      const email = userData?.email || userData?.user_metadata?.email || userData?.raw_user_meta_data?.email || null;
-      const firstName = userData?.first_name || userData?.user_metadata?.first_name || userData?.raw_user_meta_data?.first_name || null;
-      const lastName = userData?.last_name || userData?.user_metadata?.last_name || userData?.raw_user_meta_data?.last_name || null;
+      const email = userData?.email || userData?.user_metadata?.email || null;
+      const firstName = userData?.first_name || userData?.user_metadata?.first_name || null;
+      const lastName = userData?.last_name || userData?.user_metadata?.last_name || null;
 
       console.log('Creating profile with data:', { userId, email, firstName, lastName });
 
@@ -114,7 +114,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false);
 
         // Ensure profile exists for various auth events
-        if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_UP')) {
+        if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
           // Use a longer delay to ensure database operations complete
           setTimeout(() => {
             ensureProfileExists(session.user.id, session.user);
@@ -175,8 +175,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             email: email,
             first_name: firstName,
             last_name: lastName,
-            user_metadata: data.user.user_metadata,
-            raw_user_meta_data: data.user.raw_user_meta_data
+            user_metadata: data.user.user_metadata
           });
         }, 1000);
         
