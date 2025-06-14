@@ -20,6 +20,7 @@ interface Product {
   discounted_price: number | null;
   gst_percentage: number | null;
   selling_price_with_tax: number | null;
+  price_includes_tax: boolean | null;
   stock: number;
   featured: boolean;
   image: string | null;
@@ -197,6 +198,41 @@ const AdminProducts = () => {
     return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
   };
 
+  const renderPriceCell = (product: Product) => {
+    const priceIncludesTax = product.price_includes_tax ?? true;
+    
+    return (
+      <div className="space-y-1">
+        {product.discounted_price ? (
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="font-medium text-green-600">₹{Number(product.discounted_price).toFixed(2)}</div>
+              <div className="text-sm text-gray-500 line-through">₹{Number(product.price).toFixed(2)}</div>
+            </div>
+            <Badge className="bg-green-500 text-white text-xs">
+              {calculateDiscountPercentage(product.price, product.discounted_price)}% OFF
+            </Badge>
+          </div>
+        ) : (
+          <div className="font-medium">₹{Number(product.price).toFixed(2)}</div>
+        )}
+        <div className="text-xs text-gray-500">
+          {priceIncludesTax ? 'Includes' : 'Excludes'} GST: {product.gst_percentage || 18}%
+        </div>
+        {!priceIncludesTax && product.selling_price_with_tax && (
+          <div className="text-xs font-medium text-blue-600">
+            Final: ₹{Number(product.selling_price_with_tax).toFixed(2)}
+          </div>
+        )}
+        <div className="text-xs">
+          <Badge variant="outline" className="text-xs">
+            {priceIncludesTax ? 'Tax Inclusive' : 'Tax Exclusive'}
+          </Badge>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -346,29 +382,7 @@ const AdminProducts = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        {product.discounted_price ? (
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <div className="font-medium text-green-600">₹{Number(product.discounted_price).toFixed(2)}</div>
-                              <div className="text-sm text-gray-500 line-through">₹{Number(product.price).toFixed(2)}</div>
-                            </div>
-                            <Badge className="bg-green-500 text-white text-xs">
-                              {calculateDiscountPercentage(product.price, product.discounted_price)}% OFF
-                            </Badge>
-                          </div>
-                        ) : (
-                          <div className="font-medium">₹{Number(product.price).toFixed(2)}</div>
-                        )}
-                        <div className="text-xs text-gray-500">
-                          GST: {product.gst_percentage || 18}%
-                        </div>
-                        {product.selling_price_with_tax && (
-                          <div className="text-xs font-medium text-blue-600">
-                            Final: ₹{Number(product.selling_price_with_tax).toFixed(2)}
-                          </div>
-                        )}
-                      </div>
+                      {renderPriceCell(product)}
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">

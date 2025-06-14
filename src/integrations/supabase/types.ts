@@ -173,6 +173,45 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_options: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          estimated_days_max: number | null
+          estimated_days_min: number | null
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          estimated_days_max?: number | null
+          estimated_days_min?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          estimated_days_max?: number | null
+          estimated_days_min?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -218,6 +257,8 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          delivery_option_id: string | null
+          delivery_price: number | null
           id: string
           shipping_address: string
           status: Database["public"]["Enums"]["order_status"]
@@ -228,6 +269,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          delivery_option_id?: string | null
+          delivery_price?: number | null
           id?: string
           shipping_address: string
           status?: Database["public"]["Enums"]["order_status"]
@@ -238,6 +281,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          delivery_option_id?: string | null
+          delivery_price?: number | null
           id?: string
           shipping_address?: string
           status?: Database["public"]["Enums"]["order_status"]
@@ -247,6 +292,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_delivery_option_id_fkey"
+            columns: ["delivery_option_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_options"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_user_id_profiles_fkey"
             columns: ["user_id"]
@@ -269,6 +321,7 @@ export type Database = {
           image: string | null
           name: string
           price: number
+          price_includes_tax: boolean | null
           selling_price_with_tax: number | null
           stock: number
           updated_at: string
@@ -285,6 +338,7 @@ export type Database = {
           image?: string | null
           name: string
           price: number
+          price_includes_tax?: boolean | null
           selling_price_with_tax?: number | null
           stock?: number
           updated_at?: string
@@ -301,6 +355,7 @@ export type Database = {
           image?: string | null
           name?: string
           price?: number
+          price_includes_tax?: boolean | null
           selling_price_with_tax?: number | null
           stock?: number
           updated_at?: string

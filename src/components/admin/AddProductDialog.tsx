@@ -40,6 +40,7 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
     price: "",
     discountedPrice: "",
     gstPercentage: "18",
+    priceIncludesTax: true,
     category: "",
     stock: "",
     image: "",
@@ -99,6 +100,7 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
           price: originalPrice,
           discounted_price: discountedPrice,
           gst_percentage: gstPercentage,
+          price_includes_tax: formData.priceIncludesTax,
           category: formData.category,
           stock: parseInt(formData.stock) || 0,
           image: formData.image || null,
@@ -118,6 +120,7 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
         price: "",
         discountedPrice: "",
         gstPercentage: "18",
+        priceIncludesTax: true,
         category: "",
         stock: "",
         image: "",
@@ -175,9 +178,23 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
             />
           </div>
 
+          {/* Price includes tax toggle */}
+          <div className="flex items-center space-x-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <Switch
+              id="price-includes-tax"
+              checked={formData.priceIncludesTax}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, priceIncludesTax: checked }))}
+            />
+            <Label htmlFor="price-includes-tax" className="text-sm font-medium">
+              Prices include tax (recommended)
+            </Label>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price">Original Price (₹) *</Label>
+              <Label htmlFor="price">
+                {formData.priceIncludesTax ? 'Selling Price (₹) *' : 'Base Price (₹) *'}
+              </Label>
               <Input
                 id="price"
                 type="number"
@@ -188,10 +205,17 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
                 placeholder="0.00"
                 required
               />
+              {formData.priceIncludesTax && (
+                <p className="text-xs text-blue-600">
+                  This is the final selling price including {formData.gstPercentage}% GST
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="discounted-price">Discounted Price (₹)</Label>
+              <Label htmlFor="discounted-price">
+                {formData.priceIncludesTax ? 'Discounted Price (₹)' : 'Discounted Base Price (₹)'}
+              </Label>
               <Input
                 id="discounted-price"
                 type="number"
@@ -201,6 +225,11 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
                 onChange={(e) => setFormData(prev => ({ ...prev, discountedPrice: e.target.value }))}
                 placeholder="Optional"
               />
+              {formData.priceIncludesTax && formData.discountedPrice && (
+                <p className="text-xs text-green-600">
+                  Final discounted price including {formData.gstPercentage}% GST
+                </p>
+              )}
             </div>
           </div>
 

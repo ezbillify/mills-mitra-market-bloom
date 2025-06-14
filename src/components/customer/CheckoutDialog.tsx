@@ -22,6 +22,16 @@ interface CartItem {
   };
 }
 
+interface DeliveryOption {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  estimated_days_min: number | null;
+  estimated_days_max: number | null;
+  is_active: boolean;
+}
+
 interface CheckoutDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,6 +43,7 @@ interface CheckoutDialogProps {
 const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete }: CheckoutDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const [deliveryOptions, setDeliveryOptions] = useState<DeliveryOption[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -43,16 +54,41 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     postalCode: "",
     phone: "",
     paymentMethod: "cod",
+    deliveryOptionId: "",
   });
 
   const [hasExistingAddress, setHasExistingAddress] = useState(false);
 
-  // Fetch user profile when dialog opens
+  // Fetch user profile and delivery options when dialog opens
   useEffect(() => {
     if (open && user) {
       fetchUserProfile();
+      fetchDeliveryOptions();
     }
   }, [open, user]);
+
+  const fetchDeliveryOptions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('delivery_options')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching delivery options:', error);
+        return;
+      }
+
+      setDeliveryOptions(data || []);
+      // Set first option as default
+      if (data && data.length > 0) {
+        setFormData(prev => ({ ...prev, deliveryOptionId: data[0].id }));
+      }
+    } catch (error) {
+      console.error('Error fetching delivery options:', error);
+    }
+  };
 
   const fetchUserProfile = async () => {
     if (!user) return;
@@ -81,6 +117,10 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     setLoadingProfile(false);
   };
 
+  const selectedDeliveryOption = deliveryOptions.find(option => option.id === formData.deliveryOptionId);
+  const deliveryPrice = selectedDeliveryOption?.price || 0;
+  const finalTotal = total + deliveryPrice;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -95,9 +135,11 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         .from('orders')
         .insert({
           user_id: user.id,
-          total: total,
+          total: finalTotal,
           status: 'pending',
           shipping_address: shippingAddress,
+          delivery_option_id: formData.deliveryOptionId,
+          delivery_price: deliveryPrice,
         })
         .select()
         .single();
@@ -142,6 +184,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         postalCode: "",
         phone: "",
         paymentMethod: "cod",
+        deliveryOptionId: "",
       });
     } catch (error) {
       console.error('Error creating order:', error);
@@ -175,9 +218,62 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                   <span>₹{(item.products.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
-              <div className="border-t pt-2 font-semibold">
-                Total: ₹{total.toFixed(2)}
+              <div className="border-t pt-2">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal:</span>
+                  <span>₹{total.toFixed(2)}</span>
+                </div>
+                {selectedDeliveryOption && (
+                  <div className="flex justify-between text-sm">
+                    <span>Delivery ({selectedDeliveryOption.name}):</span>
+                    <span>₹{deliveryPrice.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-semibold text-lg border-t pt-2">
+                  <span>Total:</span>
+                  <span>₹{finalTotal.toFixed(2)}</span>
+                </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Delivery Options */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Choose Delivery Option</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RadioGroup 
+                value={formData.deliveryOptionId} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, deliveryOptionId: value }))}
+              >
+                {deliveryOptions.map((option) => (
+                  <div key={option.id} className="flex items-center space-x-2 p-3 border rounded-lg">
+                    <RadioGroupItem value={option.id} id={option.id} />
+                    <div className="flex-1">
+                      <Label htmlFor={option.id} className="flex justify-between items-start cursor-pointer">
+                        <div>
+                          <div className="font-medium">{option.name}</div>
+                          {option.description && (
+                            <div className="text-sm text-gray-600">{option.description}</div>
+                          )}
+                          {option.estimated_days_min && option.estimated_days_max && (
+                            <div className="text-xs text-gray-500">
+                              Delivery in {option.estimated_days_min === option.estimated_days_max 
+                                ? `${option.estimated_days_min} day${option.estimated_days_min > 1 ? 's' : ''}`
+                                : `${option.estimated_days_min}-${option.estimated_days_max} days`
+                              }
+                            </div>
+                          )}
+                        </div>
+                        <div className="font-semibold">
+                          {option.price === 0 ? 'Free' : `₹${option.price.toFixed(2)}`}
+                        </div>
+                      </Label>
+                    </div>
+                  </div>
+                ))}
+              </RadioGroup>
             </CardContent>
           </Card>
 
@@ -301,10 +397,10 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || loadingProfile} 
+              disabled={loading || loadingProfile || !formData.deliveryOptionId} 
               className="flex-1 bg-[#C9A350] hover:bg-[#D49847] text-white"
             >
-              {loading ? "Placing Order..." : "Place Order"}
+              {loading ? "Placing Order..." : `Place Order (₹${finalTotal.toFixed(2)})`}
             </Button>
           </div>
         </form>

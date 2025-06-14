@@ -24,6 +24,7 @@ interface Product {
   price: number;
   discounted_price: number | null;
   gst_percentage: number | null;
+  price_includes_tax: boolean | null;
   category: string;
   stock: number;
   image: string | null;
@@ -54,6 +55,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
     price: "",
     discountedPrice: "",
     gstPercentage: "",
+    priceIncludesTax: true,
     category: "",
     stock: "",
     image: "",
@@ -74,6 +76,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
         price: product.price.toString(),
         discountedPrice: product.discounted_price?.toString() || "",
         gstPercentage: product.gst_percentage?.toString() || "18",
+        priceIncludesTax: product.price_includes_tax ?? true,
         category: product.category,
         stock: product.stock.toString(),
         image: product.image || "",
@@ -129,6 +132,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
           price: originalPrice,
           discounted_price: discountedPrice,
           gst_percentage: gstPercentage,
+          price_includes_tax: formData.priceIncludesTax,
           category: formData.category,
           stock: parseInt(formData.stock) || 0,
           image: formData.image || null,
@@ -189,9 +193,23 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
             />
           </div>
 
+          {/* Price includes tax toggle */}
+          <div className="flex items-center space-x-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <Switch
+              id="edit-price-includes-tax"
+              checked={formData.priceIncludesTax}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, priceIncludesTax: checked }))}
+            />
+            <Label htmlFor="edit-price-includes-tax" className="text-sm font-medium">
+              Prices include tax (recommended)
+            </Label>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-price">Original Price (₹)</Label>
+              <Label htmlFor="edit-price">
+                {formData.priceIncludesTax ? 'Selling Price (₹)' : 'Base Price (₹)'}
+              </Label>
               <Input
                 id="edit-price"
                 type="number"
@@ -201,10 +219,17 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
                 onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
                 required
               />
+              {formData.priceIncludesTax && (
+                <p className="text-xs text-blue-600">
+                  This is the final selling price including {formData.gstPercentage}% GST
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-discounted-price">Discounted Price (₹)</Label>
+              <Label htmlFor="edit-discounted-price">
+                {formData.priceIncludesTax ? 'Discounted Price (₹)' : 'Discounted Base Price (₹)'}
+              </Label>
               <Input
                 id="edit-discounted-price"
                 type="number"
@@ -214,6 +239,11 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
                 onChange={(e) => setFormData(prev => ({ ...prev, discountedPrice: e.target.value }))}
                 placeholder="Optional"
               />
+              {formData.priceIncludesTax && formData.discountedPrice && (
+                <p className="text-xs text-green-600">
+                  Final discounted price including {formData.gstPercentage}% GST
+                </p>
+              )}
             </div>
           </div>
 
@@ -296,7 +326,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
             <Button type="submit" disabled={loading} className="flex-1">
               {loading ? "Updating..." : "Update Product"}
             </Button>
-            </div>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
