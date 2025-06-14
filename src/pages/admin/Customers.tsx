@@ -140,6 +140,9 @@ const AdminCustomers = () => {
         // Determine join date
         const joinDate = profile?.created_at || authUser?.created_at || new Date().toISOString();
         
+        // Ensure status is properly typed
+        const status: 'active' | 'inactive' = totalOrders > 0 ? 'active' : 'inactive';
+        
         return {
           id: userId,
           name: customerName,
@@ -147,7 +150,7 @@ const AdminCustomers = () => {
           phone: profile?.phone || '',
           totalOrders,
           totalSpent,
-          status: totalOrders > 0 ? 'active' : 'inactive',
+          status,
           joinDate: joinDate,
           profile: profile ? {
             first_name: profile.first_name,
@@ -156,7 +159,7 @@ const AdminCustomers = () => {
             city: profile.city,
             postal_code: profile.postal_code,
             country: profile.country
-          } : null
+          } : undefined
         };
       }).filter(customer => customer.email !== 'No email provided' || customer.totalOrders > 0);
 
