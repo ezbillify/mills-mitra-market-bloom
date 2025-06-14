@@ -14,6 +14,7 @@ interface Product {
   id: string;
   name: string;
   price: number;
+  discounted_price: number | null;
   image: string | null;
   category: string;
   stock: number;
@@ -61,16 +62,23 @@ const Products = () => {
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
+      const aPrice = a.discounted_price || a.price;
+      const bPrice = b.discounted_price || b.price;
+      
       switch (sortBy) {
         case "price-low":
-          return Number(a.price) - Number(b.price);
+          return Number(aPrice) - Number(bPrice);
         case "price-high":
-          return Number(b.price) - Number(a.price);
+          return Number(bPrice) - Number(aPrice);
         case "name":
         default:
           return a.name.localeCompare(b.name);
       }
     });
+
+  const calculateDiscountPercentage = (originalPrice: number, discountedPrice: number) => {
+    return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
+  };
 
   if (loading) {
     return (
@@ -169,12 +177,24 @@ const Products = () => {
                   {product.featured && (
                     <Badge className="absolute top-2 right-2 text-xs">Featured</Badge>
                   )}
+                  {product.discounted_price && (
+                    <Badge className="absolute bottom-2 left-2 bg-green-500 text-xs">
+                      {calculateDiscountPercentage(product.price, product.discounted_price)}% OFF
+                    </Badge>
+                  )}
                 </div>
                 <div className="p-3 sm:p-4">
                   <h3 className="font-semibold text-sm sm:text-base mb-1 line-clamp-2">{product.name}</h3>
                   <p className="text-xs text-gray-500 mb-2 capitalize">{product.category}</p>
                   <div className="flex items-center space-x-2 mb-3">
-                    <span className="text-lg font-bold text-primary">₹{Number(product.price).toFixed(2)}</span>
+                    {product.discounted_price ? (
+                      <>
+                        <span className="text-lg font-bold text-primary">₹{Number(product.discounted_price).toFixed(2)}</span>
+                        <span className="text-sm text-gray-500 line-through">₹{Number(product.price).toFixed(2)}</span>
+                      </>
+                    ) : (
+                      <span className="text-lg font-bold text-primary">₹{Number(product.price).toFixed(2)}</span>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Link to={`/products/${product.id}`}>

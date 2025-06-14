@@ -13,6 +13,7 @@ interface Product {
   name: string;
   description: string | null;
   price: number;
+  discounted_price: number | null;
   image: string | null;
   category: string;
   stock: number;
@@ -49,6 +50,10 @@ const ProductDetail = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateDiscountPercentage = (originalPrice: number, discountedPrice: number) => {
+    return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
   };
 
   if (loading) {
@@ -90,12 +95,17 @@ const ProductDetail = () => {
         {/* Mobile-first layout */}
         <div className="space-y-6">
           {/* Product Image - Full width on mobile */}
-          <div className="w-full">
+          <div className="w-full relative">
             <img
               src={product.image || "/placeholder.svg"}
               alt={product.name}
               className="w-full h-64 sm:h-80 md:h-96 object-cover rounded-lg shadow-sm"
             />
+            {product.discounted_price && (
+              <Badge className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1">
+                {calculateDiscountPercentage(product.price, product.discounted_price)}% OFF
+              </Badge>
+            )}
           </div>
 
           {/* Product Info Card */}
@@ -112,7 +122,22 @@ const ProductDetail = () => {
 
               {/* Price */}
               <div>
-                <p className="text-2xl sm:text-3xl font-bold text-primary">₹{Number(product.price).toFixed(2)}</p>
+                {product.discounted_price ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <p className="text-2xl sm:text-3xl font-bold text-primary">₹{Number(product.discounted_price).toFixed(2)}</p>
+                      <p className="text-lg text-gray-500 line-through">₹{Number(product.price).toFixed(2)}</p>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                      <p className="text-sm text-green-700">
+                        <span className="font-medium">You save: </span>
+                        ₹{(product.price - product.discounted_price).toFixed(2)} ({calculateDiscountPercentage(product.price, product.discounted_price)}% discount)
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-2xl sm:text-3xl font-bold text-primary">₹{Number(product.price).toFixed(2)}</p>
+                )}
               </div>
 
               {/* Stock Status */}

@@ -15,12 +15,14 @@ import { Switch } from "@/components/ui/switch";
 import { Edit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import ProductImageUpload from "./ProductImageUpload";
 
 interface Product {
   id: string;
   name: string;
   description: string | null;
   price: number;
+  discounted_price: number | null;
   category: string;
   stock: number;
   image: string | null;
@@ -57,7 +59,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
         name: product.name,
         description: product.description || "",
         price: product.price.toString(),
-        discountedPrice: "",
+        discountedPrice: product.discounted_price?.toString() || "",
         category: product.category,
         stock: product.stock.toString(),
         image: product.image || "",
@@ -71,16 +73,27 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
     setLoading(true);
 
     try {
-      const finalPrice = formData.discountedPrice 
-        ? parseFloat(formData.discountedPrice) 
-        : parseFloat(formData.price);
+      const originalPrice = parseFloat(formData.price);
+      const discountedPrice = formData.discountedPrice ? parseFloat(formData.discountedPrice) : null;
+
+      // Validate that discounted price is less than original price
+      if (discountedPrice && discountedPrice >= originalPrice) {
+        toast({
+          title: "Error",
+          description: "Discounted price must be less than the original price",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
 
       const { error } = await supabase
         .from('products')
         .update({
           name: formData.name,
           description: formData.description || null,
-          price: finalPrice,
+          price: originalPrice,
+          discounted_price: discountedPrice,
           category: formData.category as "electronics" | "clothing" | "books" | "home" | "sports",
           stock: parseInt(formData.stock) || 0,
           image: formData.image || null,
@@ -148,6 +161,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
                 id="edit-price"
                 type="number"
                 step="0.01"
+                min="0"
                 value={formData.price}
                 onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
                 required
@@ -160,6 +174,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
                 id="edit-discounted-price"
                 type="number"
                 step="0.01"
+                min="0"
                 value={formData.discountedPrice}
                 onChange={(e) => setFormData(prev => ({ ...prev, discountedPrice: e.target.value }))}
                 placeholder="Optional"
@@ -206,28 +221,10 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-image">Product Image URL</Label>
-            <Input
-              id="edit-image"
-              type="url"
-              value={formData.image}
-              onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
-              placeholder="https://example.com/image.jpg"
-            />
-            {formData.image && (
-              <div className="mt-2">
-                <img 
-                  src={formData.image} 
-                  alt="Product preview" 
-                  className="w-20 h-20 object-cover rounded border"
-                  onError={(e) => {
-                    e.currentTarget.src = '/placeholder.svg';
-                  }}
-                />
-              </div>
-            )}
-          </div>
+          <ProductImageUpload
+            currentImage={formData.image}
+            onImageChange={(imageUrl) => setFormData(prev => ({ ...prev, image: imageUrl }))}
+          />
 
           <div className="flex items-center space-x-2">
             <Switch

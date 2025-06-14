@@ -231,6 +231,7 @@ export type Database = {
           category: Database["public"]["Enums"]["product_category"]
           created_at: string
           description: string | null
+          discounted_price: number | null
           featured: boolean | null
           id: string
           image: string | null
@@ -243,6 +244,7 @@ export type Database = {
           category: Database["public"]["Enums"]["product_category"]
           created_at?: string
           description?: string | null
+          discounted_price?: number | null
           featured?: boolean | null
           id?: string
           image?: string | null
@@ -255,6 +257,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["product_category"]
           created_at?: string
           description?: string | null
+          discounted_price?: number | null
           featured?: boolean | null
           id?: string
           image?: string | null
