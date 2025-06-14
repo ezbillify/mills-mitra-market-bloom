@@ -261,7 +261,7 @@ const AdminCustomers = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${customers.reduce((sum, customer) => sum + customer.totalSpent, 0).toFixed(2)}
+              ₹{customers.reduce((sum, customer) => sum + customer.totalSpent, 0).toFixed(2)}
             </div>
           </CardContent>
         </Card>
@@ -306,7 +306,7 @@ const AdminCustomers = () => {
                     </div>
                   </TableCell>
                   <TableCell>{customer.totalOrders}</TableCell>
-                  <TableCell>${customer.totalSpent.toFixed(2)}</TableCell>
+                  <TableCell>₹{customer.totalSpent.toFixed(2)}</TableCell>
                   <TableCell>{getCustomerTier(customer.totalSpent)}</TableCell>
                   <TableCell>{getStatusBadge(customer.status)}</TableCell>
                   <TableCell>{new Date(customer.joinDate).toLocaleDateString()}</TableCell>
