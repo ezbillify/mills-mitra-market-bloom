@@ -1,29 +1,40 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Plus } from "lucide-react";
+import { Edit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import ProductImageUpload from "./ProductImageUpload";
 
-interface AddProductDialogProps {
-  onProductAdded: () => void;
+interface Product {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  category: string;
+  stock: number;
+  image: string | null;
+  featured: boolean;
 }
 
-const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
-  const [open, setOpen] = useState(false);
+interface EditProductDialogProps {
+  product: Product;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onProductUpdated: () => void;
+}
+
+const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: EditProductDialogProps) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   
@@ -40,19 +51,33 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
 
   const categories = ["electronics", "clothing", "books", "home", "sports"];
 
+  useEffect(() => {
+    if (product) {
+      setFormData({
+        name: product.name,
+        description: product.description || "",
+        price: product.price.toString(),
+        discountedPrice: "",
+        category: product.category,
+        stock: product.stock.toString(),
+        image: product.image || "",
+        featured: product.featured,
+      });
+    }
+  }, [product]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Use discounted price if provided, otherwise use regular price
       const finalPrice = formData.discountedPrice 
         ? parseFloat(formData.discountedPrice) 
         : parseFloat(formData.price);
 
       const { error } = await supabase
         .from('products')
-        .insert({
+        .update({
           name: formData.name,
           description: formData.description || null,
           price: finalPrice,
@@ -60,33 +85,23 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
           stock: parseInt(formData.stock) || 0,
           image: formData.image || null,
           featured: formData.featured,
-        });
+        })
+        .eq('id', product.id);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Product added successfully",
+        description: "Product updated successfully",
       });
 
-      setFormData({
-        name: "",
-        description: "",
-        price: "",
-        discountedPrice: "",
-        category: "",
-        stock: "",
-        image: "",
-        featured: false,
-      });
-      
-      setOpen(false);
-      onProductAdded();
+      onOpenChange(false);
+      onProductUpdated();
     } catch (error) {
-      console.error('Error adding product:', error);
+      console.error('Error updating product:', error);
       toast({
         title: "Error",
-        description: "Failed to add product",
+        description: "Failed to update product",
         variant: "destructive",
       });
     } finally {
@@ -97,62 +112,54 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
   const hasDiscount = formData.discountedPrice && parseFloat(formData.discountedPrice) < parseFloat(formData.price);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Product
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Add New Product</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Edit className="h-5 w-5" />
+            Edit Product
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Product Name *</Label>
+            <Label htmlFor="edit-name">Product Name</Label>
             <Input
-              id="name"
+              id="edit-name"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Enter product name"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="edit-description">Description</Label>
             <Textarea
-              id="description"
+              id="edit-description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Describe your product..."
               rows={3}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price">Original Price (₹) *</Label>
+              <Label htmlFor="edit-price">Original Price (₹)</Label>
               <Input
-                id="price"
+                id="edit-price"
                 type="number"
                 step="0.01"
-                min="0"
                 value={formData.price}
                 onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                placeholder="0.00"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="discounted-price">Discounted Price (₹)</Label>
+              <Label htmlFor="edit-discounted-price">Discounted Price (₹)</Label>
               <Input
-                id="discounted-price"
+                id="edit-discounted-price"
                 type="number"
                 step="0.01"
-                min="0"
                 value={formData.discountedPrice}
                 onChange={(e) => setFormData(prev => ({ ...prev, discountedPrice: e.target.value }))}
                 placeholder="Optional"
@@ -171,20 +178,19 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="stock">Stock Quantity *</Label>
+              <Label htmlFor="edit-stock">Stock Quantity</Label>
               <Input
-                id="stock"
+                id="edit-stock"
                 type="number"
                 min="0"
                 value={formData.stock}
                 onChange={(e) => setFormData(prev => ({ ...prev, stock: e.target.value }))}
-                placeholder="0"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category">Category *</Label>
+              <Label htmlFor="edit-category">Category</Label>
               <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
@@ -200,33 +206,49 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
             </div>
           </div>
 
-          <ProductImageUpload
-            currentImage={formData.image}
-            onImageChange={(imageUrl) => setFormData(prev => ({ ...prev, image: imageUrl }))}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="edit-image">Product Image URL</Label>
+            <Input
+              id="edit-image"
+              type="url"
+              value={formData.image}
+              onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
+              placeholder="https://example.com/image.jpg"
+            />
+            {formData.image && (
+              <div className="mt-2">
+                <img 
+                  src={formData.image} 
+                  alt="Product preview" 
+                  className="w-20 h-20 object-cover rounded border"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder.svg';
+                  }}
+                />
+              </div>
+            )}
+          </div>
 
-          <div className="flex items-center space-x-2 pt-2">
+          <div className="flex items-center space-x-2">
             <Switch
-              id="featured"
+              id="edit-featured"
               checked={formData.featured}
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, featured: checked }))}
             />
-            <Label htmlFor="featured" className="text-sm font-medium">
-              Mark as Featured Product
-            </Label>
+            <Label htmlFor="edit-featured">Featured Product</Label>
           </div>
 
           <div className="flex gap-3 pt-4">
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => setOpen(false)}
+              onClick={() => onOpenChange(false)}
               className="flex-1"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="flex-1 bg-blue-600 hover:bg-blue-700">
-              {loading ? "Adding..." : "Add Product"}
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? "Updating..." : "Update Product"}
             </Button>
           </div>
         </form>
@@ -235,4 +257,4 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
   );
 };
 
-export default AddProductDialog;
+export default EditProductDialog;
