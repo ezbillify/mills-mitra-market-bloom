@@ -1,11 +1,12 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useCartCount = () => {
   const { user } = useAuth();
   const [cartCount, setCartCount] = useState(0);
+  const subscriptionRef = useRef<any>(null);
 
   const fetchCartCount = useCallback(async () => {
     if (!user) {
@@ -35,6 +36,13 @@ export const useCartCount = () => {
   }, [user]);
 
   useEffect(() => {
+    // Cleanup any existing subscription first
+    if (subscriptionRef.current) {
+      console.log('🧹 Cleaning up existing cart subscription');
+      subscriptionRef.current.unsubscribe();
+      subscriptionRef.current = null;
+    }
+
     if (user) {
       // Initial fetch
       fetchCartCount();
@@ -61,14 +69,20 @@ export const useCartCount = () => {
           console.log('🔔 Cart subscription status:', status);
         });
 
+      // Store the subscription reference
+      subscriptionRef.current = subscription;
+
       return () => {
         console.log('🧹 Cleaning up cart subscription');
-        subscription.unsubscribe();
+        if (subscriptionRef.current) {
+          subscriptionRef.current.unsubscribe();
+          subscriptionRef.current = null;
+        }
       };
     } else {
       setCartCount(0);
     }
-  }, [user, fetchCartCount]);
+  }, [user?.id]); // Only depend on user.id, not the entire user object or fetchCartCount
 
   return { cartCount, refetchCartCount: fetchCartCount };
 };
