@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
-import OrderActions from "./OrderActions";
 
 interface Order {
   id: string;
@@ -78,16 +77,14 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                 <TableCell>{getStatusBadge(order.status)}</TableCell>
                 <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => onViewDetails(order.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <OrderActions order={order} onUpdateStatus={onUpdateStatus} />
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => onViewDetails(order.id)}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Details
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
