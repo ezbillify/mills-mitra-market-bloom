@@ -22,14 +22,16 @@ interface CartItem {
   };
 }
 
-interface DeliveryOption {
+interface ShippingOption {
   id: string;
   name: string;
   description: string | null;
   price: number;
-  estimated_days_min: number | null;
-  estimated_days_max: number | null;
+  delivery_days_min: number | null;
+  delivery_days_max: number | null;
   is_active: boolean;
+  min_order_value: number | null;
+  max_weight: number | null;
 }
 
 interface CheckoutDialogProps {
@@ -43,7 +45,7 @@ interface CheckoutDialogProps {
 const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete }: CheckoutDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
-  const [deliveryOptions, setDeliveryOptions] = useState<DeliveryOption[]>([]);
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -54,39 +56,45 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     postalCode: "",
     phone: "",
     paymentMethod: "cod",
-    deliveryOptionId: "",
+    shippingOptionId: "",
   });
 
   const [hasExistingAddress, setHasExistingAddress] = useState(false);
 
-  // Fetch user profile and delivery options when dialog opens
+  // Fetch user profile and shipping options when dialog opens
   useEffect(() => {
     if (open && user) {
       fetchUserProfile();
-      fetchDeliveryOptions();
+      fetchShippingOptions();
     }
   }, [open, user]);
 
-  const fetchDeliveryOptions = async () => {
+  const fetchShippingOptions = async () => {
     try {
       const { data, error } = await supabase
-        .from('delivery_options')
+        .from('shipping_settings')
         .select('*')
         .eq('is_active', true)
-        .order('display_order', { ascending: true });
+        .order('price', { ascending: true });
 
       if (error) {
-        console.error('Error fetching delivery options:', error);
+        console.error('Error fetching shipping options:', error);
         return;
       }
 
-      setDeliveryOptions(data || []);
-      // Set first option as default
-      if (data && data.length > 0) {
-        setFormData(prev => ({ ...prev, deliveryOptionId: data[0].id }));
+      // Filter options based on minimum order value
+      const eligibleOptions = (data || []).filter(option => {
+        if (!option.min_order_value) return true;
+        return total >= option.min_order_value;
+      });
+
+      setShippingOptions(eligibleOptions);
+      // Set first eligible option as default
+      if (eligibleOptions && eligibleOptions.length > 0) {
+        setFormData(prev => ({ ...prev, shippingOptionId: eligibleOptions[0].id }));
       }
     } catch (error) {
-      console.error('Error fetching delivery options:', error);
+      console.error('Error fetching shipping options:', error);
     }
   };
 
@@ -117,9 +125,9 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     setLoadingProfile(false);
   };
 
-  const selectedDeliveryOption = deliveryOptions.find(option => option.id === formData.deliveryOptionId);
-  const deliveryPrice = selectedDeliveryOption?.price || 0;
-  const finalTotal = total + deliveryPrice;
+  const selectedShippingOption = shippingOptions.find(option => option.id === formData.shippingOptionId);
+  const shippingPrice = selectedShippingOption?.price || 0;
+  const finalTotal = total + shippingPrice;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +138,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     try {
       const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} - ${formData.postalCode}`;
       
-      // Create order
+      // Create order with shipping option reference
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -138,8 +146,6 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           total: finalTotal,
           status: 'pending',
           shipping_address: shippingAddress,
-          delivery_option_id: formData.deliveryOptionId,
-          delivery_price: deliveryPrice,
         })
         .select()
         .single();
@@ -184,7 +190,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         postalCode: "",
         phone: "",
         paymentMethod: "cod",
-        deliveryOptionId: "",
+        shippingOptionId: "",
       });
     } catch (error) {
       console.error('Error creating order:', error);
@@ -223,10 +229,10 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                   <span>Subtotal:</span>
                   <span>₹{total.toFixed(2)}</span>
                 </div>
-                {selectedDeliveryOption && (
+                {selectedShippingOption && (
                   <div className="flex justify-between text-sm">
-                    <span>Delivery ({selectedDeliveryOption.name}):</span>
-                    <span>₹{deliveryPrice.toFixed(2)}</span>
+                    <span>Shipping ({selectedShippingOption.name}):</span>
+                    <span>₹{shippingPrice.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-semibold text-lg border-t pt-2">
@@ -237,43 +243,54 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             </CardContent>
           </Card>
 
-          {/* Delivery Options */}
+          {/* Shipping Options */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Choose Delivery Option</CardTitle>
+              <CardTitle className="text-lg">Choose Shipping Option</CardTitle>
             </CardHeader>
             <CardContent>
-              <RadioGroup 
-                value={formData.deliveryOptionId} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, deliveryOptionId: value }))}
-              >
-                {deliveryOptions.map((option) => (
-                  <div key={option.id} className="flex items-center space-x-2 p-3 border rounded-lg">
-                    <RadioGroupItem value={option.id} id={option.id} />
-                    <div className="flex-1">
-                      <Label htmlFor={option.id} className="flex justify-between items-start cursor-pointer">
-                        <div>
-                          <div className="font-medium">{option.name}</div>
-                          {option.description && (
-                            <div className="text-sm text-gray-600">{option.description}</div>
-                          )}
-                          {option.estimated_days_min && option.estimated_days_max && (
-                            <div className="text-xs text-gray-500">
-                              Delivery in {option.estimated_days_min === option.estimated_days_max 
-                                ? `${option.estimated_days_min} day${option.estimated_days_min > 1 ? 's' : ''}`
-                                : `${option.estimated_days_min}-${option.estimated_days_max} days`
-                              }
-                            </div>
-                          )}
-                        </div>
-                        <div className="font-semibold">
-                          {option.price === 0 ? 'Free' : `₹${option.price.toFixed(2)}`}
-                        </div>
-                      </Label>
+              {shippingOptions.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  No shipping options available for this order value.
+                </div>
+              ) : (
+                <RadioGroup 
+                  value={formData.shippingOptionId} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, shippingOptionId: value }))}
+                >
+                  {shippingOptions.map((option) => (
+                    <div key={option.id} className="flex items-center space-x-2 p-3 border rounded-lg">
+                      <RadioGroupItem value={option.id} id={option.id} />
+                      <div className="flex-1">
+                        <Label htmlFor={option.id} className="flex justify-between items-start cursor-pointer">
+                          <div>
+                            <div className="font-medium">{option.name}</div>
+                            {option.description && (
+                              <div className="text-sm text-gray-600">{option.description}</div>
+                            )}
+                            {option.delivery_days_min && option.delivery_days_max && (
+                              <div className="text-xs text-gray-500">
+                                Delivery in {option.delivery_days_min === option.delivery_days_max 
+                                  ? `${option.delivery_days_min} day${option.delivery_days_min > 1 ? 's' : ''}`
+                                  : `${option.delivery_days_min}-${option.delivery_days_max} days`
+                                }
+                              </div>
+                            )}
+                            {option.min_order_value && (
+                              <div className="text-xs text-blue-600">
+                                Minimum order: ₹{option.min_order_value}
+                              </div>
+                            )}
+                          </div>
+                          <div className="font-semibold">
+                            {option.price === 0 ? 'Free' : `₹${Number(option.price).toFixed(2)}`}
+                          </div>
+                        </Label>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </RadioGroup>
+                  ))}
+                </RadioGroup>
+              )}
             </CardContent>
           </Card>
 
@@ -397,7 +414,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || loadingProfile || !formData.deliveryOptionId} 
+              disabled={loading || loadingProfile || !formData.shippingOptionId || shippingOptions.length === 0} 
               className="flex-1 bg-[#C9A350] hover:bg-[#D49847] text-white"
             >
               {loading ? "Placing Order..." : `Place Order (₹${finalTotal.toFixed(2)})`}
