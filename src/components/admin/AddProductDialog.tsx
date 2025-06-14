@@ -36,7 +36,7 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
     featured: false,
   });
 
-  const categories = ["cotton", "silk", "linen", "wool", "denim", "synthetic"];
+  const categories = ["electronics", "clothing", "books", "home", "sports"];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +49,7 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
           name: formData.name,
           description: formData.description || null,
           price: parseFloat(formData.price),
-          category: formData.category,
+          category: formData.category as "electronics" | "clothing" | "books" | "home" | "sports",
           stock: parseInt(formData.stock) || 0,
           image: formData.image || null,
           featured: formData.featured,
