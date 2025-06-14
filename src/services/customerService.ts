@@ -3,6 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Customer } from "@/types/customer";
 import { processCustomerData } from "@/utils/customerUtils";
 
+interface AuthUser {
+  id: string;
+  email?: string;
+  phone?: string;
+  user_metadata?: {
+    first_name?: string;
+    last_name?: string;
+  };
+  created_at: string;
+}
+
 export const fetchCustomersData = async (): Promise<Customer[]> => {
   console.log('🚀 Fetching customer data...');
   
@@ -71,7 +82,7 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
 
     // Add auth users who might not have profiles
     if (users) {
-      users.forEach(user => {
+      (users as AuthUser[]).forEach(user => {
         if (!userMap.has(user.id)) {
           console.log(`🔍 Found auth user without profile: ${user.id.substring(0, 8)} - ${user.email}`);
           userMap.set(user.id, {
