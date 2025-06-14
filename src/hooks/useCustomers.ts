@@ -193,73 +193,53 @@ export const useCustomers = () => {
     // Initial fetch
     fetchCustomers();
 
-    // Set up real-time subscriptions with retry logic
-    let profilesChannel: any;
-    let ordersChannel: any;
-    let retryTimeout: NodeJS.Timeout;
-
-    const setupSubscriptions = () => {
-      console.log('📡 Setting up real-time subscriptions...');
-      
-      // Profiles subscription
-      profilesChannel = supabase
-        .channel('profiles-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'profiles'
-          },
-          (payload) => {
-            console.log('🔴 REAL-TIME: Profile change detected!', payload.eventType);
+    // Set up simplified real-time subscriptions without retry logic that's causing issues
+    let mounted = true;
+    
+    console.log('📡 Setting up simplified real-time subscriptions...');
+    
+    // Create unique channel names to avoid conflicts
+    const channelName = `customers-${Date.now()}`;
+    
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        (payload) => {
+          console.log('🔴 REAL-TIME: Profile change detected!', payload.eventType);
+          if (mounted) {
             fetchCustomers();
           }
-        )
-        .subscribe((status, err) => {
-          console.log('📡 Profiles subscription status:', status);
-          if (err) console.error('Profiles subscription error:', err);
-          
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            console.log('🔄 Retrying profiles subscription in 5 seconds...');
-            retryTimeout = setTimeout(setupSubscriptions, 5000);
-          }
-        });
-
-      // Orders subscription
-      ordersChannel = supabase
-        .channel('orders-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'orders'
-          },
-          (payload) => {
-            console.log('🟡 REAL-TIME: Order change detected!', payload.eventType);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          console.log('🟡 REAL-TIME: Order change detected!', payload.eventType);
+          if (mounted) {
             fetchCustomers();
           }
-        )
-        .subscribe((status, err) => {
-          console.log('📡 Orders subscription status:', status);
-          if (err) console.error('Orders subscription error:', err);
-          
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            console.log('🔄 Retrying orders subscription in 5 seconds...');
-            retryTimeout = setTimeout(setupSubscriptions, 5000);
-          }
-        });
-    };
-
-    setupSubscriptions();
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Subscription status:', status);
+      });
 
     // Cleanup function
     return () => {
       console.log('🧹 Cleaning up subscriptions...');
-      if (retryTimeout) clearTimeout(retryTimeout);
-      if (profilesChannel) supabase.removeChannel(profilesChannel);
-      if (ordersChannel) supabase.removeChannel(ordersChannel);
+      mounted = false;
+      supabase.removeChannel(channel);
     };
   }, []);
 

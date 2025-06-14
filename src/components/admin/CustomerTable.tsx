@@ -33,15 +33,6 @@ const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
     );
   };
 
-  const getCustomerTier = (totalSpent: number) => {
-    if (totalSpent >= 1000) {
-      return <Badge variant="default">💎 VIP</Badge>;
-    } else if (totalSpent >= 500) {
-      return <Badge variant="secondary">⭐ Premium</Badge>;
-    }
-    return <Badge variant="outline">👤 Regular</Badge>;
-  };
-
   if (customers.length === 0) {
     return (
       <div className="text-center py-8">
@@ -70,7 +61,6 @@ const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
             <TableHead>Contact</TableHead>
             <TableHead>Orders</TableHead>
             <TableHead>Total Spent</TableHead>
-            <TableHead>Tier</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Join Date</TableHead>
             <TableHead>Actions</TableHead>
@@ -119,7 +109,6 @@ const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
                 <TableCell>
                   <div className="font-medium">₹{customer.totalSpent.toFixed(2)}</div>
                 </TableCell>
-                <TableCell>{getCustomerTier(customer.totalSpent)}</TableCell>
                 <TableCell>{getStatusBadge(customer.status)}</TableCell>
                 <TableCell>
                   <div className="text-sm">

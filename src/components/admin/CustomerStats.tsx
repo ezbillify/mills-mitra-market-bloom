@@ -14,7 +14,7 @@ interface CustomerStatsProps {
 const CustomerStats = ({ customers }: CustomerStatsProps) => {
   const totalCustomers = customers.length;
   const activeCustomers = customers.filter(c => c.status === 'active').length;
-  const vipCustomers = customers.filter(c => c.totalSpent >= 1000).length;
+  const inactiveCustomers = customers.filter(c => c.status === 'inactive').length;
   const totalRevenue = customers.reduce((sum, customer) => sum + customer.totalSpent, 0);
 
   return (
@@ -37,10 +37,10 @@ const CustomerStats = ({ customers }: CustomerStatsProps) => {
       </Card>
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">VIP Customers</CardTitle>
+          <CardTitle className="text-sm font-medium">Inactive Customers</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{vipCustomers}</div>
+          <div className="text-2xl font-bold">{inactiveCustomers}</div>
         </CardContent>
       </Card>
       <Card>
