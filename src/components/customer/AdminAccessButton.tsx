@@ -36,7 +36,11 @@ const AdminAccessButton = () => {
 
   return (
     <Link to="/admin">
-      <Button variant="outline" size="sm" className="ml-2">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="ml-2 border-sage-green text-sage-green hover:bg-sage-green hover:text-warm-cream"
+      >
         <Shield className="h-4 w-4 mr-2" />
         Admin Panel
       </Button>

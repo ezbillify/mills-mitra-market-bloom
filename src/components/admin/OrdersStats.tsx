@@ -9,40 +9,40 @@ interface OrdersStatsProps {
 const OrdersStats = ({ orders }: OrdersStatsProps) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <Card>
+      <Card className="organic-card border-warm-beige">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+          <CardTitle className="text-sm font-medium text-earth-brown">Total Orders</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{orders.length}</div>
+          <div className="text-2xl font-bold text-warm-brown">{orders.length}</div>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="organic-card border-warm-beige">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Pending</CardTitle>
+          <CardTitle className="text-sm font-medium text-earth-brown">Pending</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div className="text-2xl font-bold text-millet-gold">
             {orders.filter(o => o.status === 'pending').length}
           </div>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="organic-card border-warm-beige">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Processing</CardTitle>
+          <CardTitle className="text-sm font-medium text-earth-brown">Processing</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div className="text-2xl font-bold text-sage-green">
             {orders.filter(o => o.status === 'processing').length}
           </div>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="organic-card border-warm-beige">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+          <CardTitle className="text-sm font-medium text-earth-brown">Revenue</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div className="text-2xl font-bold text-millet-gold">
             ₹{orders.reduce((sum, order) => sum + Number(order.total), 0).toFixed(2)}
           </div>
         </CardContent>

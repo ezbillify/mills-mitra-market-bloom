@@ -27,7 +27,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
       completed: "default",
       cancelled: "destructive"
     };
-    return <Badge variant={variants[status] || "default"}>{status.replace("_", " ")}</Badge>;
+    return <Badge variant={variants[status] || "default"} className="bg-millet-gold text-warm-brown">{status.replace("_", " ")}</Badge>;
   };
 
   const getCustomerName = (order: Order) => {
@@ -66,13 +66,13 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
 
   if (orders.length === 0) {
     return (
-      <Card>
+      <Card className="organic-card border-warm-beige">
         <CardHeader>
-          <CardTitle>Recent Orders</CardTitle>
+          <CardTitle className="text-warm-brown">Recent Orders</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-gray-500">No orders found</p>
+            <p className="text-earth-brown">No orders found</p>
           </div>
         </CardContent>
       </Card>
@@ -94,21 +94,21 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   });
 
   return (
-    <Card>
+    <Card className="organic-card border-warm-beige">
       <CardHeader>
-        <CardTitle>Recent Orders ({orders.length})</CardTitle>
+        <CardTitle className="text-warm-brown">Recent Orders ({orders.length})</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Order ID</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Actions</TableHead>
+            <TableRow className="border-warm-beige">
+              <TableHead className="text-earth-brown">Order ID</TableHead>
+              <TableHead className="text-earth-brown">Customer</TableHead>
+              <TableHead className="text-earth-brown">Email</TableHead>
+              <TableHead className="text-earth-brown">Total</TableHead>
+              <TableHead className="text-earth-brown">Status</TableHead>
+              <TableHead className="text-earth-brown">Date</TableHead>
+              <TableHead className="text-earth-brown">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -121,20 +121,21 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
               console.log(`✨ Final display values for row ${index + 1} - Name: "${customerName}", Email: "${customerEmail}"`);
               
               return (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.id.slice(0, 8)}...</TableCell>
+                <TableRow key={order.id} className="border-warm-beige hover:bg-warm-cream/50">
+                  <TableCell className="font-medium text-warm-brown">{order.id.slice(0, 8)}...</TableCell>
                   <TableCell>
-                    <div className="font-medium">{customerName}</div>
+                    <div className="font-medium text-warm-brown">{customerName}</div>
                   </TableCell>
-                  <TableCell>{customerEmail}</TableCell>
-                  <TableCell>₹{Number(order.total).toFixed(2)}</TableCell>
+                  <TableCell className="text-earth-brown">{customerEmail}</TableCell>
+                  <TableCell className="text-millet-gold font-semibold">₹{Number(order.total).toFixed(2)}</TableCell>
                   <TableCell>{getStatusBadge(order.status)}</TableCell>
-                  <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-earth-brown">{new Date(order.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => onViewDetails(order.id)}
+                      className="border-sage-green text-sage-green hover:bg-sage-green hover:text-warm-cream"
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
