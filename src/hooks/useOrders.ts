@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -37,17 +36,27 @@ export const useOrders = () => {
 
   // Helper to sanitize profiles so the UI never gets the error object
   function sanitizeProfile(profile: any): OrderProfile {
-    console.log('🔍 Sanitizing profile data:', profile);
+    console.log('🔍 DETAILED Profile Analysis:', {
+      rawProfile: profile,
+      typeofProfile: typeof profile,
+      isArray: Array.isArray(profile),
+      isNull: profile === null,
+      isUndefined: profile === undefined,
+      hasFirstName: profile?.first_name,
+      hasLastName: profile?.last_name,
+      hasEmail: profile?.email,
+      profileKeys: profile ? Object.keys(profile) : 'no keys'
+    });
     
-    // Handle null, undefined, or error objects
-    if (!profile || typeof profile !== "object" || profile === null) {
-      console.log('❌ Profile is null/undefined/invalid, returning null');
+    // Handle null, undefined, or invalid objects
+    if (!profile || typeof profile !== "object" || profile === null || Array.isArray(profile)) {
+      console.log('❌ Profile is null/undefined/invalid/array, returning null');
       return null;
     }
     
-    // Handle error objects or arrays (sometimes Supabase returns arrays)
-    if (Array.isArray(profile) || Object.prototype.hasOwnProperty.call(profile, "error")) {
-      console.log('❌ Profile is array or has error, returning null');
+    // Handle error objects
+    if (Object.prototype.hasOwnProperty.call(profile, "error")) {
+      console.log('❌ Profile has error property, returning null');
       return null;
     }
     
@@ -59,16 +68,57 @@ export const useOrders = () => {
       phone: profile.phone || null
     };
     
-    console.log('✅ Profile sanitized:', sanitized);
+    console.log('✅ Profile sanitized successfully:', sanitized);
     return sanitized;
   }
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      console.log("🚀 Starting comprehensive order fetch with profiles...");
+      console.log("🚀 DEBUGGING: Starting order fetch with enhanced logging...");
 
-      // Fetch orders with proper profile joins and enhanced logging
+      // First, let's see what orders exist without profiles
+      const { data: basicOrders, error: basicError } = await supabase
+        .from("orders")
+        .select("id, user_id, total, status, created_at, shipping_address, tracking_number")
+        .order("created_at", { ascending: false });
+
+      if (basicError) {
+        console.error("❌ Error fetching basic orders:", basicError);
+        throw basicError;
+      }
+
+      console.log(`📊 Basic orders fetched: ${basicOrders?.length || 0}`);
+      if (basicOrders && basicOrders.length > 0) {
+        console.log("📋 Sample basic order:", {
+          id: basicOrders[0].id.substring(0, 8),
+          userId: basicOrders[0].user_id.substring(0, 8),
+          total: basicOrders[0].total,
+          status: basicOrders[0].status
+        });
+      }
+
+      // Now let's see what profiles exist
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, email, phone");
+
+      if (profilesError) {
+        console.warn("⚠️ Error fetching profiles (continuing without profiles):", profilesError);
+      } else {
+        console.log(`👥 Profiles available: ${profiles?.length || 0}`);
+        if (profiles && profiles.length > 0) {
+          console.log("👤 Sample profile:", {
+            id: profiles[0].id.substring(0, 8),
+            firstName: profiles[0].first_name,
+            lastName: profiles[0].last_name,
+            email: profiles[0].email
+          });
+        }
+      }
+
+      // Now fetch orders with profile join
+      console.log("🔗 Fetching orders WITH profile join...");
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(
@@ -91,7 +141,7 @@ export const useOrders = () => {
         .order("created_at", { ascending: false });
 
       if (ordersError) {
-        console.error("❌ Supabase error fetching orders:", ordersError);
+        console.error("❌ Supabase error fetching orders with profiles:", ordersError);
         toast({
           title: "Error",
           description: `Failed to fetch orders: ${ordersError.message}`,
@@ -101,52 +151,67 @@ export const useOrders = () => {
         return;
       }
 
-      console.log(`✅ Successfully fetched ${ordersData?.length || 0} orders`);
+      console.log(`✅ Orders with profiles fetched: ${ordersData?.length || 0}`);
       
       // Handle empty results
       if (!ordersData || ordersData.length === 0) {
-        console.log("📋 No orders found");
+        console.log("📋 No orders found in database");
         setOrders([]);
         return;
       }
       
-      // Log sample order data for debugging
-      console.log("📋 Sample order data:", {
-        orderId: ordersData[0].id.substring(0, 8),
-        userId: ordersData[0].user_id.substring(0, 8),
-        profileData: ordersData[0].profiles,
-        total: ordersData[0].total
+      // Detailed analysis of each order
+      console.log("🔍 DETAILED ORDER ANALYSIS:");
+      ordersData.forEach((order, index) => {
+        console.log(`📦 Order ${index + 1}/${ordersData.length}:`, {
+          orderId: order.id.substring(0, 8),
+          userId: order.user_id.substring(0, 8),
+          total: order.total,
+          status: order.status,
+          profileRaw: order.profiles,
+          profileType: typeof order.profiles,
+          profileIsArray: Array.isArray(order.profiles),
+          profileIsNull: order.profiles === null,
+          profileFirstName: order.profiles?.first_name,
+          profileLastName: order.profiles?.last_name,
+          profileEmail: order.profiles?.email
+        });
       });
 
       // Process and sanitize orders
       const sanitizedOrders = ordersData.map((order: any, index) => {
-        console.log(`🔄 Processing order ${index + 1}/${ordersData.length}:`, {
-          id: order.id.substring(0, 8),
-          userId: order.user_id.substring(0, 8),
-          hasProfile: !!order.profiles,
-          profileData: order.profiles
-        });
+        console.log(`🔄 Processing order ${index + 1}:`, order.id.substring(0, 8));
 
         const sanitizedOrder = {
           ...order,
           profiles: sanitizeProfile(order.profiles),
         };
 
-        console.log(`✅ Order ${index + 1} processed:`, {
+        console.log(`✅ Order ${index + 1} processed with profile:`, {
           id: sanitizedOrder.id.substring(0, 8),
-          profileName: sanitizedOrder.profiles ? 
-            `${sanitizedOrder.profiles.first_name || ''} ${sanitizedOrder.profiles.last_name || ''}`.trim() : 
-            'No profile',
-          profileEmail: sanitizedOrder.profiles?.email || 'No email'
+          hasProfile: !!sanitizedOrder.profiles,
+          profileData: sanitizedOrder.profiles
         });
 
         return sanitizedOrder;
       });
 
-      console.log(`🎯 Final order processing complete: ${sanitizedOrders.length} orders ready`);
+      console.log(`🎯 FINAL RESULT: ${sanitizedOrders.length} orders processed successfully`);
+      
+      // Log first few orders for verification
+      if (sanitizedOrders.length > 0) {
+        console.log("📊 First 2 processed orders:", sanitizedOrders.slice(0, 2).map(order => ({
+          id: order.id.substring(0, 8),
+          userId: order.user_id.substring(0, 8),
+          total: order.total,
+          profileName: order.profiles ? `${order.profiles.first_name || ''} ${order.profiles.last_name || ''}`.trim() : 'No profile',
+          profileEmail: order.profiles?.email || 'No email'
+        })));
+      }
+      
       setOrders(sanitizedOrders);
     } catch (error) {
-      console.error("💥 Unexpected error fetching orders:", error);
+      console.error("💥 Unexpected error in fetchOrders:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred while fetching orders",

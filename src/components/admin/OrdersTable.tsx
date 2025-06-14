@@ -30,16 +30,21 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   };
 
   const getCustomerName = (order: Order) => {
-    console.log('🏷️ OrdersTable processing order for customer name:', {
+    console.log('🏷️ OrdersTable DETAILED customer name processing:', {
       orderId: order.id.substring(0, 8),
       userId: order.user_id.substring(0, 8),
-      profileData: order.profiles
+      profileExists: !!order.profiles,
+      profileType: typeof order.profiles,
+      profileData: order.profiles,
+      profileFirstName: order.profiles?.first_name,
+      profileLastName: order.profiles?.last_name,
+      profileEmail: order.profiles?.email
     });
     
     // Check if we have valid profile data
     if (!order.profiles || typeof order.profiles !== 'object') {
       const fallbackName = `Customer ${order.user_id.substring(0, 8)}`;
-      console.log(`🔄 No valid profile data, using fallback: "${fallbackName}"`);
+      console.log(`🔄 No valid profile data for order ${order.id.substring(0, 8)}, using fallback: "${fallbackName}"`);
       return fallbackName;
     }
     
@@ -51,6 +56,8 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
       email: order.profiles.email
     };
     
+    console.log('🔧 Calling generateCustomerName with data:', customerData);
+    
     try {
       const customerName = generateCustomerName(customerData);
       console.log(`✅ Generated customer name for order ${order.id.substring(0, 8)}: "${customerName}"`);
@@ -58,17 +65,37 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     } catch (error) {
       console.error(`❌ Error generating customer name for order ${order.id.substring(0, 8)}:`, error);
       const fallbackName = `Customer ${order.user_id.substring(0, 8)}`;
-      console.log(`🔄 Using fallback name: "${fallbackName}"`);
+      console.log(`🔄 Using fallback name after error: "${fallbackName}"`);
       return fallbackName;
     }
   };
 
   const getCustomerEmail = (order: Order) => {
+    console.log('📧 Getting customer email for order:', {
+      orderId: order.id.substring(0, 8),
+      profileExists: !!order.profiles,
+      profileEmail: order.profiles?.email
+    });
+    
     if (!order.profiles || typeof order.profiles !== 'object') {
+      console.log('📧 No profile, returning "No email"');
       return 'No email';
     }
-    return order.profiles.email || 'No email';
+    
+    const email = order.profiles.email || 'No email';
+    console.log(`📧 Returning email: "${email}"`);
+    return email;
   };
+
+  console.log('📊 OrdersTable rendering with orders:', {
+    orderCount: orders.length,
+    sampleOrder: orders.length > 0 ? {
+      id: orders[0].id.substring(0, 8),
+      userId: orders[0].user_id.substring(0, 8),
+      hasProfile: !!orders[0].profiles,
+      profileData: orders[0].profiles
+    } : 'No orders'
+  });
 
   if (orders.length === 0) {
     return (
@@ -104,26 +131,34 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="font-medium">{order.id.slice(0, 8)}...</TableCell>
-                <TableCell>{getCustomerName(order)}</TableCell>
-                <TableCell>{getCustomerEmail(order)}</TableCell>
-                <TableCell>₹{Number(order.total).toFixed(2)}</TableCell>
-                <TableCell>{getStatusBadge(order.status)}</TableCell>
-                <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
-                <TableCell>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => onViewDetails(order.id)}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Details
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {orders.map((order, index) => {
+              console.log(`🔄 Rendering order row ${index + 1}:`, {
+                orderId: order.id.substring(0, 8),
+                userId: order.user_id.substring(0, 8),
+                profileData: order.profiles
+              });
+              
+              return (
+                <TableRow key={order.id}>
+                  <TableCell className="font-medium">{order.id.slice(0, 8)}...</TableCell>
+                  <TableCell>{getCustomerName(order)}</TableCell>
+                  <TableCell>{getCustomerEmail(order)}</TableCell>
+                  <TableCell>₹{Number(order.total).toFixed(2)}</TableCell>
+                  <TableCell>{getStatusBadge(order.status)}</TableCell>
+                  <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => onViewDetails(order.id)}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Details
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent>
