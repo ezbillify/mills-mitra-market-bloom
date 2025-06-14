@@ -17,6 +17,7 @@ interface Product {
   name: string;
   category: string;
   price: number;
+  discounted_price: number | null;
   stock: number;
   featured: boolean;
   image: string | null;
@@ -190,6 +191,10 @@ const AdminProducts = () => {
     return <Badge variant="default" className="bg-green-500">In Stock</Badge>;
   };
 
+  const calculateDiscountPercentage = (originalPrice: number, discountedPrice: number) => {
+    return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -339,7 +344,21 @@ const AdminProducts = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium">₹{product.price.toFixed(2)}</div>
+                      <div className="space-y-1">
+                        {product.discounted_price ? (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <div className="font-medium text-green-600">₹{Number(product.discounted_price).toFixed(2)}</div>
+                              <div className="text-sm text-gray-500 line-through">₹{Number(product.price).toFixed(2)}</div>
+                            </div>
+                            <Badge className="bg-green-500 text-white text-xs">
+                              {calculateDiscountPercentage(product.price, product.discounted_price)}% OFF
+                            </Badge>
+                          </div>
+                        ) : (
+                          <div className="font-medium">₹{Number(product.price).toFixed(2)}</div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
