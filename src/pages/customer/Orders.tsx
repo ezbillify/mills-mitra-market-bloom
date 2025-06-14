@@ -4,7 +4,7 @@ import { useOrders } from "@/hooks/useOrders";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Download, Package } from "lucide-react";
+import { Eye, Download, Package, Truck } from "lucide-react";
 import OrderItemTable from "./OrderItemTable";
 import { generateCustomerName } from "@/utils/customerUtils";
 
@@ -94,6 +94,23 @@ const Orders = () => {
                   <h4 className="font-medium mb-2">Shipping Address</h4>
                   <p className="text-sm text-gray-600">{order.shipping_address}</p>
                 </div>
+                <div>
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <Truck className="h-4 w-4" />
+                    Shipping Method
+                  </h4>
+                  <div className="text-sm">
+                    <p className="font-medium text-gray-900">
+                      {order.shipping_settings?.name || 'Standard Shipping'}
+                    </p>
+                    {order.shipping_settings?.description && (
+                      <p className="text-gray-600">{order.shipping_settings.description}</p>
+                    )}
+                    <p className="text-gray-600">
+                      Shipping Cost: ₹{Number(order.delivery_price || order.shipping_settings?.price || 0).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
                 {order.tracking_number && (
                   <div>
                     <h4 className="font-medium mb-2">Tracking Number</h4>
@@ -121,4 +138,3 @@ const Orders = () => {
 };
 
 export default Orders;
-

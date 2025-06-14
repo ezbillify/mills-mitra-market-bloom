@@ -6,7 +6,7 @@ export class OrderService {
   static async fetchOrders(): Promise<Order[]> {
     console.log("🔍 OrderService.fetchOrders() called");
 
-    // Use a single query with JOIN to get orders and profiles together
+    // Use a single query with JOIN to get orders, profiles, and shipping settings together
     const { data: ordersData, error: ordersError } = await supabase
       .from("orders")
       .select(`
@@ -17,11 +17,19 @@ export class OrderService {
         created_at,
         shipping_address,
         tracking_number,
+        delivery_option_id,
+        delivery_price,
         profiles!orders_user_id_profiles_fkey (
           first_name,
           last_name,
           email,
           phone
+        ),
+        shipping_settings!orders_delivery_option_id_fkey (
+          id,
+          name,
+          description,
+          price
         )
       `)
       .order("created_at", { ascending: false });
@@ -44,6 +52,7 @@ export class OrderService {
       console.log(`🔄 Processing order ${index + 1}/${ordersData.length}`);
       console.log(`📋 Order ID: ${order.id.substring(0, 8)}, User ID: ${order.user_id.substring(0, 8)}`);
       console.log(`📝 Raw profiles data from DB:`, order.profiles);
+      console.log(`🚚 Raw shipping settings data:`, order.shipping_settings);
       
       let orderProfile: OrderProfile | null = null;
 
@@ -76,6 +85,9 @@ export class OrderService {
         created_at: order.created_at,
         shipping_address: order.shipping_address,
         tracking_number: order.tracking_number,
+        delivery_option_id: order.delivery_option_id,
+        delivery_price: order.delivery_price,
+        shipping_settings: order.shipping_settings,
         profiles: orderProfile
       };
 
@@ -83,6 +95,8 @@ export class OrderService {
         id: processedOrder.id.substring(0, 8),
         user_id: processedOrder.user_id.substring(0, 8),
         has_profiles: !!processedOrder.profiles,
+        has_shipping_settings: !!processedOrder.shipping_settings,
+        shipping_name: processedOrder.shipping_settings?.name || 'No shipping method',
         profiles_data: processedOrder.profiles
       });
 
@@ -92,9 +106,11 @@ export class OrderService {
     // Final summary
     const ordersWithProfiles = processedOrders.filter(order => order.profiles);
     const ordersWithoutProfiles = processedOrders.filter(order => !order.profiles);
+    const ordersWithShipping = processedOrders.filter(order => order.shipping_settings);
     console.log(`📊 Final summary:`);
     console.log(`   - Orders with profiles: ${ordersWithProfiles.length}`);
     console.log(`   - Orders without profiles: ${ordersWithoutProfiles.length}`);
+    console.log(`   - Orders with shipping info: ${ordersWithShipping.length}`);
     console.log(`   - Total orders returned: ${processedOrders.length}`);
 
     return processedOrders;

@@ -1,8 +1,9 @@
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Eye, Truck } from "lucide-react";
 import { Order } from "@/types/order";
 import { generateCustomerName } from "@/utils/customerUtils";
 
@@ -98,6 +99,8 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
       user_id: order.user_id.substring(0, 8),
       profiles_exists: !!order.profiles,
       profiles_data: order.profiles,
+      shipping_exists: !!order.shipping_settings,
+      shipping_name: order.shipping_settings?.name,
       total: order.total,
       status: order.status
     });
@@ -116,6 +119,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                 <TableHead className="text-gray-700 font-semibold">Order ID</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Customer</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Email</TableHead>
+                <TableHead className="text-gray-700 font-semibold">Shipping Method</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Total</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Status</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Date</TableHead>
@@ -133,8 +137,9 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                   email: order.profiles?.email
                 });
                 const customerEmail = order.profiles?.email || 'No email';
+                const shippingMethod = order.shipping_settings?.name || 'Standard Shipping';
                 
-                console.log(`✨ Final display values for row ${index + 1} - Name: "${customerName}", Email: "${customerEmail}"`);
+                console.log(`✨ Final display values for row ${index + 1} - Name: "${customerName}", Email: "${customerEmail}", Shipping: "${shippingMethod}"`);
                 
                 return (
                   <TableRow key={order.id} className="border-gray-200 hover:bg-gray-50 transition-colors">
@@ -145,6 +150,19 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                       <div className="font-medium text-gray-900">{customerName}</div>
                     </TableCell>
                     <TableCell className="text-gray-600">{customerEmail}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-gray-500" />
+                        <div>
+                          <div className="font-medium text-gray-900">{shippingMethod}</div>
+                          {order.delivery_price !== null && order.delivery_price !== undefined && (
+                            <div className="text-xs text-gray-500">
+                              ₹{Number(order.delivery_price).toFixed(2)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <span className="font-bold text-royal-green text-lg">₹{Number(order.total).toFixed(2)}</span>
                     </TableCell>

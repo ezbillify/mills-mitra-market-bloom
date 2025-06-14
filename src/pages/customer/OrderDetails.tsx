@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import OrderItemTable from "./OrderItemTable";
 import { supabase } from "@/integrations/supabase/client";
 import { generateCustomerName } from "@/utils/customerUtils";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Truck } from "lucide-react";
 
 const statusLabels: Record<string, string> = {
   pending: "Pending",
@@ -43,7 +43,16 @@ const OrderDetails = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("orders")
-        .select("*, profiles!orders_user_id_profiles_fkey(*)")
+        .select(`
+          *,
+          profiles!orders_user_id_profiles_fkey(*),
+          shipping_settings!orders_delivery_option_id_fkey(
+            id,
+            name,
+            description,
+            price
+          )
+        `)
         .eq("id", orderId)
         .maybeSingle();
       setOrder(data || null);
@@ -111,6 +120,23 @@ const OrderDetails = () => {
             <div>
               <h4 className="font-medium mb-2">Shipping Address</h4>
               <p className="text-sm text-gray-600">{order.shipping_address}</p>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2 flex items-center gap-2">
+                <Truck className="h-4 w-4" />
+                Shipping Method
+              </h4>
+              <div className="text-sm">
+                <p className="font-medium text-gray-900">
+                  {order.shipping_settings?.name || 'Standard Shipping'}
+                </p>
+                {order.shipping_settings?.description && (
+                  <p className="text-gray-600 mt-1">{order.shipping_settings.description}</p>
+                )}
+                <p className="text-gray-600 mt-1">
+                  Shipping Cost: ₹{Number(order.delivery_price || order.shipping_settings?.price || 0).toFixed(2)}
+                </p>
+              </div>
             </div>
             {order.tracking_number && (
               <div>
