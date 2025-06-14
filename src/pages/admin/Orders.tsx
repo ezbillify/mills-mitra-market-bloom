@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Package } from "lucide-react";
@@ -7,20 +8,33 @@ import OrdersStats from "@/components/admin/OrdersStats";
 import OrdersTable from "@/components/admin/OrdersTable";
 import OrderDetailsDialog from "@/components/admin/OrderDetailsDialog";
 
+type OrderProfile =
+  | {
+      first_name: string | null;
+      last_name: string | null;
+      email: string | null;
+      phone?: string | null;
+    }
+  | null
+  | { error: true };
+
 interface Order {
   id: string;
   user_id: string;
   total: number;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "accepted" | "out_for_delivery" | "completed";
+  status:
+    | "pending"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled"
+    | "accepted"
+    | "out_for_delivery"
+    | "completed";
   created_at: string;
   shipping_address: string;
   tracking_number: string | null;
-  profiles?: {
-    first_name: string | null;
-    last_name: string | null;
-    email: string | null;
-    phone?: string | null;
-  } | null;
+  profiles: OrderProfile;
 }
 
 const AdminOrders = () => {
@@ -32,18 +46,22 @@ const AdminOrders = () => {
 
   useEffect(() => {
     fetchOrders();
-    
+
     // Set up real-time subscription
     const channel = supabase
-      .channel('orders-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'orders'
-      }, () => {
-        console.log('Orders changed, refetching...');
-        fetchOrders();
-      })
+      .channel("orders-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+        },
+        () => {
+          console.log("Orders changed, refetching...");
+          fetchOrders();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -51,14 +69,27 @@ const AdminOrders = () => {
     };
   }, []);
 
+  // Helper to sanitize profiles so the UI never gets the error object
+  function sanitizeProfile(profile: any): OrderProfile {
+    if (!profile) return null;
+    if (
+      typeof profile === "object" &&
+      Object.prototype.hasOwnProperty.call(profile, "error")
+    ) {
+      return null;
+    }
+    return profile;
+  }
+
   const fetchOrders = async () => {
     try {
-      console.log('Fetching orders...');
-      
+      console.log("Fetching orders...");
+
       // Fetch orders with profile information using a proper join
       const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select(`
+        .from("orders")
+        .select(
+          `
           *,
           profiles!orders_user_id_fkey (
             first_name,
@@ -66,11 +97,12 @@ const AdminOrders = () => {
             email,
             phone
           )
-        `)
-        .order('created_at', { ascending: false });
+        `
+        )
+        .order("created_at", { ascending: false });
 
       if (ordersError) {
-        console.error('Supabase error fetching orders:', ordersError);
+        console.error("Supabase error fetching orders:", ordersError);
         toast({
           title: "Error",
           description: `Failed to fetch orders: ${ordersError.message}`,
@@ -79,10 +111,18 @@ const AdminOrders = () => {
         return;
       }
 
-      console.log('Orders fetched successfully:', ordersData);
-      setOrders(ordersData || []);
+      console.log("Orders fetched successfully:", ordersData);
+
+      // Map profiles to guarantee safe value
+      const sanitizedOrders =
+        ordersData?.map((order: any) => ({
+          ...order,
+          profiles: sanitizeProfile(order.profiles),
+        })) || [];
+
+      setOrders(sanitizedOrders);
     } catch (error) {
-      console.error('Unexpected error fetching orders:', error);
+      console.error("Unexpected error fetching orders:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred while fetching orders",
@@ -93,17 +133,28 @@ const AdminOrders = () => {
     }
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "accepted" | "out_for_delivery" | "completed") => {
+  const updateOrderStatus = async (
+    orderId: string,
+    newStatus:
+      | "pending"
+      | "processing"
+      | "shipped"
+      | "delivered"
+      | "cancelled"
+      | "accepted"
+      | "out_for_delivery"
+      | "completed"
+  ) => {
     try {
       console.log(`Updating order ${orderId} to status ${newStatus}`);
-      
+
       const { error } = await supabase
-        .from('orders')
+        .from("orders")
         .update({ status: newStatus })
-        .eq('id', orderId);
+        .eq("id", orderId);
 
       if (error) {
-        console.error('Error updating order:', error);
+        console.error("Error updating order:", error);
         toast({
           title: "Error",
           description: `Failed to update order status: ${error.message}`,
@@ -118,7 +169,7 @@ const AdminOrders = () => {
         description: "Order status updated successfully",
       });
     } catch (error) {
-      console.error('Unexpected error updating order:', error);
+      console.error("Unexpected error updating order:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred while updating the order",
@@ -128,7 +179,7 @@ const AdminOrders = () => {
   };
 
   const handleViewDetails = (orderId: string) => {
-    console.log('Opening order details for:', orderId);
+    console.log("Opening order details for:", orderId);
     setSelectedOrderId(orderId);
     setDetailsDialogOpen(true);
   };
@@ -154,12 +205,12 @@ const AdminOrders = () => {
       </div>
 
       <OrdersStats orders={orders} />
-      <OrdersTable 
-        orders={orders} 
+      <OrdersTable
+        orders={orders}
         onUpdateStatus={updateOrderStatus}
         onViewDetails={handleViewDetails}
       />
-      
+
       <OrderDetailsDialog
         orderId={selectedOrderId}
         open={detailsDialogOpen}
