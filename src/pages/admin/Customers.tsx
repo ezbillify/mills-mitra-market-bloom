@@ -44,9 +44,17 @@ const AdminCustomers = () => {
         setLoading(true);
       }
 
-      console.log('Fetching customer profiles...');
+      console.log('Fetching customer data from auth.users and profiles...');
       
-      // Fetch ALL profiles first, then get order statistics
+      // First, get all auth users to ensure we don't miss anyone
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error('Error fetching auth users:', authError);
+        // Fall back to profile-only approach if auth admin access fails
+      }
+
+      // Fetch ALL profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select(`
@@ -69,57 +77,91 @@ const AdminCustomers = () => {
       }
 
       console.log('Profiles fetched:', profiles?.length || 0, 'profiles found');
-      console.log('Profile data sample:', profiles?.[0]);
 
-      // Fetch order statistics for each customer
+      // Fetch order statistics
       const { data: orderStats, error: orderStatsError } = await supabase
         .from('orders')
         .select('user_id, total, status');
 
       if (orderStatsError) {
         console.error('Error fetching order stats:', orderStatsError);
-        // Don't throw here, just log and continue with empty order stats
-        console.log('Continuing without order stats due to error:', orderStatsError);
       }
 
       console.log('Order stats fetched:', orderStats?.length || 0, 'orders found');
 
+      // Create a comprehensive user list
+      const allUserIds = new Set<string>();
+      
+      // Add auth users if available
+      if (authUsers?.users) {
+        authUsers.users.forEach(user => allUserIds.add(user.id));
+      }
+      
+      // Add profile users
+      if (profiles) {
+        profiles.forEach(profile => allUserIds.add(profile.id));
+      }
+
+      console.log('Total unique users found:', allUserIds.size);
+
       // Process the data to create customer objects
-      const customersData: Customer[] = profiles?.map(profile => {
-        const userOrders = orderStats?.filter(order => order.user_id === profile.id && order.status !== 'cancelled') || [];
+      const customersData: Customer[] = Array.from(allUserIds).map(userId => {
+        // Find corresponding profile
+        const profile = profiles?.find(p => p.id === userId);
+        
+        // Find corresponding auth user
+        const authUser = authUsers?.users?.find(u => u.id === userId);
+        
+        // Calculate order stats
+        const userOrders = orderStats?.filter(order => order.user_id === userId && order.status !== 'cancelled') || [];
         const totalOrders = userOrders.length;
         const totalSpent = userOrders.reduce((sum, order) => sum + Number(order.total), 0);
         
-        // Better name handling with fallbacks
-        let customerName = 'Unknown User';
-        if (profile.first_name || profile.last_name) {
-          customerName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
-        } else if (profile.email) {
-          customerName = profile.email.split('@')[0]; // Use email prefix as fallback
+        // Determine email with fallbacks
+        let email = 'No email provided';
+        if (profile?.email) {
+          email = profile.email;
+        } else if (authUser?.email) {
+          email = authUser.email;
         }
         
+        // Determine name with comprehensive fallbacks
+        let customerName = 'Unknown User';
+        if (profile?.first_name || profile?.last_name) {
+          customerName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+        } else if (authUser?.user_metadata?.first_name || authUser?.user_metadata?.last_name) {
+          customerName = `${authUser.user_metadata.first_name || ''} ${authUser.user_metadata.last_name || ''}`.trim();
+        } else if (email && email !== 'No email provided') {
+          customerName = email.split('@')[0];
+        } else {
+          customerName = `User ${userId.substring(0, 8)}`;
+        }
+        
+        // Determine join date
+        const joinDate = profile?.created_at || authUser?.created_at || new Date().toISOString();
+        
         return {
-          id: profile.id,
+          id: userId,
           name: customerName,
-          email: profile.email || 'No email provided',
-          phone: profile.phone || '',
+          email: email,
+          phone: profile?.phone || '',
           totalOrders,
           totalSpent,
           status: totalOrders > 0 ? 'active' : 'inactive',
-          joinDate: profile.created_at,
-          profile: {
+          joinDate: joinDate,
+          profile: profile ? {
             first_name: profile.first_name,
             last_name: profile.last_name,
             address: profile.address,
             city: profile.city,
             postal_code: profile.postal_code,
             country: profile.country
-          }
+          } : null
         };
-      }) || [];
+      }).filter(customer => customer.email !== 'No email provided' || customer.totalOrders > 0);
 
       console.log('Processed customers data:', customersData.length, 'customers');
-      console.log('Customers sample:', customersData[0]);
+      console.log('Sample customer:', customersData[0]);
       setCustomers(customersData);
 
       if (showRefreshToast) {
