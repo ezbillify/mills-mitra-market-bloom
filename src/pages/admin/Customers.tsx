@@ -33,6 +33,7 @@ const AdminCustomers = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleViewCustomer = (customer: Customer) => {
+    console.log('📝 Opening customer details for:', customer.name);
     setSelectedCustomer(customer);
     setDialogOpen(true);
   };
@@ -44,6 +45,8 @@ const AdminCustomers = () => {
       </div>
     );
   }
+
+  console.log('🎯 AdminCustomers rendering with customers:', customers.length);
 
   return (
     <div className="space-y-6">

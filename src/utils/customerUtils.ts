@@ -48,8 +48,7 @@ export const processCustomerData = (userData: any): Customer => {
     firstName: profile.first_name,
     lastName: profile.last_name,
     email: profile.email,
-    phone: profile.phone,
-    fullProfile: profile
+    phone: profile.phone
   });
 
   // Calculate order statistics
@@ -57,7 +56,6 @@ export const processCustomerData = (userData: any): Customer => {
   const totalSpent = orders.reduce((sum: number, order: any) => sum + Number(order.total || 0), 0);
   
   // Generate customer name with enhanced debugging
-  console.log(`🔍 About to generate name for profile:`, profile);
   const customerName = generateCustomerName(profile);
   console.log(`🎯 Generated customer name: "${customerName}"`);
 
@@ -94,11 +92,11 @@ export const processCustomerData = (userData: any): Customer => {
     id: customer.id.substring(0, 8),
     name: customer.name,
     email: customer.email,
+    phone: customer.phone,
     totalOrders: customer.totalOrders,
     totalSpent: customer.totalSpent,
     status: customer.status,
-    hasProfile,
-    profileData: customer.profile
+    hasProfile
   });
 
   return customer;

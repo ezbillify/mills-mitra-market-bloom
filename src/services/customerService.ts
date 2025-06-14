@@ -18,13 +18,10 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
       throw profilesError;
     }
 
-    console.log(`✅ Fetched ${profiles?.length || 0} profiles:`, profiles?.map(p => ({
-      id: p.id.substring(0, 8),
-      email: p.email,
-      firstName: p.first_name,
-      lastName: p.last_name,
-      created_at: p.created_at
-    })));
+    console.log(`✅ Fetched ${profiles?.length || 0} profiles`);
+    profiles?.forEach(profile => {
+      console.log(`📋 Profile: ${profile.id.substring(0, 8)} - ${profile.first_name} ${profile.last_name} (${profile.email})`);
+    });
 
     // Fetch all orders with detailed logging
     const { data: orders, error: ordersError } = await supabase
@@ -37,24 +34,14 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
       // Continue without orders if there's an error
     }
 
-    console.log(`✅ Fetched ${orders?.length || 0} orders:`, orders?.map(o => ({
-      user_id: o.user_id.substring(0, 8),
-      total: o.total,
-      status: o.status,
-      created_at: o.created_at
-    })));
+    console.log(`✅ Fetched ${orders?.length || 0} orders`);
 
     // Create user map from profiles only
     const userMap = new Map();
     
     // Add profiles
     profiles?.forEach(profile => {
-      console.log(`📝 Adding profile to map:`, {
-        id: profile.id.substring(0, 8),
-        firstName: profile.first_name,
-        lastName: profile.last_name,
-        email: profile.email
-      });
+      console.log(`📝 Adding profile to map: ${profile.id.substring(0, 8)} - ${profile.first_name} ${profile.last_name}`);
       
       userMap.set(profile.id, {
         profile,
@@ -96,7 +83,7 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
     // Process all users into customers
     const customers = Array.from(userMap.values()).map(userData => {
       const customer = processCustomerData(userData);
-      console.log(`🎯 Processed customer: ${customer.id.substring(0, 8)} - ${customer.name} (source: ${userData.source})`);
+      console.log(`🎯 Processed customer: ${customer.id.substring(0, 8)} - "${customer.name}" (${customer.email})`);
       return customer;
     });
 
@@ -105,6 +92,7 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
       id: c.id.substring(0, 8),
       name: c.name,
       email: c.email,
+      phone: c.phone,
       hasProfile: !!c.profile
     })));
 
