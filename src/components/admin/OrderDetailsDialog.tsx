@@ -28,7 +28,7 @@ interface OrderDetails {
   updated_at: string;
   shipping_address: string;
   tracking_number: string | null;
-  profiles: {
+  profiles?: {
     first_name: string | null;
     last_name: string | null;
     email: string | null;
@@ -111,7 +111,7 @@ const OrderDetailsDialog = ({ orderId, open, onOpenChange, onUpdateStatus }: Ord
       console.log('Order details fetched:', order);
       console.log('Order items fetched:', items);
 
-      setOrderDetails(order as OrderDetails);
+      setOrderDetails(order);
       setOrderItems(items || []);
     } catch (error: any) {
       console.error('Error fetching order details:', error);

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Package } from "lucide-react";
@@ -81,7 +80,7 @@ const AdminOrders = () => {
       }
 
       console.log('Orders fetched successfully:', ordersData);
-      setOrders(ordersData as Order[] || []);
+      setOrders(ordersData || []);
     } catch (error) {
       console.error('Unexpected error fetching orders:', error);
       toast({
