@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -54,8 +55,9 @@ export const useOrders = () => {
       return null;
     }
     
-    // Handle error objects
-    if (Object.prototype.hasOwnProperty.call(profile, "error")) {
+    // Handle error objects or objects with error properties
+    if (Object.prototype.hasOwnProperty.call(profile, "error") || 
+        Object.prototype.hasOwnProperty.call(profile, "message")) {
       console.log('❌ Profile has error property, returning null');
       return null;
     }
@@ -77,47 +79,7 @@ export const useOrders = () => {
     try {
       console.log("🚀 DEBUGGING: Starting order fetch with enhanced logging...");
 
-      // First, let's see what orders exist without profiles
-      const { data: basicOrders, error: basicError } = await supabase
-        .from("orders")
-        .select("id, user_id, total, status, created_at, shipping_address, tracking_number")
-        .order("created_at", { ascending: false });
-
-      if (basicError) {
-        console.error("❌ Error fetching basic orders:", basicError);
-        throw basicError;
-      }
-
-      console.log(`📊 Basic orders fetched: ${basicOrders?.length || 0}`);
-      if (basicOrders && basicOrders.length > 0) {
-        console.log("📋 Sample basic order:", {
-          id: basicOrders[0].id.substring(0, 8),
-          userId: basicOrders[0].user_id.substring(0, 8),
-          total: basicOrders[0].total,
-          status: basicOrders[0].status
-        });
-      }
-
-      // Now let's see what profiles exist
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name, email, phone");
-
-      if (profilesError) {
-        console.warn("⚠️ Error fetching profiles (continuing without profiles):", profilesError);
-      } else {
-        console.log(`👥 Profiles available: ${profiles?.length || 0}`);
-        if (profiles && profiles.length > 0) {
-          console.log("👤 Sample profile:", {
-            id: profiles[0].id.substring(0, 8),
-            firstName: profiles[0].first_name,
-            lastName: profiles[0].last_name,
-            email: profiles[0].email
-          });
-        }
-      }
-
-      // Now fetch orders with profile join
+      // Now fetch orders with profile join using the correct foreign key name
       console.log("🔗 Fetching orders WITH profile join...");
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
@@ -130,7 +92,7 @@ export const useOrders = () => {
           created_at,
           shipping_address,
           tracking_number,
-          profiles!orders_user_id_fkey (
+          profiles!orders_user_id_profiles_fkey (
             first_name,
             last_name,
             email,
@@ -172,9 +134,10 @@ export const useOrders = () => {
           profileType: typeof order.profiles,
           profileIsArray: Array.isArray(order.profiles),
           profileIsNull: order.profiles === null,
-          profileFirstName: order.profiles?.first_name,
-          profileLastName: order.profiles?.last_name,
-          profileEmail: order.profiles?.email
+          // Safe property access
+          profileFirstName: order.profiles && typeof order.profiles === 'object' && 'first_name' in order.profiles ? order.profiles.first_name : 'N/A',
+          profileLastName: order.profiles && typeof order.profiles === 'object' && 'last_name' in order.profiles ? order.profiles.last_name : 'N/A',
+          profileEmail: order.profiles && typeof order.profiles === 'object' && 'email' in order.profiles ? order.profiles.email : 'N/A'
         });
       });
 
