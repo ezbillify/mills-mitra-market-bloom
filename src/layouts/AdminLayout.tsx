@@ -5,11 +5,11 @@ import AdminHeader from "@/components/admin/AdminHeader";
 
 const AdminLayout = () => {
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-screen flex bg-warm-cream">
       <AdminSidebar />
       <div className="flex-1 flex flex-col">
         <AdminHeader />
-        <main className="flex-1 p-6 bg-organic-gradient">
+        <main className="flex-1 p-6 bg-warm-cream">
           <Outlet />
         </main>
       </div>

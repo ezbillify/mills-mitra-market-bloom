@@ -14,7 +14,7 @@ const OrdersHeader = ({ onRefresh }: OrdersHeaderProps) => {
         <Button 
           variant="outline" 
           onClick={onRefresh}
-          className="border-sage-green text-sage-green hover:bg-sage-green hover:text-warm-cream"
+          className="border-olive-leaf text-olive-leaf hover:bg-olive-leaf hover:text-warm-cream"
         >
           <Package className="h-4 w-4 mr-2" />
           Refresh Orders

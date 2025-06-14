@@ -21,30 +21,30 @@ const AdminHeader = () => {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b px-6 py-4">
+    <header className="bg-white shadow-sm border-b border-warm-beige px-6 py-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">
+        <h1 className="text-2xl font-semibold text-warm-brown">
           Admin Dashboard
         </h1>
         
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="text-olive-leaf hover:bg-warm-beige">
             <Bell className="h-5 w-5" />
           </Button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="text-olive-leaf hover:bg-warm-beige">
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <div className="px-4 py-2 text-sm text-gray-700">
+            <DropdownMenuContent align="end" className="w-48 bg-white border-warm-beige">
+              <div className="px-4 py-2 text-sm text-earth-brown">
                 <div className="font-medium">Signed in as</div>
-                <div className="text-gray-500 truncate">{user?.email}</div>
+                <div className="text-olive-leaf truncate">{user?.email}</div>
               </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut} className="flex items-center">
+              <DropdownMenuSeparator className="bg-warm-beige" />
+              <DropdownMenuItem onClick={handleSignOut} className="flex items-center text-warm-brown hover:bg-warm-beige">
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </DropdownMenuItem>

@@ -16,10 +16,10 @@
     --popover: 45 20% 96%;       /* Warm Cream #F7F5F1 */
     --popover-foreground: 25 15% 25%; /* Warm Dark Brown #453E35 */
 
-    --primary: 38 35% 65%;       /* Millet Gold #C4A772 - warm, muted gold */
-    --primary-foreground: 25 15% 25%; /* Warm Dark Brown text on primary */
+    --primary: 43 54% 54%;       /* Golden Millet #C9A350 */
+    --primary-foreground: 45 20% 96%; /* Warm Cream text on primary */
 
-    --secondary: 75 20% 55%;     /* Sage Green #8B9A7A - organic, natural */
+    --secondary: 81 32% 43%;     /* Olive Leaf #6A8A4E */
     --secondary-foreground: 45 20% 96%; /* Warm Cream text on secondary */
 
     --muted: 45 15% 92%;         /* Light Warm Gray #F2F0EC */
@@ -33,18 +33,18 @@
 
     --border: 45 15% 88%;        /* Light Warm Border #EAE6E0 */
     --input: 45 15% 88%;         /* Light Warm Input #EAE6E0 */
-    --ring: 38 35% 65%;          /* Millet Gold for focus rings */
+    --ring: 43 54% 54%;          /* Golden Millet for focus rings */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 75 20% 55%; /* Sage Green #8B9A7A */
+    --sidebar-background: 81 32% 43%; /* Olive Leaf #6A8A4E */
     --sidebar-foreground: 45 20% 96%; /* Warm Cream text */
-    --sidebar-primary: 38 35% 65%;    /* Millet Gold #C4A772 */
+    --sidebar-primary: 43 54% 54%;    /* Golden Millet #C9A350 */
     --sidebar-primary-foreground: 25 15% 25%;
     --sidebar-accent: 42 30% 72%;     /* Warm Beige #D1C0A0 */
     --sidebar-accent-foreground: 25 15% 25%;
-    --sidebar-border: 75 15% 50%;     /* Darker Sage */
-    --sidebar-ring: 38 35% 65%;       /* Millet Gold */
+    --sidebar-border: 81 25% 38%;     /* Darker Olive */
+    --sidebar-ring: 43 54% 54%;       /* Golden Millet */
   }
 
   .dark {
@@ -57,10 +57,10 @@
     --popover: 25 15% 18%;       /* Slightly Lighter Dark Brown */
     --popover-foreground: 45 20% 90%; /* Light Warm Cream */
 
-    --primary: 38 35% 65%;       /* Millet Gold #C4A772 */
+    --primary: 43 54% 54%;       /* Golden Millet #C9A350 */
     --primary-foreground: 25 15% 15%; /* Dark Brown text on primary */
 
-    --secondary: 75 20% 40%;     /* Darker Sage Green */
+    --secondary: 81 32% 43%;     /* Olive Leaf #6A8A4E */
     --secondary-foreground: 45 20% 90%; /* Light Warm Cream text */
 
     --muted: 25 15% 22%;         /* Muted Dark Brown */
@@ -74,16 +74,16 @@
 
     --border: 25 15% 25%;        /* Dark Warm Border */
     --input: 25 15% 25%;         /* Dark Warm Input */
-    --ring: 38 35% 65%;          /* Millet Gold for focus rings */
+    --ring: 43 54% 54%;          /* Golden Millet for focus rings */
 
     --sidebar-background: 25 15% 12%; /* Very Dark Brown */
     --sidebar-foreground: 45 20% 90%; /* Light Warm Cream */
-    --sidebar-primary: 38 35% 65%;    /* Millet Gold */
+    --sidebar-primary: 43 54% 54%;    /* Golden Millet */
     --sidebar-primary-foreground: 25 15% 15%;
     --sidebar-accent: 42 25% 50%;     /* Darker Warm Beige */
     --sidebar-accent-foreground: 45 20% 90%;
     --sidebar-border: 25 15% 20%;     /* Dark Border */
-    --sidebar-ring: 38 35% 65%;       /* Millet Gold */
+    --sidebar-ring: 43 54% 54%;       /* Golden Millet */
   }
 }
 
@@ -100,24 +100,24 @@
 
 /* Custom color utilities for the organic millet brand palette */
 @layer utilities {
-  .text-millet-gold {
-    color: #C4A772;
+  .text-golden-millet {
+    color: #C9A350;
   }
-  .bg-millet-gold {
-    background-color: #C4A772;
+  .bg-golden-millet {
+    background-color: #C9A350;
   }
-  .border-millet-gold {
-    border-color: #C4A772;
+  .border-golden-millet {
+    border-color: #C9A350;
   }
   
-  .text-sage-green {
-    color: #8B9A7A;
+  .text-olive-leaf {
+    color: #6A8A4E;
   }
-  .bg-sage-green {
-    background-color: #8B9A7A;
+  .bg-olive-leaf {
+    background-color: #6A8A4E;
   }
-  .border-sage-green {
-    border-color: #8B9A7A;
+  .border-olive-leaf {
+    border-color: #6A8A4E;
   }
   
   .text-warm-beige {
@@ -166,7 +166,7 @@
   }
   
   .bg-millet-gradient {
-    background: linear-gradient(135deg, #C4A772 0%, #8B9A7A 100%);
+    background: linear-gradient(135deg, #C9A350 0%, #6A8A4E 100%);
   }
 }
 
@@ -179,12 +179,12 @@
   
   .organic-button {
     @apply bg-primary text-primary-foreground px-4 py-2 rounded-md transition-all duration-200;
-    box-shadow: 0 2px 4px rgba(196, 167, 114, 0.2);
+    box-shadow: 0 2px 4px rgba(201, 163, 80, 0.2);
   }
   
   .organic-button:hover {
     @apply bg-accent;
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(196, 167, 114, 0.3);
+    box-shadow: 0 4px 8px rgba(201, 163, 80, 0.3);
   }
 }

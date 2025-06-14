@@ -27,7 +27,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
       completed: "default",
       cancelled: "destructive"
     };
-    return <Badge variant={variants[status] || "default"} className="bg-millet-gold text-warm-brown">{status.replace("_", " ")}</Badge>;
+    return <Badge variant={variants[status] || "default"} className="bg-golden-millet text-warm-brown">{status.replace("_", " ")}</Badge>;
   };
 
   const getCustomerName = (order: Order) => {
@@ -66,7 +66,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
 
   if (orders.length === 0) {
     return (
-      <Card className="organic-card border-warm-beige">
+      <Card className="bg-white border-warm-beige shadow-sm">
         <CardHeader>
           <CardTitle className="text-warm-brown">Recent Orders</CardTitle>
         </CardHeader>
@@ -94,7 +94,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   });
 
   return (
-    <Card className="organic-card border-warm-beige">
+    <Card className="bg-white border-warm-beige shadow-sm">
       <CardHeader>
         <CardTitle className="text-warm-brown">Recent Orders ({orders.length})</CardTitle>
       </CardHeader>
@@ -127,7 +127,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                     <div className="font-medium text-warm-brown">{customerName}</div>
                   </TableCell>
                   <TableCell className="text-earth-brown">{customerEmail}</TableCell>
-                  <TableCell className="text-millet-gold font-semibold">₹{Number(order.total).toFixed(2)}</TableCell>
+                  <TableCell className="text-golden-millet font-semibold">₹{Number(order.total).toFixed(2)}</TableCell>
                   <TableCell>{getStatusBadge(order.status)}</TableCell>
                   <TableCell className="text-earth-brown">{new Date(order.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>
@@ -135,7 +135,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                       variant="outline"
                       size="sm"
                       onClick={() => onViewDetails(order.id)}
-                      className="border-sage-green text-sage-green hover:bg-sage-green hover:text-warm-cream"
+                      className="border-olive-leaf text-olive-leaf hover:bg-olive-leaf hover:text-warm-cream"
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
