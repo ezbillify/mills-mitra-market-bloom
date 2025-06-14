@@ -20,6 +20,8 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminOrders from "./pages/admin/Orders";
 import AdminCustomers from "./pages/admin/Customers";
 import AdminProducts from "./pages/admin/Products";
+import AdminEmployees from "./pages/admin/Employees";
+import AdminAnalytics from "./pages/admin/Analytics";
 import AdminBanners from "./pages/admin/Banners";
 import NotFound from "./pages/NotFound";
 
@@ -55,6 +57,8 @@ const App = () => (
               <Route path="orders" element={<AdminOrders />} />
               <Route path="customers" element={<AdminCustomers />} />
               <Route path="products" element={<AdminProducts />} />
+              <Route path="employees" element={<AdminEmployees />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
               <Route path="banners" element={<AdminBanners />} />
             </Route>
             

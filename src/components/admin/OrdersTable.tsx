@@ -2,6 +2,8 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Eye } from "lucide-react";
 import OrderActions from "./OrderActions";
 
 interface Order {
@@ -22,9 +24,10 @@ interface Order {
 interface OrdersTableProps {
   orders: Order[];
   onUpdateStatus: (orderId: string, newStatus: "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "accepted" | "out_for_delivery" | "completed") => void;
+  onViewDetails: (orderId: string) => void;
 }
 
-const OrdersTable = ({ orders, onUpdateStatus }: OrdersTableProps) => {
+const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps) => {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       pending: "outline",
@@ -75,7 +78,16 @@ const OrdersTable = ({ orders, onUpdateStatus }: OrdersTableProps) => {
                 <TableCell>{getStatusBadge(order.status)}</TableCell>
                 <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  <OrderActions order={order} onUpdateStatus={onUpdateStatus} />
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => onViewDetails(order.id)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <OrderActions order={order} onUpdateStatus={onUpdateStatus} />
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

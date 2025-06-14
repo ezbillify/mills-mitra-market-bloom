@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import OrdersStats from "@/components/admin/OrdersStats";
 import OrdersTable from "@/components/admin/OrdersTable";
+import OrderDetailsDialog from "@/components/admin/OrderDetailsDialog";
 
 interface Order {
   id: string;
@@ -25,10 +26,28 @@ interface Order {
 const AdminOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchOrders();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('orders-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'orders'
+      }, () => {
+        fetchOrders();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchOrders = async () => {
@@ -49,7 +68,6 @@ const AdminOrders = () => {
         return;
       }
 
-      // Then fetch profiles separately
       const userIds = [...new Set(ordersData?.map(order => order.user_id) || [])];
       
       if (userIds.length > 0) {
@@ -62,7 +80,6 @@ const AdminOrders = () => {
           console.warn('Error fetching profiles:', profilesError);
         }
 
-        // Combine the data
         const profilesMap = new Map(
           (profilesData || []).map(profile => [profile.id, profile])
         );
@@ -120,6 +137,11 @@ const AdminOrders = () => {
     }
   };
 
+  const handleViewDetails = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setDetailsDialogOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -141,7 +163,18 @@ const AdminOrders = () => {
       </div>
 
       <OrdersStats orders={orders} />
-      <OrdersTable orders={orders} onUpdateStatus={updateOrderStatus} />
+      <OrdersTable 
+        orders={orders} 
+        onUpdateStatus={updateOrderStatus}
+        onViewDetails={handleViewDetails}
+      />
+      
+      <OrderDetailsDialog
+        orderId={selectedOrderId}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        onUpdateStatus={updateOrderStatus}
+      />
     </div>
   );
 };

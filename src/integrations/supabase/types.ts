@@ -33,6 +33,42 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          page_url: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          page_url?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          page_url?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       banners: {
         Row: {
           created_at: string | null
@@ -103,6 +139,68 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          created_at: string
+          department: string | null
+          email: string
+          employee_id: string
+          first_name: string
+          hire_date: string
+          id: string
+          last_name: string
+          manager_id: string | null
+          phone: string | null
+          position: string
+          salary: number | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          email: string
+          employee_id: string
+          first_name: string
+          hire_date?: string
+          id?: string
+          last_name: string
+          manager_id?: string | null
+          phone?: string | null
+          position: string
+          salary?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          email?: string
+          employee_id?: string
+          first_name?: string
+          hire_date?: string
+          id?: string
+          last_name?: string
+          manager_id?: string | null
+          phone?: string | null
+          position?: string
+          salary?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
         ]
@@ -263,9 +361,51 @@ export type Database = {
         }
         Relationships: []
       }
+      website_visits: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string | null
+          page_url: string
+          referrer: string | null
+          session_duration: number | null
+          user_agent: string | null
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          page_url: string
+          referrer?: string | null
+          session_duration?: number | null
+          user_agent?: string | null
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          page_url?: string
+          referrer?: string | null
+          session_duration?: number | null
+          user_agent?: string | null
+          visitor_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      sales_metrics: {
+        Row: {
+          avg_order_value: number | null
+          date: string | null
+          orders_count: number | null
+          total_revenue: number | null
+          unique_customers: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

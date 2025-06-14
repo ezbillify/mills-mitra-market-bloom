@@ -7,7 +7,9 @@ import {
   Users, 
   Package,
   ArrowLeft,
-  Image
+  Image,
+  BarChart3,
+  UserCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +21,8 @@ const AdminSidebar = () => {
     { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
     { name: "Customers", href: "/admin/customers", icon: Users },
     { name: "Products", href: "/admin/products", icon: Package },
+    { name: "Employees", href: "/admin/employees", icon: UserCheck },
+    { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
     { name: "Banners", href: "/admin/banners", icon: Image },
   ];
 
