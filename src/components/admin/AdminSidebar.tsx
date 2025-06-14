@@ -1,68 +1,46 @@
-
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  Package, 
-  Users, 
-  ShoppingCart, 
-  BarChart3, 
-  Image,
-  Settings,
-  LogOut,
-  Truck,
-  Tag
-} from "lucide-react";
+import { LayoutDashboard, Package, Users, ShoppingCart, BarChart3, Image, Settings, LogOut, Truck, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-
 const AdminSidebar = () => {
   const location = useLocation();
-  const { signOut } = useAuth();
-
-  const navigation = [
-    {
-      name: "Dashboard",
-      href: "/admin",
-      icon: LayoutDashboard,
-    },
-    {
-      name: "Products",
-      href: "/admin/products",
-      icon: Package,
-    },
-    {
-      name: "Categories",
-      href: "/admin/categories",
-      icon: Tag,
-    },
-    {
-      name: "Orders",
-      href: "/admin/orders",
-      icon: ShoppingCart,
-    },
-    {
-      name: "Customers",
-      href: "/admin/customers",
-      icon: Users,
-    },
-    {
-      name: "Analytics",
-      href: "/admin/analytics",
-      icon: BarChart3,
-    },
-    {
-      name: "Banners",
-      href: "/admin/banners",
-      icon: Image,
-    },
-    {
-      name: "Shipping",
-      href: "/admin/shipping",
-      icon: Truck,
-    },
-  ];
-
+  const {
+    signOut
+  } = useAuth();
+  const navigation = [{
+    name: "Dashboard",
+    href: "/admin",
+    icon: LayoutDashboard
+  }, {
+    name: "Products",
+    href: "/admin/products",
+    icon: Package
+  }, {
+    name: "Categories",
+    href: "/admin/categories",
+    icon: Tag
+  }, {
+    name: "Orders",
+    href: "/admin/orders",
+    icon: ShoppingCart
+  }, {
+    name: "Customers",
+    href: "/admin/customers",
+    icon: Users
+  }, {
+    name: "Analytics",
+    href: "/admin/analytics",
+    icon: BarChart3
+  }, {
+    name: "Banners",
+    href: "/admin/banners",
+    icon: Image
+  }, {
+    name: "Shipping",
+    href: "/admin/shipping",
+    icon: Truck
+  }];
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -70,9 +48,7 @@ const AdminSidebar = () => {
       console.error('Error signing out:', error);
     }
   };
-
-  return (
-    <div className="flex h-full w-80 flex-col bg-white shadow-xl border-r border-gray-100">
+  return <div className="flex h-full w-80 flex-col bg-white shadow-xl border-r border-gray-100">
       {/* Header */}
       <div className="flex h-24 items-center px-8 border-b border-gray-100 bg-gradient-to-r from-royal-green to-medium-green">
         <div className="flex items-center space-x-4">
@@ -80,8 +56,8 @@ const AdminSidebar = () => {
             <LayoutDashboard className="w-7 h-7 text-royal-green" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Admin Panel</h1>
-            <p className="text-sm text-white/90 font-medium">Mills Mitra Market</p>
+            <h1 className="text-xl font-bold tracking-tight text-emerald-500">Admin Panel</h1>
+            <p className="text-sm font-medium text-green-950">Mills Mitra Market</p>
           </div>
         </div>
       </div>
@@ -93,40 +69,20 @@ const AdminSidebar = () => {
             Management
           </h2>
         </div>
-        {navigation.map((item) => {
-          const isActive = location.pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={cn(
-                "group flex items-center px-4 py-3.5 text-sm font-medium rounded-xl transition-all duration-300 ease-out relative overflow-hidden",
-                isActive
-                  ? "bg-royal-green text-white shadow-lg shadow-royal-green/25 scale-[1.02]"
-                  : "text-gray-700 hover:bg-gradient-to-r hover:from-royal-green/5 hover:to-medium-green/5 hover:text-royal-green hover:translate-x-1"
-              )}
-            >
+        {navigation.map(item => {
+        const isActive = location.pathname === item.href;
+        return <Link key={item.name} to={item.href} className={cn("group flex items-center px-4 py-3.5 text-sm font-medium rounded-xl transition-all duration-300 ease-out relative overflow-hidden", isActive ? "bg-royal-green text-white shadow-lg shadow-royal-green/25 scale-[1.02]" : "text-gray-700 hover:bg-gradient-to-r hover:from-royal-green/5 hover:to-medium-green/5 hover:text-royal-green hover:translate-x-1")}>
               {/* Active indicator */}
-              {isActive && (
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-full" />
-              )}
+              {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-full" />}
               
-              <item.icon className={cn(
-                "mr-4 h-5 w-5 transition-all duration-300",
-                isActive 
-                  ? "text-white transform scale-110" 
-                  : "text-gray-500 group-hover:text-royal-green group-hover:scale-110"
-              )} />
+              <item.icon className={cn("mr-4 h-5 w-5 transition-all duration-300", isActive ? "text-white transform scale-110" : "text-gray-500 group-hover:text-royal-green group-hover:scale-110")} />
               
               <span className="relative z-10">{item.name}</span>
               
               {/* Hover effect background */}
-              {!isActive && (
-                <div className="absolute inset-0 bg-gradient-to-r from-royal-green/0 to-royal-green/0 group-hover:from-royal-green/5 group-hover:to-medium-green/5 rounded-xl transition-all duration-300" />
-              )}
-            </Link>
-          );
-        })}
+              {!isActive && <div className="absolute inset-0 bg-gradient-to-r from-royal-green/0 to-royal-green/0 group-hover:from-royal-green/5 group-hover:to-medium-green/5 rounded-xl transition-all duration-300" />}
+            </Link>;
+      })}
       </nav>
       
       {/* Footer */}
@@ -143,17 +99,11 @@ const AdminSidebar = () => {
           </div>
         </div>
         
-        <Button
-          onClick={handleSignOut}
-          variant="outline"
-          className="w-full justify-start bg-white border-gray-200 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-200 shadow-sm"
-        >
+        <Button onClick={handleSignOut} variant="outline" className="w-full justify-start bg-white border-gray-200 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-200 shadow-sm">
           <LogOut className="mr-3 h-4 w-4" />
           Sign Out
         </Button>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default AdminSidebar;
