@@ -103,7 +103,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false);
 
         // Ensure profile exists for various auth events
-        if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_UP')) {
+        if (session?.user && ['SIGNED_IN', 'SIGNED_UP', 'TOKEN_REFRESHED'].includes(event)) {
           // Use immediate execution for signup, short delay for others
           const delay = event === 'SIGNED_UP' ? 100 : 500;
           setTimeout(() => {
