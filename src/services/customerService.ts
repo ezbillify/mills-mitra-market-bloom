@@ -21,7 +21,8 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
     console.log(`✅ Fetched ${profiles?.length || 0} profiles:`, profiles?.map(p => ({
       id: p.id.substring(0, 8),
       email: p.email,
-      name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
+      firstName: p.first_name,
+      lastName: p.last_name,
       created_at: p.created_at
     })));
 
@@ -48,6 +49,13 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
     
     // Add profiles
     profiles?.forEach(profile => {
+      console.log(`📝 Adding profile to map:`, {
+        id: profile.id.substring(0, 8),
+        firstName: profile.first_name,
+        lastName: profile.last_name,
+        email: profile.email
+      });
+      
       userMap.set(profile.id, {
         profile,
         orders: [],
@@ -93,6 +101,13 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
     });
 
     console.log(`🎯 Final customer count: ${customers.length}`);
+    console.log(`📊 Sample customers:`, customers.slice(0, 3).map(c => ({
+      id: c.id.substring(0, 8),
+      name: c.name,
+      email: c.email,
+      hasProfile: !!c.profile
+    })));
+
     return customers;
 
   } catch (error) {

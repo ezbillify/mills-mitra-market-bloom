@@ -37,6 +37,18 @@ const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
     );
   };
 
+  const displayCustomerName = (customer: Customer) => {
+    // Ensure we always show a meaningful name
+    if (!customer.name || customer.name.trim() === '') {
+      if (customer.email) {
+        const emailPrefix = customer.email.split('@')[0];
+        return emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+      }
+      return `Customer ${customer.id.substring(0, 8)}`;
+    }
+    return customer.name;
+  };
+
   if (customers.length === 0) {
     return (
       <div className="text-center py-8">
@@ -77,66 +89,71 @@ const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {customers.map((customer) => (
-            <TableRow key={customer.id} className="hover:bg-gray-50 transition-colors">
-              <TableCell>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-                    <User className="h-4 w-4 text-white" />
+          {customers.map((customer) => {
+            const displayName = displayCustomerName(customer);
+            console.log(`👤 Rendering customer: ${customer.id.substring(0, 8)} - Name: "${customer.name}" -> Display: "${displayName}"`);
+            
+            return (
+              <TableRow key={customer.id} className="hover:bg-gray-50 transition-colors">
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                      <User className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-medium">{displayName}</div>
+                      <div className="text-sm text-gray-500">{customer.id.substring(0, 8)}...</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-medium">{customer.name || 'No Name'}</div>
-                    <div className="text-sm text-gray-500">{customer.id.substring(0, 8)}...</div>
+                </TableCell>
+                <TableCell>
+                  <div className="space-y-1">
+                    <div className="text-sm flex items-center gap-1">
+                      <Mail className="h-3 w-3" />
+                      {customer.email || 'No email'}
+                    </div>
+                    <div className="text-sm text-gray-500 flex items-center gap-1">
+                      <Phone className="h-3 w-3" />
+                      {customer.phone || 'Not provided'}
+                    </div>
                   </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="space-y-1">
-                  <div className="text-sm flex items-center gap-1">
-                    <Mail className="h-3 w-3" />
-                    {customer.email || 'No email'}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium">{customer.totalOrders}</span>
+                    <span className="text-xs text-gray-500">orders</span>
                   </div>
-                  <div className="text-sm text-gray-500 flex items-center gap-1">
-                    <Phone className="h-3 w-3" />
-                    {customer.phone || 'Not provided'}
+                </TableCell>
+                <TableCell>
+                  <div className="font-medium">₹{customer.totalSpent.toFixed(2)}</div>
+                </TableCell>
+                <TableCell>{getStatusBadge(customer.status)}</TableCell>
+                <TableCell>
+                  <div className="text-sm">
+                    {new Date(customer.joinDate).toLocaleDateString()}
                   </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1">
-                  <span className="font-medium">{customer.totalOrders}</span>
-                  <span className="text-xs text-gray-500">orders</span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="font-medium">₹{customer.totalSpent.toFixed(2)}</div>
-              </TableCell>
-              <TableCell>{getStatusBadge(customer.status)}</TableCell>
-              <TableCell>
-                <div className="text-sm">
-                  {new Date(customer.joinDate).toLocaleDateString()}
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => onViewCustomer(customer)}
-                    className="hover:bg-blue-50"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="sm" className="hover:bg-green-50">
-                    <Mail className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="sm" className="hover:bg-yellow-50">
-                    <Phone className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => onViewCustomer(customer)}
+                      className="hover:bg-blue-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" className="hover:bg-green-50">
+                      <Mail className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" className="hover:bg-yellow-50">
+                      <Phone className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

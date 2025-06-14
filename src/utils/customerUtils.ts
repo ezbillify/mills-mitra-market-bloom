@@ -9,28 +9,49 @@ export const generateCustomerName = (profile: any): string => {
     email: profile.email
   });
 
+  // First try to use first_name and last_name
   if (profile.first_name || profile.last_name) {
     const firstName = profile.first_name?.trim() || '';
     const lastName = profile.last_name?.trim() || '';
     const fullName = `${firstName} ${lastName}`.trim();
-    console.log(`✅ Generated name from profile: "${fullName}"`);
-    return fullName;
-  } else if (profile.email) {
-    const emailPrefix = profile.email.split('@')[0];
-    const capitalizedName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
-    console.log(`📧 Generated name from email: "${capitalizedName}"`);
-    return capitalizedName;
-  } else {
-    const fallbackName = `Customer ${profile.id?.substring(0, 8) || 'Unknown'}`;
-    console.log(`🔄 Using fallback name: "${fallbackName}"`);
-    return fallbackName;
+    if (fullName) {
+      console.log(`✅ Generated name from profile: "${fullName}"`);
+      return fullName;
+    }
   }
+
+  // If no name components, try to extract from email
+  if (profile.email) {
+    const emailPrefix = profile.email.split('@')[0];
+    // Remove numbers and special characters, capitalize first letter
+    const cleanName = emailPrefix.replace(/[0-9._-]/g, ' ').trim();
+    if (cleanName) {
+      const capitalizedName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+      console.log(`📧 Generated name from email: "${capitalizedName}"`);
+      return capitalizedName;
+    }
+    // Fallback to just the email prefix
+    const capitalizedEmail = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+    console.log(`📧 Using email prefix as name: "${capitalizedEmail}"`);
+    return capitalizedEmail;
+  }
+
+  // Last resort fallback
+  const fallbackName = `Customer ${profile.id?.substring(0, 8) || 'Unknown'}`;
+  console.log(`🔄 Using fallback name: "${fallbackName}"`);
+  return fallbackName;
 };
 
 export const processCustomerData = (userData: any): Customer => {
   const { profile, orders, hasProfile } = userData;
   
   console.log(`🔄 Processing user: ${profile.id.substring(0, 8)}, hasProfile: ${hasProfile}, orderCount: ${orders.length}`);
+  console.log(`📝 Profile data:`, {
+    firstName: profile.first_name,
+    lastName: profile.last_name,
+    email: profile.email,
+    phone: profile.phone
+  });
 
   // Calculate order statistics
   const totalOrders = orders.length;
