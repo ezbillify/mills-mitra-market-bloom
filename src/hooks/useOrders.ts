@@ -40,7 +40,7 @@ export const useOrders = () => {
     try {
       console.log("🔍 Fetching orders with profile data...");
 
-      // Use the proper join query with the foreign key constraint
+      // First, get all orders
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(`
@@ -50,13 +50,7 @@ export const useOrders = () => {
           status,
           created_at,
           shipping_address,
-          tracking_number,
-          profiles!orders_user_id_profiles_fkey (
-            first_name,
-            last_name,
-            email,
-            phone
-          )
+          tracking_number
         `)
         .order("created_at", { ascending: false });
 
@@ -79,22 +73,49 @@ export const useOrders = () => {
         return;
       }
 
-      // Process orders with proper profile handling
-      const processedOrders = ordersData.map((order: any) => {
-        console.log(`🔄 Processing order ${order.id.substring(0, 8)}:`, {
-          userId: order.user_id.substring(0, 8),
-          profileData: order.profiles
-        });
+      // Get unique user IDs from orders
+      const userIds = [...new Set(ordersData.map(order => order.user_id))];
+      console.log(`👥 Found ${userIds.length} unique users in orders`);
 
-        // Ensure profile is properly structured
-        let profile: OrderProfile = null;
-        if (order.profiles && typeof order.profiles === 'object' && !Array.isArray(order.profiles)) {
-          profile = {
-            first_name: order.profiles.first_name || null,
-            last_name: order.profiles.last_name || null,
-            email: order.profiles.email || null,
-            phone: order.profiles.phone || null
+      // Fetch all profiles for these users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, email, phone")
+        .in("id", userIds);
+
+      if (profilesError) {
+        console.error("❌ Error fetching profiles:", profilesError);
+        // Continue without profiles rather than failing completely
+      }
+
+      console.log(`📋 Fetched ${profilesData?.length || 0} profiles`);
+
+      // Create a map of user_id to profile for quick lookup
+      const profilesMap = new Map();
+      if (profilesData) {
+        profilesData.forEach(profile => {
+          profilesMap.set(profile.id, profile);
+          console.log(`📝 Mapped profile for user ${profile.id.substring(0, 8)}: ${profile.first_name} ${profile.last_name} (${profile.email})`);
+        });
+      }
+
+      // Process orders and attach profile data
+      const processedOrders = ordersData.map((order: any) => {
+        console.log(`🔄 Processing order ${order.id.substring(0, 8)} for user ${order.user_id.substring(0, 8)}`);
+        
+        const profile = profilesMap.get(order.user_id);
+        let orderProfile: OrderProfile = null;
+
+        if (profile) {
+          orderProfile = {
+            first_name: profile.first_name || null,
+            last_name: profile.last_name || null,
+            email: profile.email || null,
+            phone: profile.phone || null
           };
+          console.log(`✅ Found profile for user ${order.user_id.substring(0, 8)}: ${profile.first_name} ${profile.last_name}`);
+        } else {
+          console.log(`⚠️ No profile found for user ${order.user_id.substring(0, 8)}`);
         }
 
         return {
@@ -105,11 +126,17 @@ export const useOrders = () => {
           created_at: order.created_at,
           shipping_address: order.shipping_address,
           tracking_number: order.tracking_number,
-          profiles: profile
+          profiles: orderProfile
         };
       });
 
-      console.log(`🎯 All ${processedOrders.length} orders processed successfully`);
+      console.log(`🎯 Processed ${processedOrders.length} orders with profile data`);
+      
+      // Log summary of profile data
+      const ordersWithProfiles = processedOrders.filter(order => order.profiles);
+      const ordersWithoutProfiles = processedOrders.filter(order => !order.profiles);
+      console.log(`📊 Orders with profiles: ${ordersWithProfiles.length}, without profiles: ${ordersWithoutProfiles.length}`);
+
       setOrders(processedOrders);
     } catch (error) {
       console.error("💥 Unexpected error in fetchOrders:", error);
