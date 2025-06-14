@@ -21,6 +21,8 @@ interface CustomerTableProps {
 }
 
 const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
+  console.log('CustomerTable rendering with customers:', customers);
+  
   const getStatusBadge = (status: string) => {
     return (
       <Badge variant={status === 'active' ? 'default' : 'secondary'}>
@@ -38,6 +40,21 @@ const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
     return <Badge variant="outline">Regular</Badge>;
   };
 
+  const formatCustomerName = (name: string) => {
+    // Ensure we always have a proper display name
+    if (!name || name.trim() === '') {
+      return 'Unknown Customer';
+    }
+    return name;
+  };
+
+  const formatEmail = (email: string) => {
+    if (!email || email === 'No email provided' || email === 'Profile not found') {
+      return <span className="text-gray-400 italic">{email || 'No email'}</span>;
+    }
+    return email;
+  };
+
   return (
     <Table>
       <TableHeader>
@@ -53,49 +70,52 @@ const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {customers.map((customer) => (
-          <TableRow key={customer.id}>
-            <TableCell>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                  <User className="h-4 w-4" />
+        {customers.map((customer) => {
+          console.log('Rendering customer row:', customer);
+          return (
+            <TableRow key={customer.id}>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                    <User className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="font-medium">{formatCustomerName(customer.name)}</div>
+                    <div className="text-sm text-gray-500">{customer.id.substring(0, 8)}...</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-medium">{customer.name}</div>
-                  <div className="text-sm text-gray-500">{customer.id.substring(0, 8)}</div>
+              </TableCell>
+              <TableCell>
+                <div className="space-y-1">
+                  <div className="text-sm">{formatEmail(customer.email)}</div>
+                  <div className="text-sm text-gray-500">{customer.phone || 'Not provided'}</div>
                 </div>
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="space-y-1">
-                <div className="text-sm">{customer.email}</div>
-                <div className="text-sm text-gray-500">{customer.phone || 'Not provided'}</div>
-              </div>
-            </TableCell>
-            <TableCell>{customer.totalOrders}</TableCell>
-            <TableCell>₹{customer.totalSpent.toFixed(2)}</TableCell>
-            <TableCell>{getCustomerTier(customer.totalSpent)}</TableCell>
-            <TableCell>{getStatusBadge(customer.status)}</TableCell>
-            <TableCell>{new Date(customer.joinDate).toLocaleDateString()}</TableCell>
-            <TableCell>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => onViewCustomer(customer)}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Mail className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Phone className="h-4 w-4" />
-                </Button>
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
+              </TableCell>
+              <TableCell>{customer.totalOrders}</TableCell>
+              <TableCell>₹{customer.totalSpent.toFixed(2)}</TableCell>
+              <TableCell>{getCustomerTier(customer.totalSpent)}</TableCell>
+              <TableCell>{getStatusBadge(customer.status)}</TableCell>
+              <TableCell>{new Date(customer.joinDate).toLocaleDateString()}</TableCell>
+              <TableCell>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => onViewCustomer(customer)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Mail className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Phone className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          );
+        })}
       </TableBody>
     </Table>
   );

@@ -39,7 +39,7 @@ export const useCustomers = () => {
 
       console.log('Fetching comprehensive customer data...');
       
-      // Get all auth users first (this requires admin access, but let's try profiles approach)
+      // Get all profiles with better data handling
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -50,7 +50,7 @@ export const useCustomers = () => {
         throw profilesError;
       }
 
-      console.log('Profiles fetched:', profiles?.length || 0, profiles);
+      console.log('Raw profiles data:', profiles);
 
       // Fetch all orders to get order statistics
       const { data: orderStats, error: orderStatsError } = await supabase
@@ -61,7 +61,7 @@ export const useCustomers = () => {
         console.error('Error fetching order stats:', orderStatsError);
       }
 
-      console.log('Order stats fetched:', orderStats?.length || 0, orderStats);
+      console.log('Raw order stats:', orderStats);
 
       // Create a map of user orders for quick lookup
       const userOrdersMap = new Map<string, { count: number; total: number }>();
@@ -75,20 +75,39 @@ export const useCustomers = () => {
         }
       });
 
-      // Create customers from profiles
+      // Create customers from profiles with improved name logic
       const customersFromProfiles: Customer[] = (profiles || []).map(profile => {
+        console.log('Processing profile:', profile);
+        
         const userOrders = userOrdersMap.get(profile.id) || { count: 0, total: 0 };
         
-        const customerName = profile.first_name || profile.last_name
-          ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
-          : profile.email 
-          ? profile.email.split('@')[0]
-          : `User ${profile.id.substring(0, 8)}`;
+        // Improved customer name generation with better fallbacks
+        let customerName = 'Unknown Customer';
+        
+        if (profile.first_name && profile.last_name) {
+          customerName = `${profile.first_name} ${profile.last_name}`.trim();
+        } else if (profile.first_name) {
+          customerName = profile.first_name.trim();
+        } else if (profile.last_name) {
+          customerName = profile.last_name.trim();
+        } else if (profile.email) {
+          // Extract name from email prefix
+          const emailPrefix = profile.email.split('@')[0];
+          customerName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+        } else {
+          customerName = `User ${profile.id.substring(0, 8)}`;
+        }
+        
+        console.log('Generated customer name:', customerName, 'from profile:', {
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          email: profile.email
+        });
         
         return {
           id: profile.id,
           name: customerName,
-          email: profile.email || 'No email',
+          email: profile.email || 'No email provided',
           phone: profile.phone || '',
           totalOrders: userOrders.count,
           totalSpent: userOrders.total,
@@ -105,12 +124,12 @@ export const useCustomers = () => {
         };
       });
 
-      // Get users with orders but no profiles
+      // Get users with orders but no profiles (edge case)
       const profileUserIds = new Set(profiles?.map(p => p.id) || []);
       const orderUserIds = [...new Set(orderStats?.map(order => order.user_id) || [])];
       const missingProfileUserIds = orderUserIds.filter(userId => !profileUserIds.has(userId));
 
-      console.log('Users with orders but no profiles:', missingProfileUserIds.length, missingProfileUserIds);
+      console.log('Users with orders but no profiles:', missingProfileUserIds.length);
 
       // Create customers for users with orders but no profiles
       const customersFromOrders: Customer[] = missingProfileUserIds.map(userId => {
@@ -119,7 +138,7 @@ export const useCustomers = () => {
         return {
           id: userId,
           name: `Customer ${userId.substring(0, 8)}`,
-          email: 'Profile pending',
+          email: 'Profile not found',
           phone: '',
           totalOrders: userOrders.count,
           totalSpent: userOrders.total,
@@ -131,10 +150,8 @@ export const useCustomers = () => {
 
       const allCustomers = [...customersFromProfiles, ...customersFromOrders];
       
-      console.log('Final customer count:', allCustomers.length);
-      console.log('Customers from profiles:', customersFromProfiles.length);
-      console.log('Customers from orders only:', customersFromOrders.length);
-      console.log('All customers data:', allCustomers);
+      console.log('Final processed customers:', allCustomers);
+      console.log('Customer names:', allCustomers.map(c => ({ id: c.id, name: c.name, email: c.email })));
       
       setCustomers(allCustomers);
 
