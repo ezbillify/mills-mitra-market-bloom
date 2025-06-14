@@ -36,15 +36,15 @@ export const useCartCount = () => {
     }
   }, [user]);
 
-  const cleanupSubscription = useCallback(() => {
-    if (subscriptionRef.current) {
-      console.log('🧹 Cleaning up existing cart subscription');
-      subscriptionRef.current.unsubscribe();
-      subscriptionRef.current = null;
-    }
-  }, []);
-
   useEffect(() => {
+    const cleanupSubscription = () => {
+      if (subscriptionRef.current) {
+        console.log('🧹 Cleaning up existing cart subscription');
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
+    };
+
     // If user changed, cleanup previous subscription
     if (userIdRef.current && userIdRef.current !== user?.id) {
       cleanupSubscription();
@@ -58,7 +58,7 @@ export const useCartCount = () => {
         // Initial fetch
         fetchCartCount();
         
-        // Create unique channel name with user ID
+        // Create unique channel name with user ID and timestamp
         const channelName = `cart_changes_${user.id}_${Date.now()}`;
         console.log('🔔 Setting up cart real-time subscription:', channelName);
         
@@ -90,9 +90,13 @@ export const useCartCount = () => {
     }
 
     return () => {
-      cleanupSubscription();
+      if (subscriptionRef.current) {
+        console.log('🧹 Cleaning up cart subscription on unmount');
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
     };
-  }, [user?.id, fetchCartCount, cleanupSubscription]);
+  }, [user?.id]); // Only depend on user.id to prevent multiple subscriptions
 
   return { cartCount, refetchCartCount: fetchCartCount };
 };
