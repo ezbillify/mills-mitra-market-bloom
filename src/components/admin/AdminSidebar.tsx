@@ -72,22 +72,27 @@ const AdminSidebar = () => {
   };
 
   return (
-    <div className="flex h-full w-72 flex-col bg-gradient-to-b from-royal-green to-royal-green/90 shadow-2xl border-r border-royal-green/20">
+    <div className="flex h-full w-80 flex-col bg-white shadow-xl border-r border-gray-100">
       {/* Header */}
-      <div className="flex h-20 items-center px-8 border-b border-white/20">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
-            <LayoutDashboard className="w-6 h-6 text-royal-green" />
+      <div className="flex h-24 items-center px-8 border-b border-gray-100 bg-gradient-to-r from-royal-green to-medium-green">
+        <div className="flex items-center space-x-4">
+          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg ring-2 ring-white/20">
+            <LayoutDashboard className="w-7 h-7 text-royal-green" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">Admin Panel</h1>
-            <p className="text-sm text-white/80">Mills Mitra Market</p>
+            <h1 className="text-xl font-bold text-white tracking-tight">Admin Panel</h1>
+            <p className="text-sm text-white/90 font-medium">Mills Mitra Market</p>
           </div>
         </div>
       </div>
       
       {/* Navigation */}
-      <nav className="flex-1 space-y-2 px-6 py-6">
+      <nav className="flex-1 px-6 py-8 space-y-2 bg-gradient-to-b from-gray-50/50 to-white">
+        <div className="mb-6">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-3">
+            Management
+          </h2>
+        </div>
         {navigation.map((item) => {
           const isActive = location.pathname === item.href;
           return (
@@ -95,30 +100,55 @@ const AdminSidebar = () => {
               key={item.name}
               to={item.href}
               className={cn(
-                "flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group",
+                "group flex items-center px-4 py-3.5 text-sm font-medium rounded-xl transition-all duration-300 ease-out relative overflow-hidden",
                 isActive
-                  ? "bg-white text-royal-green shadow-lg shadow-white/30 transform scale-105"
-                  : "text-white hover:bg-white/20 hover:text-white hover:translate-x-1"
+                  ? "bg-royal-green text-white shadow-lg shadow-royal-green/25 scale-[1.02]"
+                  : "text-gray-700 hover:bg-gradient-to-r hover:from-royal-green/5 hover:to-medium-green/5 hover:text-royal-green hover:translate-x-1"
               )}
             >
+              {/* Active indicator */}
+              {isActive && (
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-full" />
+              )}
+              
               <item.icon className={cn(
-                "mr-3 h-5 w-5 transition-transform duration-200",
-                isActive ? "text-royal-green" : "text-white/80 group-hover:text-white"
+                "mr-4 h-5 w-5 transition-all duration-300",
+                isActive 
+                  ? "text-white transform scale-110" 
+                  : "text-gray-500 group-hover:text-royal-green group-hover:scale-110"
               )} />
-              {item.name}
+              
+              <span className="relative z-10">{item.name}</span>
+              
+              {/* Hover effect background */}
+              {!isActive && (
+                <div className="absolute inset-0 bg-gradient-to-r from-royal-green/0 to-royal-green/0 group-hover:from-royal-green/5 group-hover:to-medium-green/5 rounded-xl transition-all duration-300" />
+              )}
             </Link>
           );
         })}
       </nav>
       
       {/* Footer */}
-      <div className="p-6 border-t border-white/20">
+      <div className="p-6 border-t border-gray-100 bg-gradient-to-r from-gray-50 to-gray-100/50">
+        <div className="mb-4 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-royal-green to-medium-green rounded-full flex items-center justify-center">
+              <span className="text-xs font-bold text-white">A</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">Admin User</p>
+              <p className="text-xs text-gray-500 truncate">administrator</p>
+            </div>
+          </div>
+        </div>
+        
         <Button
           onClick={handleSignOut}
           variant="outline"
-          className="w-full justify-start text-white border-white/30 hover:bg-white/20 hover:text-white hover:border-white/50 transition-all duration-200"
+          className="w-full justify-start bg-white border-gray-200 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-200 shadow-sm"
         >
-          <LogOut className="mr-3 h-5 w-5" />
+          <LogOut className="mr-3 h-4 w-4" />
           Sign Out
         </Button>
       </div>
