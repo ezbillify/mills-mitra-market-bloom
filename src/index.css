@@ -7,83 +7,83 @@
 
 @layer base {
   :root {
-    --background: 45 20% 96%;    /* Warm Cream #F7F5F1 - like millet flour */
-    --foreground: 25 15% 25%;    /* Warm Dark Brown #453E35 - like millet husk */
+    --background: 0 0% 100%;        /* Pure White #FFFFFF */
+    --foreground: 0 0% 9%;          /* Dark Gray #171717 */
 
-    --card: 45 20% 96%;          /* Warm Cream #F7F5F1 */
-    --card-foreground: 25 15% 25%; /* Warm Dark Brown #453E35 */
+    --card: 0 0% 100%;              /* Pure White #FFFFFF */
+    --card-foreground: 0 0% 9%;     /* Dark Gray #171717 */
 
-    --popover: 45 20% 96%;       /* Warm Cream #F7F5F1 */
-    --popover-foreground: 25 15% 25%; /* Warm Dark Brown #453E35 */
+    --popover: 0 0% 100%;           /* Pure White #FFFFFF */
+    --popover-foreground: 0 0% 9%;  /* Dark Gray #171717 */
 
-    --primary: 43 54% 54%;       /* Golden Millet #C9A350 */
-    --primary-foreground: 45 20% 96%; /* Warm Cream text on primary */
+    --primary: 150 85% 25%;         /* Royal Green #0F5132 */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
 
-    --secondary: 81 32% 43%;     /* Olive Leaf #6A8A4E */
-    --secondary-foreground: 45 20% 96%; /* Warm Cream text on secondary */
+    --secondary: 150 60% 35%;       /* Medium Green #2D8653 */
+    --secondary-foreground: 0 0% 100%; /* White text on secondary */
 
-    --muted: 45 15% 92%;         /* Light Warm Gray #F2F0EC */
-    --muted-foreground: 25 10% 45%; /* Medium Brown #6B5E52 */
+    --muted: 0 0% 96%;              /* Light Gray #F5F5F5 */
+    --muted-foreground: 0 0% 45%;   /* Medium Gray #737373 */
 
-    --accent: 42 30% 72%;        /* Warm Beige #D1C0A0 - soft accent */
-    --accent-foreground: 25 15% 25%; /* Warm Dark Brown text on accent */
+    --accent: 150 40% 88%;          /* Light Green Accent #D4F1E4 */
+    --accent-foreground: 0 0% 9%;   /* Dark text on accent */
 
-    --destructive: 0 60% 55%;    /* Muted Red #CC5555 - less harsh */
-    --destructive-foreground: 45 20% 96%;
+    --destructive: 0 60% 55%;       /* Red #CC5555 */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 45 15% 88%;        /* Light Warm Border #EAE6E0 */
-    --input: 45 15% 88%;         /* Light Warm Input #EAE6E0 */
-    --ring: 43 54% 54%;          /* Golden Millet for focus rings */
+    --border: 0 0% 90%;             /* Light Border #E5E5E5 */
+    --input: 0 0% 90%;              /* Light Input #E5E5E5 */
+    --ring: 150 85% 25%;            /* Royal Green for focus rings */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 81 32% 43%; /* Olive Leaf #6A8A4E */
-    --sidebar-foreground: 45 20% 96%; /* Warm Cream text */
-    --sidebar-primary: 43 54% 54%;    /* Golden Millet #C9A350 */
-    --sidebar-primary-foreground: 25 15% 25%;
-    --sidebar-accent: 42 30% 72%;     /* Warm Beige #D1C0A0 */
-    --sidebar-accent-foreground: 25 15% 25%;
-    --sidebar-border: 81 25% 38%;     /* Darker Olive */
-    --sidebar-ring: 43 54% 54%;       /* Golden Millet */
+    --sidebar-background: 150 85% 25%;    /* Royal Green #0F5132 */
+    --sidebar-foreground: 0 0% 100%;      /* White text */
+    --sidebar-primary: 0 0% 100%;         /* White #FFFFFF */
+    --sidebar-primary-foreground: 150 85% 25%;
+    --sidebar-accent: 150 60% 35%;        /* Medium Green #2D8653 */
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 150 85% 20%;        /* Darker Green */
+    --sidebar-ring: 0 0% 100%;            /* White */
   }
 
   .dark {
-    --background: 25 15% 15%;    /* Dark Warm Brown #2B241F */
-    --foreground: 45 20% 90%;    /* Light Warm Cream #E8E4DD */
+    --background: 0 0% 9%;          /* Dark Background #171717 */
+    --foreground: 0 0% 95%;         /* Light Gray #F2F2F2 */
 
-    --card: 25 15% 18%;          /* Slightly Lighter Dark Brown */
-    --card-foreground: 45 20% 90%; /* Light Warm Cream */
+    --card: 0 0% 12%;               /* Dark Card #1F1F1F */
+    --card-foreground: 0 0% 95%;    /* Light Gray */
 
-    --popover: 25 15% 18%;       /* Slightly Lighter Dark Brown */
-    --popover-foreground: 45 20% 90%; /* Light Warm Cream */
+    --popover: 0 0% 12%;            /* Dark Popover #1F1F1F */
+    --popover-foreground: 0 0% 95%; /* Light Gray */
 
-    --primary: 43 54% 54%;       /* Golden Millet #C9A350 */
-    --primary-foreground: 25 15% 15%; /* Dark Brown text on primary */
+    --primary: 150 85% 35%;         /* Lighter Green for dark mode */
+    --primary-foreground: 0 0% 9%;  /* Dark text on primary */
 
-    --secondary: 81 32% 43%;     /* Olive Leaf #6A8A4E */
-    --secondary-foreground: 45 20% 90%; /* Light Warm Cream text */
+    --secondary: 150 60% 45%;       /* Medium Green */
+    --secondary-foreground: 0 0% 9%; /* Dark text on secondary */
 
-    --muted: 25 15% 22%;         /* Muted Dark Brown */
-    --muted-foreground: 45 15% 70%; /* Light Muted Cream */
+    --muted: 0 0% 15%;              /* Dark Muted #262626 */
+    --muted-foreground: 0 0% 65%;   /* Light Muted #A6A6A6 */
 
-    --accent: 42 25% 50%;        /* Darker Warm Beige */
-    --accent-foreground: 45 20% 90%; /* Light Warm Cream text */
+    --accent: 150 40% 20%;          /* Dark Green Accent */
+    --accent-foreground: 0 0% 95%;  /* Light text on accent */
 
     --destructive: 0 60% 50%;
-    --destructive-foreground: 45 20% 90%;
+    --destructive-foreground: 0 0% 95%;
 
-    --border: 25 15% 25%;        /* Dark Warm Border */
-    --input: 25 15% 25%;         /* Dark Warm Input */
-    --ring: 43 54% 54%;          /* Golden Millet for focus rings */
+    --border: 0 0% 20%;             /* Dark Border #333333 */
+    --input: 0 0% 20%;              /* Dark Input #333333 */
+    --ring: 150 85% 35%;            /* Lighter Green for focus rings */
 
-    --sidebar-background: 25 15% 12%; /* Very Dark Brown */
-    --sidebar-foreground: 45 20% 90%; /* Light Warm Cream */
-    --sidebar-primary: 43 54% 54%;    /* Golden Millet */
-    --sidebar-primary-foreground: 25 15% 15%;
-    --sidebar-accent: 42 25% 50%;     /* Darker Warm Beige */
-    --sidebar-accent-foreground: 45 20% 90%;
-    --sidebar-border: 25 15% 20%;     /* Dark Border */
-    --sidebar-ring: 43 54% 54%;       /* Golden Millet */
+    --sidebar-background: 0 0% 9%;  /* Very Dark Background */
+    --sidebar-foreground: 0 0% 95%; /* Light text */
+    --sidebar-primary: 150 85% 35%; /* Lighter Green */
+    --sidebar-primary-foreground: 0 0% 9%;
+    --sidebar-accent: 150 60% 45%;  /* Medium Green */
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 15%;     /* Dark Border */
+    --sidebar-ring: 150 85% 35%;    /* Lighter Green */
   }
 }
 
@@ -98,93 +98,83 @@
   }
 }
 
-/* Custom color utilities for the organic millet brand palette */
+/* Custom color utilities for the royal green and white theme */
 @layer utilities {
-  .text-golden-millet {
-    color: #C9A350;
+  .text-royal-green {
+    color: #0F5132;
   }
-  .bg-golden-millet {
-    background-color: #C9A350;
+  .bg-royal-green {
+    background-color: #0F5132;
   }
-  .border-golden-millet {
-    border-color: #C9A350;
-  }
-  
-  .text-olive-leaf {
-    color: #6A8A4E;
-  }
-  .bg-olive-leaf {
-    background-color: #6A8A4E;
-  }
-  .border-olive-leaf {
-    border-color: #6A8A4E;
+  .border-royal-green {
+    border-color: #0F5132;
   }
   
-  .text-warm-beige {
-    color: #D1C0A0;
+  .text-medium-green {
+    color: #2D8653;
   }
-  .bg-warm-beige {
-    background-color: #D1C0A0;
+  .bg-medium-green {
+    background-color: #2D8653;
   }
-  .border-warm-beige {
-    border-color: #D1C0A0;
-  }
-  
-  .text-warm-cream {
-    color: #F7F5F1;
-  }
-  .bg-warm-cream {
-    background-color: #F7F5F1;
-  }
-  .border-warm-cream {
-    border-color: #F7F5F1;
+  .border-medium-green {
+    border-color: #2D8653;
   }
   
-  .text-warm-brown {
-    color: #453E35;
+  .text-light-green {
+    color: #D4F1E4;
   }
-  .bg-warm-brown {
-    background-color: #453E35;
+  .bg-light-green {
+    background-color: #D4F1E4;
   }
-  .border-warm-brown {
-    border-color: #453E35;
+  .border-light-green {
+    border-color: #D4F1E4;
   }
   
-  .text-earth-brown {
-    color: #6B5E52;
+  .text-pure-white {
+    color: #FFFFFF;
   }
-  .bg-earth-brown {
-    background-color: #6B5E52;
+  .bg-pure-white {
+    background-color: #FFFFFF;
   }
-  .border-earth-brown {
-    border-color: #6B5E52;
+  .border-pure-white {
+    border-color: #FFFFFF;
+  }
+  
+  .text-dark-gray {
+    color: #171717;
+  }
+  .bg-dark-gray {
+    background-color: #171717;
+  }
+  .border-dark-gray {
+    border-color: #171717;
   }
 
-  /* Organic gradient backgrounds */
-  .bg-organic-gradient {
-    background: linear-gradient(135deg, #F7F5F1 0%, #EAE6E0 50%, #D1C0A0 100%);
+  /* Professional gradient backgrounds */
+  .bg-professional-gradient {
+    background: linear-gradient(135deg, #FFFFFF 0%, #F5F5F5 50%, #E5E5E5 100%);
   }
   
-  .bg-millet-gradient {
-    background: linear-gradient(135deg, #C9A350 0%, #6A8A4E 100%);
+  .bg-green-gradient {
+    background: linear-gradient(135deg, #0F5132 0%, #2D8653 100%);
   }
 }
 
-/* Enhanced organic styling */
+/* Enhanced professional styling */
 @layer components {
-  .organic-card {
+  .professional-card {
     @apply bg-card border border-border rounded-lg shadow-sm;
     background: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
   }
   
-  .organic-button {
+  .professional-button {
     @apply bg-primary text-primary-foreground px-4 py-2 rounded-md transition-all duration-200;
-    box-shadow: 0 2px 4px rgba(201, 163, 80, 0.2);
+    box-shadow: 0 2px 4px rgba(15, 81, 50, 0.2);
   }
   
-  .organic-button:hover {
+  .professional-button:hover {
     @apply bg-accent;
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(201, 163, 80, 0.3);
+    box-shadow: 0 4px 8px rgba(15, 81, 50, 0.3);
   }
 }

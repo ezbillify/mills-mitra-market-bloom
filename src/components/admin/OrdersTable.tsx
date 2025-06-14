@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,16 +73,16 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   if (orders.length === 0) {
     return (
       <Card className="border-0 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-warm-cream to-warm-beige/50">
-          <CardTitle className="text-warm-brown">Recent Orders</CardTitle>
+        <CardHeader className="bg-gradient-to-r from-white to-gray-50">
+          <CardTitle className="text-royal-green">Recent Orders</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Eye className="h-8 w-8 text-gray-400" />
             </div>
-            <p className="text-earth-brown text-lg">No orders found</p>
-            <p className="text-earth-brown/60 text-sm mt-2">Orders will appear here once customers start placing them.</p>
+            <p className="text-gray-700 text-lg">No orders found</p>
+            <p className="text-gray-500 text-sm mt-2">Orders will appear here once customers start placing them.</p>
           </div>
         </CardContent>
       </Card>
@@ -106,46 +105,51 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
 
   return (
     <Card className="border-0 shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-warm-cream to-warm-beige/50">
-        <CardTitle className="text-warm-brown">Recent Orders ({orders.length})</CardTitle>
+      <CardHeader className="bg-gradient-to-r from-white to-gray-50">
+        <CardTitle className="text-royal-green">Recent Orders ({orders.length})</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-warm-beige/30 bg-warm-beige/10">
-                <TableHead className="text-earth-brown font-semibold">Order ID</TableHead>
-                <TableHead className="text-earth-brown font-semibold">Customer</TableHead>
-                <TableHead className="text-earth-brown font-semibold">Email</TableHead>
-                <TableHead className="text-earth-brown font-semibold">Total</TableHead>
-                <TableHead className="text-earth-brown font-semibold">Status</TableHead>
-                <TableHead className="text-earth-brown font-semibold">Date</TableHead>
-                <TableHead className="text-earth-brown font-semibold">Actions</TableHead>
+              <TableRow className="border-gray-200 bg-gray-50">
+                <TableHead className="text-gray-700 font-semibold">Order ID</TableHead>
+                <TableHead className="text-gray-700 font-semibold">Customer</TableHead>
+                <TableHead className="text-gray-700 font-semibold">Email</TableHead>
+                <TableHead className="text-gray-700 font-semibold">Total</TableHead>
+                <TableHead className="text-gray-700 font-semibold">Status</TableHead>
+                <TableHead className="text-gray-700 font-semibold">Date</TableHead>
+                <TableHead className="text-gray-700 font-semibold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {orders.map((order, index) => {
                 console.log(`🎨 Rendering row ${index + 1} for order ${order.id.substring(0, 8)}`);
                 
-                const customerName = getCustomerName(order);
-                const customerEmail = getCustomerEmail(order);
+                const customerName = generateCustomerName({
+                  id: order.user_id,
+                  first_name: order.profiles?.first_name,
+                  last_name: order.profiles?.last_name,
+                  email: order.profiles?.email
+                });
+                const customerEmail = order.profiles?.email || 'No email';
                 
                 console.log(`✨ Final display values for row ${index + 1} - Name: "${customerName}", Email: "${customerEmail}"`);
                 
                 return (
-                  <TableRow key={order.id} className="border-warm-beige/20 hover:bg-warm-cream/30 transition-colors">
-                    <TableCell className="font-mono text-sm text-warm-brown bg-gray-50 rounded-md m-1 px-3 py-2">
+                  <TableRow key={order.id} className="border-gray-200 hover:bg-gray-50 transition-colors">
+                    <TableCell className="font-mono text-sm text-royal-green bg-gray-50 rounded-md m-1 px-3 py-2">
                       #{order.id.slice(0, 8)}
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium text-warm-brown">{customerName}</div>
+                      <div className="font-medium text-gray-900">{customerName}</div>
                     </TableCell>
-                    <TableCell className="text-earth-brown">{customerEmail}</TableCell>
+                    <TableCell className="text-gray-600">{customerEmail}</TableCell>
                     <TableCell>
-                      <span className="font-bold text-golden-millet text-lg">₹{Number(order.total).toFixed(2)}</span>
+                      <span className="font-bold text-royal-green text-lg">₹{Number(order.total).toFixed(2)}</span>
                     </TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
-                    <TableCell className="text-earth-brown">
+                    <TableCell className="text-gray-600">
                       {new Date(order.created_at).toLocaleDateString('en-IN', {
                         year: 'numeric',
                         month: 'short',
@@ -157,7 +161,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                         variant="outline"
                         size="sm"
                         onClick={() => onViewDetails(order.id)}
-                        className="border-olive-leaf/30 text-olive-leaf hover:bg-olive-leaf hover:text-warm-cream transition-all duration-200 shadow-sm"
+                        className="border-royal-green/30 text-royal-green hover:bg-royal-green hover:text-white transition-all duration-200 shadow-sm"
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         View
