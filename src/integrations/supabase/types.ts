@@ -143,6 +143,36 @@ export type Database = {
           },
         ]
       }
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -229,6 +259,7 @@ export type Database = {
       products: {
         Row: {
           category: Database["public"]["Enums"]["product_category"]
+          category_id: string | null
           created_at: string
           description: string | null
           discounted_price: number | null
@@ -242,6 +273,7 @@ export type Database = {
         }
         Insert: {
           category: Database["public"]["Enums"]["product_category"]
+          category_id?: string | null
           created_at?: string
           description?: string | null
           discounted_price?: number | null
@@ -255,6 +287,7 @@ export type Database = {
         }
         Update: {
           category?: Database["public"]["Enums"]["product_category"]
+          category_id?: string | null
           created_at?: string
           description?: string | null
           discounted_price?: number | null
@@ -266,7 +299,15 @@ export type Database = {
           stock?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -306,6 +347,48 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           postal_code?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shipping_settings: {
+        Row: {
+          created_at: string
+          delivery_days_max: number | null
+          delivery_days_min: number | null
+          description: string | null
+          id: string
+          is_active: boolean
+          max_weight: number | null
+          min_order_value: number | null
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_days_max?: number | null
+          delivery_days_min?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_weight?: number | null
+          min_order_value?: number | null
+          name: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_days_max?: number | null
+          delivery_days_min?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_weight?: number | null
+          min_order_value?: number | null
+          name?: string
+          price?: number
           updated_at?: string
         }
         Relationships: []
