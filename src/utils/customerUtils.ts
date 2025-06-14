@@ -1,4 +1,3 @@
-
 import { Customer } from "@/types/customer";
 
 export const generateCustomerName = (profile: any): string => {
@@ -6,24 +5,37 @@ export const generateCustomerName = (profile: any): string => {
     id: profile.id?.substring(0, 8),
     firstName: profile.first_name,
     lastName: profile.last_name,
-    email: profile.email
+    email: profile.email,
+    typeof_firstName: typeof profile.first_name,
+    typeof_lastName: typeof profile.last_name,
+    typeof_email: typeof profile.email,
   });
 
+  const rawFirstName = profile.first_name;
+  const rawLastName = profile.last_name;
+
   // First priority: use first_name and last_name from profile
-  if (profile.first_name || profile.last_name) {
-    const firstName = (profile.first_name || '').trim();
-    const lastName = (profile.last_name || '').trim();
+  if (rawFirstName || rawLastName) { // Check if either has a truthy value
+    console.log('Attempting name from profile fields: rawFirstName exists_and_truthy=', !!rawFirstName, 'rawLastName exists_and_truthy=', !!rawLastName);
+    const firstName = (rawFirstName || '').trim();
+    const lastName = (rawLastName || '').trim();
     
-    if (firstName || lastName) {
+    if (firstName || lastName) { // Check if either is non-empty after trim
       const fullName = `${firstName} ${lastName}`.trim();
-      console.log(`✅ Generated name from profile data: "${fullName}"`);
+      console.log(`✅ Generated name from profile data: "${fullName}" (trimmed first: "${firstName}", trimmed last: "${lastName}")`);
       return fullName;
+    } else {
+      console.log('Profile fields (first_name, last_name) were truthy initially but empty after trimming.');
     }
+  } else {
+    console.log('Profile fields (first_name, last_name) are both falsy or not present.');
   }
 
   // Second priority: extract name from email (only for real emails)
-  if (profile.email && !profile.email.startsWith('user-') && profile.email !== 'No email provided') {
-    const emailPrefix = profile.email.split('@')[0];
+  const rawEmail = profile.email;
+  if (rawEmail && typeof rawEmail === 'string' && !rawEmail.startsWith('user-') && rawEmail !== 'No email provided') {
+    console.log('Attempting name from email:', rawEmail);
+    const emailPrefix = rawEmail.split('@')[0];
     // Clean up email prefix - remove numbers and special characters
     const cleanName = emailPrefix.replace(/[0-9._-]/g, ' ').trim();
     if (cleanName && cleanName.length > 2) {
@@ -31,9 +43,18 @@ export const generateCustomerName = (profile: any): string => {
       const capitalizedName = cleanName.split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
-      console.log(`📧 Generated name from email: "${capitalizedName}"`);
+      console.log(`📧 Generated name from email: "${capitalizedName}" (cleaned from prefix: "${cleanName}")`);
       return capitalizedName;
+    } else {
+      console.log('Email prefix did not yield a usable name (too short or empty after cleaning):', cleanName);
     }
+  } else {
+    console.log('Email is not suitable for name generation:', {
+      rawEmail, 
+      isString: typeof rawEmail === 'string',
+      startsWithUser: typeof rawEmail === 'string' ? rawEmail.startsWith('user-') : 'N/A', 
+      isNoEmailProvided: rawEmail === 'No email provided'
+    });
   }
 
   // Fallback: use a simple customer identifier
@@ -62,7 +83,7 @@ export const processCustomerData = (userData: any): Customer => {
   
   // Generate customer name with enhanced debugging
   const customerName = generateCustomerName(profile);
-  console.log(`🎯 Final customer name: "${customerName}"`);
+  console.log(`🎯 Final customer name for ${profile.id.substring(0,8)}: "${customerName}"`);
 
   // Determine status based on profile existence and recent orders
   let status: 'active' | 'inactive' = 'inactive';
