@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +13,7 @@ import ProductDetail from "./pages/customer/ProductDetail";
 import Cart from "./pages/customer/Cart";
 import Account from "./pages/customer/Account";
 import Orders from "./pages/customer/Orders";
+import OrderDetails from "./pages/customer/OrderDetails";
 import Login from "./pages/customer/Login";
 import Register from "./pages/customer/Register";
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -42,6 +42,7 @@ const App = () => (
               <Route path="cart" element={<Cart />} />
               <Route path="account" element={<Account />} />
               <Route path="orders" element={<Orders />} />
+              <Route path="orders/:orderId" element={<OrderDetails />} />
               <Route path="login" element={<Login />} />
               <Route path="register" element={<Register />} />
             </Route>
