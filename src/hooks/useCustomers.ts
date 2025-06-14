@@ -32,60 +32,59 @@ export const useCustomers = () => {
     try {
       if (showRefreshToast) {
         setRefreshing(true);
-        console.log('Manual refresh triggered for customers data...');
+        console.log('🔄 Manual refresh triggered for customers data...');
       } else {
         setLoading(true);
       }
 
-      console.log('=== STARTING CUSTOMER FETCH ===');
+      console.log('🚀 === STARTING REAL-TIME CUSTOMER FETCH ===');
       
-      // Get all profiles
+      // Get all profiles with optimized query
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
+        console.error('❌ Error fetching profiles:', profilesError);
         throw profilesError;
       }
 
-      console.log('=== PROFILES FETCHED ===');
-      console.log('Profiles count:', profiles?.length || 0);
-      console.log('Sample profiles:', profiles?.slice(0, 3));
+      console.log('✅ === PROFILES FETCHED (REAL-TIME) ===');
+      console.log(`📊 Profiles count: ${profiles?.length || 0}`);
+      console.log('🔍 Sample profiles:', profiles?.slice(0, 2));
 
-      // Fetch all orders
+      // Fetch all orders with optimized query
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
-        .select('user_id, total, status');
+        .select('user_id, total, status')
+        .neq('status', 'cancelled');
 
       if (ordersError) {
-        console.error('Error fetching orders:', ordersError);
+        console.error('❌ Error fetching orders:', ordersError);
       }
 
-      console.log('=== ORDERS FETCHED ===');
-      console.log('Orders count:', orders?.length || 0);
-      console.log('Sample orders:', orders?.slice(0, 3));
+      console.log('✅ === ORDERS FETCHED (REAL-TIME) ===');
+      console.log(`📊 Orders count: ${orders?.length || 0}`);
+      console.log('🔍 Sample orders:', orders?.slice(0, 2));
 
-      // Process order statistics
+      // Process order statistics with better performance
       const orderStatsMap = new Map();
       orders?.forEach(order => {
-        if (order.status !== 'cancelled') {
-          const existing = orderStatsMap.get(order.user_id) || { count: 0, total: 0 };
-          orderStatsMap.set(order.user_id, {
-            count: existing.count + 1,
-            total: existing.total + Number(order.total || 0)
-          });
-        }
+        const existing = orderStatsMap.get(order.user_id) || { count: 0, total: 0 };
+        orderStatsMap.set(order.user_id, {
+          count: existing.count + 1,
+          total: existing.total + Number(order.total || 0)
+        });
       });
 
-      console.log('=== ORDER STATS PROCESSED ===');
-      console.log('Order stats map size:', orderStatsMap.size);
+      console.log('⚡ === ORDER STATS PROCESSED (REAL-TIME) ===');
+      console.log(`📈 Order stats map size: ${orderStatsMap.size}`);
 
-      // Process profiles into customers
+      // Process profiles into customers with real-time updates
       const processedCustomers: Customer[] = (profiles || []).map(profile => {
-        console.log('Processing profile:', {
-          id: profile.id,
+        console.log(`🔄 Processing profile (REAL-TIME):`, {
+          id: profile.id.substring(0, 8),
           first_name: profile.first_name,
           last_name: profile.last_name,
           email: profile.email
@@ -93,21 +92,21 @@ export const useCustomers = () => {
 
         const orderStats = orderStatsMap.get(profile.id) || { count: 0, total: 0 };
         
-        // Generate customer name with detailed logging
+        // Generate customer name with enhanced logic
         let customerName = 'Unknown Customer';
         
         if (profile.first_name || profile.last_name) {
           const firstName = profile.first_name?.trim() || '';
           const lastName = profile.last_name?.trim() || '';
           customerName = `${firstName} ${lastName}`.trim();
-          console.log(`Name from profile names: "${customerName}"`);
+          console.log(`✅ Name from profile: "${customerName}"`);
         } else if (profile.email) {
           const emailPrefix = profile.email.split('@')[0];
           customerName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
-          console.log(`Name from email: "${customerName}"`);
+          console.log(`📧 Name from email: "${customerName}"`);
         } else {
           customerName = `Customer ${profile.id.substring(0, 8)}`;
-          console.log(`Default name: "${customerName}"`);
+          console.log(`🔤 Default name: "${customerName}"`);
         }
 
         const customer: Customer = {
@@ -129,33 +128,34 @@ export const useCustomers = () => {
           }
         };
 
-        console.log('Generated customer:', {
-          id: customer.id,
+        console.log('🎯 Generated customer (REAL-TIME):', {
+          id: customer.id.substring(0, 8),
           name: customer.name,
           email: customer.email,
-          totalOrders: customer.totalOrders
+          totalOrders: customer.totalOrders,
+          status: customer.status
         });
 
         return customer;
       });
 
-      console.log('=== FINAL CUSTOMERS ===');
-      console.log('Total customers:', processedCustomers.length);
-      console.log('Customer names:', processedCustomers.map(c => c.name));
+      console.log('🏁 === FINAL CUSTOMERS (REAL-TIME UPDATE) ===');
+      console.log(`📊 Total customers: ${processedCustomers.length}`);
+      console.log('👥 Customer names:', processedCustomers.map(c => c.name));
       
       setCustomers(processedCustomers);
 
       if (showRefreshToast) {
         toast({
-          title: "Success",
+          title: "✅ Real-time Update",
           description: `Refreshed customer data - found ${processedCustomers.length} customers`,
         });
       }
     } catch (error) {
-      console.error('=== ERROR IN FETCH CUSTOMERS ===', error);
+      console.error('💥 === ERROR IN REAL-TIME FETCH CUSTOMERS ===', error);
       toast({
-        title: "Error",
-        description: "Failed to load customers",
+        title: "❌ Error",
+        description: "Failed to load customers in real-time",
         variant: "destructive",
       });
     } finally {
@@ -165,11 +165,12 @@ export const useCustomers = () => {
   };
 
   useEffect(() => {
+    // Initial fetch
     fetchCustomers();
 
-    // Set up real-time subscription for profiles
+    // Enhanced real-time subscription for profiles
     const profilesChannel = supabase
-      .channel('profiles-changes')
+      .channel('profiles-realtime-updates')
       .on(
         'postgres_changes',
         {
@@ -178,15 +179,18 @@ export const useCustomers = () => {
           table: 'profiles'
         },
         (payload) => {
-          console.log('Profiles updated, refreshing data...', payload);
+          console.log('🔴 REAL-TIME: Profiles updated!', payload.eventType, payload.new || payload.old);
+          // Immediate refresh for real-time updates
           fetchCustomers();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Profiles real-time subscription status:', status);
+      });
 
-    // Set up real-time subscription for orders
+    // Enhanced real-time subscription for orders
     const ordersChannel = supabase
-      .channel('orders-changes')
+      .channel('orders-realtime-updates')
       .on(
         'postgres_changes',
         {
@@ -195,19 +199,25 @@ export const useCustomers = () => {
           table: 'orders'
         },
         (payload) => {
-          console.log('Orders updated, refreshing data...', payload);
+          console.log('🟡 REAL-TIME: Orders updated!', payload.eventType, payload.new || payload.old);
+          // Immediate refresh for real-time updates
           fetchCustomers();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Orders real-time subscription status:', status);
+      });
 
+    // Cleanup subscriptions
     return () => {
+      console.log('🧹 Cleaning up real-time subscriptions...');
       supabase.removeChannel(profilesChannel);
       supabase.removeChannel(ordersChannel);
     };
   }, []);
 
   const handleRefresh = () => {
+    console.log('🔄 Manual refresh triggered by user...');
     fetchCustomers(true);
   };
 
