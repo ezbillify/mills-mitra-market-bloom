@@ -9,7 +9,7 @@ export const generateCustomerName = (profile: any): string => {
     email: profile.email
   });
 
-  // First try to use first_name and last_name
+  // First try to use first_name and last_name - prioritize this
   if (profile.first_name || profile.last_name) {
     const firstName = profile.first_name?.trim() || '';
     const lastName = profile.last_name?.trim() || '';
@@ -57,7 +57,7 @@ export const processCustomerData = (userData: any): Customer => {
   const totalOrders = orders.length;
   const totalSpent = orders.reduce((sum: number, order: any) => sum + Number(order.total || 0), 0);
   
-  // Generate customer name
+  // Generate customer name with priority on first and last names
   const customerName = generateCustomerName(profile);
 
   // Determine status based on profile existence and orders

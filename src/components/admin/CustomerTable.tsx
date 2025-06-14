@@ -13,6 +13,14 @@ interface Customer {
   totalSpent: number;
   status: 'active' | 'inactive';
   joinDate: string;
+  profile?: {
+    first_name: string | null;
+    last_name: string | null;
+    address: string | null;
+    city: string | null;
+    postal_code: string | null;
+    country: string | null;
+  };
 }
 
 interface CustomerTableProps {
@@ -26,7 +34,9 @@ const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
     id: c.id.substring(0, 8),
     name: c.name,
     email: c.email,
-    joinDate: c.joinDate
+    joinDate: c.joinDate,
+    firstName: c.profile?.first_name,
+    lastName: c.profile?.last_name
   })));
   
   const getStatusBadge = (status: string) => {
@@ -38,15 +48,25 @@ const CustomerTable = ({ customers, onViewCustomer }: CustomerTableProps) => {
   };
 
   const displayCustomerName = (customer: Customer) => {
-    // Ensure we always show a meaningful name
-    if (!customer.name || customer.name.trim() === '') {
-      if (customer.email) {
-        const emailPrefix = customer.email.split('@')[0];
-        return emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
-      }
-      return `Customer ${customer.id.substring(0, 8)}`;
+    // The name should already be properly formatted from the utility
+    // But let's ensure we have a good display name
+    if (customer.name && customer.name.trim() !== '') {
+      return customer.name;
     }
-    return customer.name;
+    
+    // Fallback logic if name is somehow empty
+    if (customer.profile?.first_name || customer.profile?.last_name) {
+      const firstName = customer.profile.first_name?.trim() || '';
+      const lastName = customer.profile.last_name?.trim() || '';
+      return `${firstName} ${lastName}`.trim();
+    }
+    
+    if (customer.email) {
+      const emailPrefix = customer.email.split('@')[0];
+      return emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+    }
+    
+    return `Customer ${customer.id.substring(0, 8)}`;
   };
 
   if (customers.length === 0) {
