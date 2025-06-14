@@ -7,83 +7,83 @@
 
 @layer base {
   :root {
-    --background: 39 29% 94%;  /* Creamy Husk #F5F1E0 */
-    --foreground: 0 0% 20%;    /* Charcoal Grain #333333 */
+    --background: 45 20% 96%;    /* Warm Cream #F7F5F1 - like millet flour */
+    --foreground: 25 15% 25%;    /* Warm Dark Brown #453E35 - like millet husk */
 
-    --card: 39 29% 94%;        /* Creamy Husk #F5F1E0 */
-    --card-foreground: 0 0% 20%; /* Charcoal Grain #333333 */
+    --card: 45 20% 96%;          /* Warm Cream #F7F5F1 */
+    --card-foreground: 25 15% 25%; /* Warm Dark Brown #453E35 */
 
-    --popover: 39 29% 94%;     /* Creamy Husk #F5F1E0 */
-    --popover-foreground: 0 0% 20%; /* Charcoal Grain #333333 */
+    --popover: 45 20% 96%;       /* Warm Cream #F7F5F1 */
+    --popover-foreground: 25 15% 25%; /* Warm Dark Brown #453E35 */
 
-    --primary: 42 43% 54%;     /* Golden Millet #C9A350 */
-    --primary-foreground: 0 0% 100%; /* White text on primary */
+    --primary: 38 35% 65%;       /* Millet Gold #C4A772 - warm, muted gold */
+    --primary-foreground: 25 15% 25%; /* Warm Dark Brown text on primary */
 
-    --secondary: 78 25% 43%;   /* Olive Leaf #6A8A4E */
-    --secondary-foreground: 0 0% 100%; /* White text on secondary */
+    --secondary: 75 20% 55%;     /* Sage Green #8B9A7A - organic, natural */
+    --secondary-foreground: 45 20% 96%; /* Warm Cream text on secondary */
 
-    --muted: 39 29% 90%;       /* Lighter Creamy Husk */
-    --muted-foreground: 0 0% 45%; /* Lighter Charcoal Grain */
+    --muted: 45 15% 92%;         /* Light Warm Gray #F2F0EC */
+    --muted-foreground: 25 10% 45%; /* Medium Brown #6B5E52 */
 
-    --accent: 32 47% 55%;      /* Warm Earthen Clay #D49847 */
-    --accent-foreground: 0 0% 100%; /* White text on accent */
+    --accent: 42 30% 72%;        /* Warm Beige #D1C0A0 - soft accent */
+    --accent-foreground: 25 15% 25%; /* Warm Dark Brown text on accent */
 
-    --destructive: 0 84.2% 60.2%; /* Keep original destructive */
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 60% 55%;    /* Muted Red #CC5555 - less harsh */
+    --destructive-foreground: 45 20% 96%;
 
-    --border: 39 29% 85%;      /* Darker Creamy Husk for borders */
-    --input: 39 29% 85%;       /* Darker Creamy Husk for inputs */
-    --ring: 42 43% 54%;        /* Golden Millet for focus rings */
+    --border: 45 15% 88%;        /* Light Warm Border #EAE6E0 */
+    --input: 45 15% 88%;         /* Light Warm Input #EAE6E0 */
+    --ring: 38 35% 65%;          /* Millet Gold for focus rings */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 78 25% 43%; /* Olive Leaf #6A8A4E */
-    --sidebar-foreground: 0 0% 100%;  /* White text */
-    --sidebar-primary: 42 43% 54%;    /* Golden Millet #C9A350 */
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 32 47% 55%;     /* Warm Earthen Clay #D49847 */
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 78 25% 38%;     /* Darker Olive Leaf */
-    --sidebar-ring: 42 43% 54%;       /* Golden Millet */
+    --sidebar-background: 75 20% 55%; /* Sage Green #8B9A7A */
+    --sidebar-foreground: 45 20% 96%; /* Warm Cream text */
+    --sidebar-primary: 38 35% 65%;    /* Millet Gold #C4A772 */
+    --sidebar-primary-foreground: 25 15% 25%;
+    --sidebar-accent: 42 30% 72%;     /* Warm Beige #D1C0A0 */
+    --sidebar-accent-foreground: 25 15% 25%;
+    --sidebar-border: 75 15% 50%;     /* Darker Sage */
+    --sidebar-ring: 38 35% 65%;       /* Millet Gold */
   }
 
   .dark {
-    --background: 0 0% 20%;    /* Charcoal Grain #333333 */
-    --foreground: 39 29% 94%;  /* Creamy Husk #F5F1E0 */
+    --background: 25 15% 15%;    /* Dark Warm Brown #2B241F */
+    --foreground: 45 20% 90%;    /* Light Warm Cream #E8E4DD */
 
-    --card: 0 0% 15%;          /* Darker Charcoal */
-    --card-foreground: 39 29% 94%; /* Creamy Husk */
+    --card: 25 15% 18%;          /* Slightly Lighter Dark Brown */
+    --card-foreground: 45 20% 90%; /* Light Warm Cream */
 
-    --popover: 0 0% 15%;       /* Darker Charcoal */
-    --popover-foreground: 39 29% 94%; /* Creamy Husk */
+    --popover: 25 15% 18%;       /* Slightly Lighter Dark Brown */
+    --popover-foreground: 45 20% 90%; /* Light Warm Cream */
 
-    --primary: 42 43% 54%;     /* Golden Millet #C9A350 */
-    --primary-foreground: 0 0% 20%; /* Charcoal text on primary */
+    --primary: 38 35% 65%;       /* Millet Gold #C4A772 */
+    --primary-foreground: 25 15% 15%; /* Dark Brown text on primary */
 
-    --secondary: 78 25% 43%;   /* Olive Leaf #6A8A4E */
-    --secondary-foreground: 39 29% 94%; /* Creamy Husk text */
+    --secondary: 75 20% 40%;     /* Darker Sage Green */
+    --secondary-foreground: 45 20% 90%; /* Light Warm Cream text */
 
-    --muted: 0 0% 25%;         /* Lighter Charcoal */
-    --muted-foreground: 39 29% 80%; /* Lighter Creamy Husk */
+    --muted: 25 15% 22%;         /* Muted Dark Brown */
+    --muted-foreground: 45 15% 70%; /* Light Muted Cream */
 
-    --accent: 32 47% 55%;      /* Warm Earthen Clay #D49847 */
-    --accent-foreground: 0 0% 20%; /* Charcoal text on accent */
+    --accent: 42 25% 50%;        /* Darker Warm Beige */
+    --accent-foreground: 45 20% 90%; /* Light Warm Cream text */
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 45 20% 90%;
 
-    --border: 0 0% 25%;        /* Lighter Charcoal for borders */
-    --input: 0 0% 25%;         /* Lighter Charcoal for inputs */
-    --ring: 42 43% 54%;        /* Golden Millet for focus rings */
+    --border: 25 15% 25%;        /* Dark Warm Border */
+    --input: 25 15% 25%;         /* Dark Warm Input */
+    --ring: 38 35% 65%;          /* Millet Gold for focus rings */
 
-    --sidebar-background: 0 0% 15%; /* Darker Charcoal */
-    --sidebar-foreground: 39 29% 94%; /* Creamy Husk */
-    --sidebar-primary: 42 43% 54%;    /* Golden Millet */
-    --sidebar-primary-foreground: 0 0% 20%; /* Charcoal */
-    --sidebar-accent: 32 47% 55%;     /* Warm Earthen Clay */
-    --sidebar-accent-foreground: 0 0% 20%; /* Charcoal */
-    --sidebar-border: 0 0% 25%;       /* Lighter Charcoal */
-    --sidebar-ring: 42 43% 54%;       /* Golden Millet */
+    --sidebar-background: 25 15% 12%; /* Very Dark Brown */
+    --sidebar-foreground: 45 20% 90%; /* Light Warm Cream */
+    --sidebar-primary: 38 35% 65%;    /* Millet Gold */
+    --sidebar-primary-foreground: 25 15% 15%;
+    --sidebar-accent: 42 25% 50%;     /* Darker Warm Beige */
+    --sidebar-accent-foreground: 45 20% 90%;
+    --sidebar-border: 25 15% 20%;     /* Dark Border */
+    --sidebar-ring: 38 35% 65%;       /* Millet Gold */
   }
 }
 
@@ -94,68 +94,97 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 }
 
-/* Custom color utilities for the brand palette */
+/* Custom color utilities for the organic millet brand palette */
 @layer utilities {
-  .text-golden-millet {
-    color: #C9A350;
+  .text-millet-gold {
+    color: #C4A772;
   }
-  .bg-golden-millet {
-    background-color: #C9A350;
+  .bg-millet-gold {
+    background-color: #C4A772;
   }
-  .border-golden-millet {
-    border-color: #C9A350;
-  }
-  
-  .text-olive-leaf {
-    color: #6A8A4E;
-  }
-  .bg-olive-leaf {
-    background-color: #6A8A4E;
-  }
-  .border-olive-leaf {
-    border-color: #6A8A4E;
+  .border-millet-gold {
+    border-color: #C4A772;
   }
   
-  .text-warm-clay {
-    color: #D49847;
+  .text-sage-green {
+    color: #8B9A7A;
   }
-  .bg-warm-clay {
-    background-color: #D49847;
+  .bg-sage-green {
+    background-color: #8B9A7A;
   }
-  .border-warm-clay {
-    border-color: #D49847;
-  }
-  
-  .text-fresh-sprout {
-    color: #88B04B;
-  }
-  .bg-fresh-sprout {
-    background-color: #88B04B;
-  }
-  .border-fresh-sprout {
-    border-color: #88B04B;
+  .border-sage-green {
+    border-color: #8B9A7A;
   }
   
-  .text-creamy-husk {
-    color: #F5F1E0;
+  .text-warm-beige {
+    color: #D1C0A0;
   }
-  .bg-creamy-husk {
-    background-color: #F5F1E0;
+  .bg-warm-beige {
+    background-color: #D1C0A0;
   }
-  .border-creamy-husk {
-    border-color: #F5F1E0;
+  .border-warm-beige {
+    border-color: #D1C0A0;
   }
   
-  .text-charcoal-grain {
-    color: #333333;
+  .text-warm-cream {
+    color: #F7F5F1;
   }
-  .bg-charcoal-grain {
-    background-color: #333333;
+  .bg-warm-cream {
+    background-color: #F7F5F1;
   }
-  .border-charcoal-grain {
-    border-color: #333333;
+  .border-warm-cream {
+    border-color: #F7F5F1;
+  }
+  
+  .text-warm-brown {
+    color: #453E35;
+  }
+  .bg-warm-brown {
+    background-color: #453E35;
+  }
+  .border-warm-brown {
+    border-color: #453E35;
+  }
+  
+  .text-earth-brown {
+    color: #6B5E52;
+  }
+  .bg-earth-brown {
+    background-color: #6B5E52;
+  }
+  .border-earth-brown {
+    border-color: #6B5E52;
+  }
+
+  /* Organic gradient backgrounds */
+  .bg-organic-gradient {
+    background: linear-gradient(135deg, #F7F5F1 0%, #EAE6E0 50%, #D1C0A0 100%);
+  }
+  
+  .bg-millet-gradient {
+    background: linear-gradient(135deg, #C4A772 0%, #8B9A7A 100%);
+  }
+}
+
+/* Enhanced organic styling */
+@layer components {
+  .organic-card {
+    @apply bg-card border border-border rounded-lg shadow-sm;
+    background: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
+  }
+  
+  .organic-button {
+    @apply bg-primary text-primary-foreground px-4 py-2 rounded-md transition-all duration-200;
+    box-shadow: 0 2px 4px rgba(196, 167, 114, 0.2);
+  }
+  
+  .organic-button:hover {
+    @apply bg-accent;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(196, 167, 114, 0.3);
   }
 }
