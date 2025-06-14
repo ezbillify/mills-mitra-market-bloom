@@ -36,22 +36,38 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
       profileData: order.profiles
     });
     
-    // Use the centralized utility with the profile data
-    if (order.profiles) {
-      const customerName = generateCustomerName({
-        id: order.user_id,
-        first_name: order.profiles.first_name,
-        last_name: order.profiles.last_name,
-        email: order.profiles.email
-      });
-      console.log(`✅ Generated customer name for order ${order.id.substring(0, 8)}: "${customerName}"`);
-      return customerName;
+    // Check if we have valid profile data
+    if (!order.profiles || typeof order.profiles !== 'object') {
+      const fallbackName = `Customer ${order.user_id.substring(0, 8)}`;
+      console.log(`🔄 No valid profile data, using fallback: "${fallbackName}"`);
+      return fallbackName;
     }
     
-    // Fallback for orders without profile data
-    const fallbackName = `Customer ${order.user_id.substring(0, 8)}`;
-    console.log(`🔄 Using fallback name for order ${order.id.substring(0, 8)}: "${fallbackName}"`);
-    return fallbackName;
+    // Create a customer-like object for the utility function
+    const customerData = {
+      id: order.user_id,
+      first_name: order.profiles.first_name,
+      last_name: order.profiles.last_name,
+      email: order.profiles.email
+    };
+    
+    try {
+      const customerName = generateCustomerName(customerData);
+      console.log(`✅ Generated customer name for order ${order.id.substring(0, 8)}: "${customerName}"`);
+      return customerName;
+    } catch (error) {
+      console.error(`❌ Error generating customer name for order ${order.id.substring(0, 8)}:`, error);
+      const fallbackName = `Customer ${order.user_id.substring(0, 8)}`;
+      console.log(`🔄 Using fallback name: "${fallbackName}"`);
+      return fallbackName;
+    }
+  };
+
+  const getCustomerEmail = (order: Order) => {
+    if (!order.profiles || typeof order.profiles !== 'object') {
+      return 'No email';
+    }
+    return order.profiles.email || 'No email';
   };
 
   if (orders.length === 0) {
@@ -92,7 +108,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
               <TableRow key={order.id}>
                 <TableCell className="font-medium">{order.id.slice(0, 8)}...</TableCell>
                 <TableCell>{getCustomerName(order)}</TableCell>
-                <TableCell>{order.profiles?.email || 'No email'}</TableCell>
+                <TableCell>{getCustomerEmail(order)}</TableCell>
                 <TableCell>₹{Number(order.total).toFixed(2)}</TableCell>
                 <TableCell>{getStatusBadge(order.status)}</TableCell>
                 <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>

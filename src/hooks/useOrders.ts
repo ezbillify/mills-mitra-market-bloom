@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -38,8 +39,15 @@ export const useOrders = () => {
   function sanitizeProfile(profile: any): OrderProfile {
     console.log('🔍 Sanitizing profile data:', profile);
     
-    if (!profile || (typeof profile === "object" && Object.prototype.hasOwnProperty.call(profile, "error"))) {
-      console.log('❌ Profile is null or has error, returning null');
+    // Handle null, undefined, or error objects
+    if (!profile || typeof profile !== "object" || profile === null) {
+      console.log('❌ Profile is null/undefined/invalid, returning null');
+      return null;
+    }
+    
+    // Handle error objects or arrays (sometimes Supabase returns arrays)
+    if (Array.isArray(profile) || Object.prototype.hasOwnProperty.call(profile, "error")) {
+      console.log('❌ Profile is array or has error, returning null');
       return null;
     }
     
@@ -56,6 +64,7 @@ export const useOrders = () => {
   }
 
   const fetchOrders = async () => {
+    setLoading(true);
     try {
       console.log("🚀 Starting comprehensive order fetch with profiles...");
 
@@ -88,23 +97,29 @@ export const useOrders = () => {
           description: `Failed to fetch orders: ${ordersError.message}`,
           variant: "destructive",
         });
+        setOrders([]);
         return;
       }
 
       console.log(`✅ Successfully fetched ${ordersData?.length || 0} orders`);
       
-      // Log sample order data for debugging
-      if (ordersData && ordersData.length > 0) {
-        console.log("📋 Sample order data:", {
-          orderId: ordersData[0].id.substring(0, 8),
-          userId: ordersData[0].user_id.substring(0, 8),
-          profileData: ordersData[0].profiles,
-          total: ordersData[0].total
-        });
+      // Handle empty results
+      if (!ordersData || ordersData.length === 0) {
+        console.log("📋 No orders found");
+        setOrders([]);
+        return;
       }
+      
+      // Log sample order data for debugging
+      console.log("📋 Sample order data:", {
+        orderId: ordersData[0].id.substring(0, 8),
+        userId: ordersData[0].user_id.substring(0, 8),
+        profileData: ordersData[0].profiles,
+        total: ordersData[0].total
+      });
 
       // Process and sanitize orders
-      const sanitizedOrders = ordersData?.map((order: any, index) => {
+      const sanitizedOrders = ordersData.map((order: any, index) => {
         console.log(`🔄 Processing order ${index + 1}/${ordersData.length}:`, {
           id: order.id.substring(0, 8),
           userId: order.user_id.substring(0, 8),
@@ -126,7 +141,7 @@ export const useOrders = () => {
         });
 
         return sanitizedOrder;
-      }) || [];
+      });
 
       console.log(`🎯 Final order processing complete: ${sanitizedOrders.length} orders ready`);
       setOrders(sanitizedOrders);
@@ -137,6 +152,7 @@ export const useOrders = () => {
         description: "An unexpected error occurred while fetching orders",
         variant: "destructive",
       });
+      setOrders([]);
     } finally {
       setLoading(false);
     }
