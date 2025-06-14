@@ -83,6 +83,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Actions</TableHead>
+              <TableHead className="text-xs text-gray-400">Profile Debug</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -104,6 +105,12 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                     View Details
                   </Button>
                 </TableCell>
+                <TableCell>
+                  <pre className="whitespace-pre-wrap text-xs text-gray-400 max-w-xs overflow-x-auto">
+                    {/* Display the raw profiles object for debugging */}
+                    {order.profiles ? JSON.stringify(order.profiles, null, 1) : "null"}
+                  </pre>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -114,4 +121,3 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
 };
 
 export default OrdersTable;
-

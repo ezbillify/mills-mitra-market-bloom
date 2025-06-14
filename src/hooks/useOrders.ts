@@ -103,12 +103,24 @@ export const useOrders = () => {
       }
       
       // Process and sanitize orders
-      const sanitizedOrders = ordersData.map((order: any) => ({
-        ...order,
-        profiles: sanitizeProfile(order.profiles),
-      }));
+      const sanitizedOrders = ordersData.map((order: any, idx: number) => {
+        const out = {
+          ...order,
+          profiles: sanitizeProfile(order.profiles),
+        };
+        // Add detailed logging for each order's profile
+        console.log(
+          `[Order:${idx}] ID: ${out.id} | user_id: ${out.user_id}\n-> profiles (raw):`,
+          order.profiles,
+          "\n-> profiles (sanitized):",
+          out.profiles
+        );
+        return out;
+      });
 
-      console.log(`Processed ${sanitizedOrders.length} orders successfully`);
+      // Print all sanitized orders for inspection
+      console.log("Sanitized orders FINAL:", sanitizedOrders);
+
       setOrders(sanitizedOrders);
     } catch (error) {
       console.error("Unexpected error in fetchOrders:", error);
