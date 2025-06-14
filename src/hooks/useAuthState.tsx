@@ -19,7 +19,7 @@ export const useAuthState = () => {
         setLoading(false);
 
         // Ensure profile exists for various auth events
-        if (session?.user && ['SIGNED_IN', 'SIGNED_UP', 'TOKEN_REFRESHED'].includes(event)) {
+        if (session?.user && (event === 'SIGNED_IN' || event === 'SIGNED_UP' || event === 'TOKEN_REFRESHED')) {
           // Use immediate execution for signup, short delay for others
           const delay = event === 'SIGNED_UP' ? 100 : 500;
           setTimeout(() => {

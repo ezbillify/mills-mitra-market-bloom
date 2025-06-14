@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -47,21 +46,10 @@ const AdminCustomers = () => {
 
       console.log('Fetching comprehensive customer data...');
       
-      // Get all profiles first as the main source of users
+      // Get all auth users first (this requires admin access, but let's try profiles approach)
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          first_name,
-          last_name,
-          email,
-          phone,
-          address,
-          city,
-          postal_code,
-          country,
-          created_at
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (profilesError) {
@@ -69,9 +57,9 @@ const AdminCustomers = () => {
         throw profilesError;
       }
 
-      console.log('Profiles fetched:', profiles?.length || 0);
+      console.log('Profiles fetched:', profiles?.length || 0, profiles);
 
-      // Fetch order statistics for all users
+      // Fetch all orders to get order statistics
       const { data: orderStats, error: orderStatsError } = await supabase
         .from('orders')
         .select('user_id, total, status');
@@ -80,20 +68,23 @@ const AdminCustomers = () => {
         console.error('Error fetching order stats:', orderStatsError);
       }
 
-      console.log('Order stats fetched:', orderStats?.length || 0);
+      console.log('Order stats fetched:', orderStats?.length || 0, orderStats);
 
-      // Get all unique user IDs from orders that might not have profiles yet
-      const orderUserIds = [...new Set(orderStats?.map(order => order.user_id) || [])];
-      const profileUserIds = new Set(profiles?.map(p => p.id) || []);
-      const missingProfileUserIds = orderUserIds.filter(userId => !profileUserIds.has(userId));
+      // Create a map of user orders for quick lookup
+      const userOrdersMap = new Map<string, { count: number; total: number }>();
+      orderStats?.forEach(order => {
+        if (order.status !== 'cancelled') {
+          const existing = userOrdersMap.get(order.user_id) || { count: 0, total: 0 };
+          userOrdersMap.set(order.user_id, {
+            count: existing.count + 1,
+            total: existing.total + Number(order.total)
+          });
+        }
+      });
 
-      console.log('Users with orders but no profiles:', missingProfileUserIds.length);
-
-      // Create customers data from profiles
+      // Create customers from profiles
       const customersFromProfiles: Customer[] = (profiles || []).map(profile => {
-        const userOrders = orderStats?.filter(order => order.user_id === profile.id && order.status !== 'cancelled') || [];
-        const totalOrders = userOrders.length;
-        const totalSpent = userOrders.reduce((sum, order) => sum + Number(order.total), 0);
+        const userOrders = userOrdersMap.get(profile.id) || { count: 0, total: 0 };
         
         const customerName = profile.first_name || profile.last_name
           ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
@@ -106,9 +97,9 @@ const AdminCustomers = () => {
           name: customerName,
           email: profile.email || 'No email',
           phone: profile.phone || '',
-          totalOrders,
-          totalSpent,
-          status: (totalOrders > 0 ? 'active' : 'inactive') as 'active' | 'inactive',
+          totalOrders: userOrders.count,
+          totalSpent: userOrders.total,
+          status: (userOrders.count > 0 ? 'active' : 'inactive') as 'active' | 'inactive',
           joinDate: profile.created_at,
           profile: {
             first_name: profile.first_name,
@@ -121,19 +112,24 @@ const AdminCustomers = () => {
         };
       });
 
+      // Get users with orders but no profiles
+      const profileUserIds = new Set(profiles?.map(p => p.id) || []);
+      const orderUserIds = [...new Set(orderStats?.map(order => order.user_id) || [])];
+      const missingProfileUserIds = orderUserIds.filter(userId => !profileUserIds.has(userId));
+
+      console.log('Users with orders but no profiles:', missingProfileUserIds.length, missingProfileUserIds);
+
       // Create customers for users with orders but no profiles
       const customersFromOrders: Customer[] = missingProfileUserIds.map(userId => {
-        const userOrders = orderStats?.filter(order => order.user_id === userId && order.status !== 'cancelled') || [];
-        const totalOrders = userOrders.length;
-        const totalSpent = userOrders.reduce((sum, order) => sum + Number(order.total), 0);
+        const userOrders = userOrdersMap.get(userId) || { count: 0, total: 0 };
         
         return {
           id: userId,
           name: `Customer ${userId.substring(0, 8)}`,
           email: 'Profile pending',
           phone: '',
-          totalOrders,
-          totalSpent,
+          totalOrders: userOrders.count,
+          totalSpent: userOrders.total,
           status: 'active' as 'active' | 'inactive',
           joinDate: new Date().toISOString(),
           profile: undefined
@@ -142,9 +138,10 @@ const AdminCustomers = () => {
 
       const allCustomers = [...customersFromProfiles, ...customersFromOrders];
       
-      console.log('Total customers processed:', allCustomers.length);
+      console.log('Final customer count:', allCustomers.length);
       console.log('Customers from profiles:', customersFromProfiles.length);
       console.log('Customers from orders only:', customersFromOrders.length);
+      console.log('All customers data:', allCustomers);
       
       setCustomers(allCustomers);
 
