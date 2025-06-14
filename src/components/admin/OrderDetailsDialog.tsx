@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -111,54 +110,64 @@ const OrderDetailsDialog = ({
     try {
       console.log("Fetching order details for:", orderId);
 
+      // First, fetch the order details
       const { data: order, error: orderError } = await supabase
         .from("orders")
-        .select(
-          `
-          *,
-          profiles!orders_user_id_profiles_fkey (
-            first_name,
-            last_name,
-            email,
-            phone,
-            address,
-            city,
-            postal_code,
-            country
-          )
-        `
-        )
+        .select("*")
         .eq("id", orderId)
         .single();
 
       if (orderError) {
-        console.error("Error fetching order details:", orderError);
-        throw orderError;
+        console.error("Error fetching order:", orderError);
+        throw new Error(`Failed to fetch order: ${orderError.message}`);
       }
 
+      // Then fetch the profile separately using the user_id from the order
+      let profileData = null;
+      if (order.user_id) {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, email, phone, address, city, postal_code, country")
+          .eq("id", order.user_id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error("Error fetching profile:", profileError);
+          // Don't throw error for profile, just log it
+        } else {
+          profileData = profile;
+        }
+      }
+
+      // Fetch order items
       const { data: items, error: itemsError } = await supabase
         .from("order_items")
-        .select(
-          `
+        .select(`
           *,
           products (
             name,
             image,
             description
           )
-        `
-        )
+        `)
         .eq("order_id", orderId);
 
       if (itemsError) {
         console.error("Error fetching order items:", itemsError);
-        throw itemsError;
+        throw new Error(`Failed to fetch order items: ${itemsError.message}`);
       }
 
       console.log("Order details fetched:", order);
+      console.log("Profile data fetched:", profileData);
       console.log("Order items fetched:", items);
 
-      setOrderDetails(order);
+      // Combine the data
+      const orderWithProfile = {
+        ...order,
+        profiles: profileData
+      };
+
+      setOrderDetails(orderWithProfile);
       setOrderItems(items || []);
       setTrackingNumber(order.tracking_number || "");
     } catch (error: any) {
