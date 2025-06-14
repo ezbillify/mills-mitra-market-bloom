@@ -1,3 +1,4 @@
+
 import { Customer } from "@/types/customer";
 
 export const generateCustomerName = (profile: any): string => {
@@ -10,22 +11,23 @@ export const generateCustomerName = (profile: any): string => {
 
   // First try to use first_name and last_name - prioritize this
   if (profile.first_name || profile.last_name) {
-    const firstName = profile.first_name?.trim() || '';
-    const lastName = profile.last_name?.trim() || '';
-    const fullName = `${firstName} ${lastName}`.trim();
-    if (fullName) {
+    const firstName = (profile.first_name || '').trim();
+    const lastName = (profile.last_name || '').trim();
+    
+    if (firstName || lastName) {
+      const fullName = `${firstName} ${lastName}`.trim();
       console.log(`✅ Generated name from profile: "${fullName}"`);
       return fullName;
     }
   }
 
   // If no name components, try to extract from email
-  if (profile.email && !profile.email.startsWith('user-')) {
+  if (profile.email && !profile.email.startsWith('user-') && profile.email !== 'No email provided') {
     // Only process real emails, not generated ones
     const emailPrefix = profile.email.split('@')[0];
     // Remove numbers and special characters, capitalize first letter
     const cleanName = emailPrefix.replace(/[0-9._-]/g, ' ').trim();
-    if (cleanName) {
+    if (cleanName && cleanName.length > 0) {
       const capitalizedName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
       console.log(`📧 Generated name from email: "${capitalizedName}"`);
       return capitalizedName;
@@ -42,19 +44,22 @@ export const processCustomerData = (userData: any): Customer => {
   const { profile, orders, hasProfile } = userData;
   
   console.log(`🔄 Processing user: ${profile.id.substring(0, 8)}, hasProfile: ${hasProfile}, orderCount: ${orders.length}`);
-  console.log(`📝 Profile data:`, {
+  console.log(`📝 Raw profile data:`, {
     firstName: profile.first_name,
     lastName: profile.last_name,
     email: profile.email,
-    phone: profile.phone
+    phone: profile.phone,
+    fullProfile: profile
   });
 
   // Calculate order statistics
   const totalOrders = orders.length;
   const totalSpent = orders.reduce((sum: number, order: any) => sum + Number(order.total || 0), 0);
   
-  // Generate customer name with priority on first and last names
+  // Generate customer name with enhanced debugging
+  console.log(`🔍 About to generate name for profile:`, profile);
   const customerName = generateCustomerName(profile);
+  console.log(`🎯 Generated customer name: "${customerName}"`);
 
   // Determine status based on profile existence and orders
   let status: 'active' | 'inactive' = 'inactive';
@@ -85,14 +90,15 @@ export const processCustomerData = (userData: any): Customer => {
     } : undefined
   };
 
-  console.log('🎯 Generated customer:', {
+  console.log('🎯 Final customer object:', {
     id: customer.id.substring(0, 8),
     name: customer.name,
     email: customer.email,
     totalOrders: customer.totalOrders,
     totalSpent: customer.totalSpent,
     status: customer.status,
-    hasProfile
+    hasProfile,
+    profileData: customer.profile
   });
 
   return customer;
