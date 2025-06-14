@@ -49,15 +49,23 @@ export class OrderService {
 
       // Handle the profile data - it might be an object or null
       if (order.profiles && typeof order.profiles === 'object') {
+        // Ensure we have proper fallback values for missing profile data
         orderProfile = {
-          first_name: order.profiles.first_name || null,
-          last_name: order.profiles.last_name || null,
-          email: order.profiles.email || null,
+          first_name: order.profiles.first_name || 'Customer',
+          last_name: order.profiles.last_name || `ID-${order.user_id.substring(0, 8)}`,
+          email: order.profiles.email || 'No email provided',
           phone: order.profiles.phone || null
         };
         console.log(`✅ Processed profile for order ${order.id.substring(0, 8)}:`, orderProfile);
       } else {
-        console.log(`⚠️ No valid profile found for order ${order.id.substring(0, 8)}, raw profiles:`, order.profiles);
+        // Create a fallback profile when no profile exists
+        orderProfile = {
+          first_name: 'Customer',
+          last_name: `ID-${order.user_id.substring(0, 8)}`,
+          email: 'No email provided',
+          phone: null
+        };
+        console.log(`⚠️ Created fallback profile for order ${order.id.substring(0, 8)}:`, orderProfile);
       }
 
       const processedOrder: Order = {
@@ -103,6 +111,20 @@ export class OrderService {
     if (error) {
       console.error("Error updating order:", error);
       throw new Error(`Failed to update order status: ${error.message}`);
+    }
+  }
+
+  static async updateTrackingNumber(orderId: string, trackingNumber: string): Promise<void> {
+    console.log(`Updating tracking number for order ${orderId}: ${trackingNumber}`);
+
+    const { error } = await supabase
+      .from("orders")
+      .update({ tracking_number: trackingNumber })
+      .eq("id", orderId);
+
+    if (error) {
+      console.error("Error updating tracking number:", error);
+      throw new Error(`Failed to update tracking number: ${error.message}`);
     }
   }
 }

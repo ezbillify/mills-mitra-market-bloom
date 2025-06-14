@@ -1,94 +1,46 @@
 
-import { Customer } from "@/types/customer";
+interface CustomerData {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+}
 
-export const generateCustomerName = (profile: any): string => {
-  console.log('🏭 generateCustomerName called with profile:', profile);
+export const generateCustomerName = (customer: CustomerData): string => {
+  console.log(`🎯 generateCustomerName called with data:`, customer);
   
-  const rawFirstName = profile.first_name;
-  const rawLastName = profile.last_name;
-  const rawEmail = profile.email;
-  const userId = profile.id;
-
-  console.log('🔍 Raw profile values:', {
-    first_name: rawFirstName,
-    last_name: rawLastName,
-    email: rawEmail,
-    id: userId
-  });
-
-  // First priority: use first_name and last_name from profile
-  if (rawFirstName || rawLastName) {
-    const firstName = (rawFirstName || '').trim();
-    const lastName = (rawLastName || '').trim();
-    
-    if (firstName || lastName) {
-      const fullName = `${firstName} ${lastName}`.trim();
-      console.log('✅ Generated name from first/last name:', fullName);
-      return fullName;
-    }
+  // If we have both first and last name, use them
+  if (customer.first_name && customer.last_name) {
+    const fullName = `${customer.first_name} ${customer.last_name}`;
+    console.log(`✅ Using full name: "${fullName}"`);
+    return fullName;
   }
-
-  // Second priority: extract name from email (only for real emails)
-  if (rawEmail && typeof rawEmail === 'string' && !rawEmail.startsWith('user-') && rawEmail !== 'No email provided') {
-    const emailPrefix = rawEmail.split('@')[0];
-    
-    // Clean up email prefix - remove numbers and special characters
-    const cleanName = emailPrefix.replace(/[0-9._-]/g, ' ').trim();
-    
-    if (cleanName && cleanName.length > 2) {
-      // Capitalize first letter of each word
-      const capitalizedName = cleanName.split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(' ');
-      console.log('✅ Generated name from email:', capitalizedName);
-      return capitalizedName;
-    }
+  
+  // If we have just first name, use it
+  if (customer.first_name) {
+    console.log(`✅ Using first name only: "${customer.first_name}"`);
+    return customer.first_name;
   }
-
-  // Fallback: use a simple customer identifier
-  const fallbackName = `Customer ${userId?.substring(0, 8) || 'Unknown'}`;
-  console.log('⚠️ Using fallback name:', fallbackName);
+  
+  // If we have just last name, use it
+  if (customer.last_name) {
+    console.log(`✅ Using last name only: "${customer.last_name}"`);
+    return customer.last_name;
+  }
+  
+  // If we have email, use the part before @
+  if (customer.email && customer.email !== 'No email provided') {
+    const emailName = customer.email.split('@')[0];
+    console.log(`✅ Using email-derived name: "${emailName}"`);
+    return emailName;
+  }
+  
+  // Fallback to customer ID
+  const fallbackName = `Customer ${customer.id.substring(0, 8)}`;
+  console.log(`🔄 Using fallback name: "${fallbackName}"`);
   return fallbackName;
 };
 
-export const processCustomerData = (userData: any): Customer => {
-  const { profile, orders, hasProfile } = userData;
-
-  // Calculate order statistics
-  const totalOrders = orders.length;
-  const totalSpent = orders.reduce((sum: number, order: any) => sum + Number(order.total || 0), 0);
-  
-  // Generate customer name
-  const customerName = generateCustomerName(profile);
-
-  // Determine status based on profile existence and recent orders
-  let status: 'active' | 'inactive' = 'inactive';
-  if (hasProfile && totalOrders > 0) {
-    status = 'active';
-  } else if (hasProfile && totalOrders === 0) {
-    status = 'inactive';
-  } else if (!hasProfile && totalOrders > 0) {
-    status = 'active'; // User with orders but no complete profile
-  }
-
-  const customer: Customer = {
-    id: profile.id,
-    name: customerName,
-    email: profile.email || 'No email provided',
-    phone: profile.phone || '',
-    totalOrders,
-    totalSpent,
-    status,
-    joinDate: profile.created_at,
-    profile: hasProfile ? {
-      first_name: profile.first_name,
-      last_name: profile.last_name,
-      address: profile.address,
-      city: profile.city,
-      postal_code: profile.postal_code,
-      country: profile.country
-    } : undefined
-  };
-
-  return customer;
+export const getCustomerEmail = (customer: CustomerData): string => {
+  return customer.email && customer.email !== 'No email provided' ? customer.email : 'No email';
 };

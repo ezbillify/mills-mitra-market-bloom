@@ -15,6 +15,16 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Package,
   Truck,
@@ -24,25 +34,24 @@ import {
   Phone,
   Mail,
   Hash,
-  DollarSign,
+  FileText,
+  Save,
+  ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { OrderStatus } from "@/types/order";
 
-// Allow profiles to be a valid profile object, null, or SelectQueryError or error-like object
-type OrderDetailsProfile =
-  | {
-      first_name: string | null;
-      last_name: string | null;
-      email: string | null;
-      phone: string | null;
-      address: string | null;
-      city: string | null;
-      postal_code: string | null;
-      country: string | null;
-    }
-  | null
-  | { error: true };
+interface OrderDetailsProfile {
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  country: string | null;
+}
 
 interface OrderItem {
   id: string;
@@ -59,19 +68,19 @@ interface OrderDetails {
   id: string;
   user_id: string;
   total: number;
-  status: string;
+  status: OrderStatus;
   created_at: string;
   updated_at: string;
   shipping_address: string;
   tracking_number: string | null;
-  profiles: OrderDetailsProfile;
+  profiles: OrderDetailsProfile | null;
 }
 
 interface OrderDetailsDialogProps {
   orderId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdateStatus: (orderId: string, newStatus: string) => void;
+  onUpdateStatus: (orderId: string, newStatus: OrderStatus) => void;
 }
 
 const OrderDetailsDialog = ({
@@ -83,26 +92,17 @@ const OrderDetailsDialog = ({
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [invoiceNinjaUrl, setInvoiceNinjaUrl] = useState("");
+  const [isUpdatingTracking, setIsUpdatingTracking] = useState(false);
+  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (orderId && open) {
       fetchOrderDetails();
     }
-    // eslint-disable-next-line
   }, [orderId, open]);
-
-  // Helper to sanitize "profiles" so UI never gets the error object
-  function sanitizeProfile(profile: any): OrderDetailsProfile {
-    if (!profile) return null;
-    if (
-      typeof profile === "object" &&
-      Object.prototype.hasOwnProperty.call(profile, "error")
-    ) {
-      return null;
-    }
-    return profile;
-  }
 
   const fetchOrderDetails = async () => {
     if (!orderId) return;
@@ -111,13 +111,12 @@ const OrderDetailsDialog = ({
     try {
       console.log("Fetching order details for:", orderId);
 
-      // Fetch order details with complete profile information
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .select(
           `
           *,
-          profiles!orders_user_id_fkey (
+          profiles!orders_user_id_profiles_fkey (
             first_name,
             last_name,
             email,
@@ -137,7 +136,6 @@ const OrderDetailsDialog = ({
         throw orderError;
       }
 
-      // Fetch order items with complete product information
       const { data: items, error: itemsError } = await supabase
         .from("order_items")
         .select(
@@ -160,11 +158,9 @@ const OrderDetailsDialog = ({
       console.log("Order details fetched:", order);
       console.log("Order items fetched:", items);
 
-      setOrderDetails({
-        ...order,
-        profiles: sanitizeProfile(order.profiles),
-      });
+      setOrderDetails(order);
       setOrderItems(items || []);
+      setTrackingNumber(order.tracking_number || "");
     } catch (error: any) {
       console.error("Error fetching order details:", error);
       toast({
@@ -174,6 +170,83 @@ const OrderDetailsDialog = ({
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateTrackingNumber = async () => {
+    if (!orderDetails) return;
+
+    setIsUpdatingTracking(true);
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ tracking_number: trackingNumber })
+        .eq("id", orderDetails.id);
+
+      if (error) throw error;
+
+      setOrderDetails({ ...orderDetails, tracking_number: trackingNumber });
+      toast({
+        title: "Success",
+        description: "Tracking number updated successfully",
+      });
+    } catch (error: any) {
+      console.error("Error updating tracking number:", error);
+      toast({
+        title: "Error",
+        description: `Failed to update tracking number: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingTracking(false);
+    }
+  };
+
+  const generateInvoice = async () => {
+    if (!orderDetails || !invoiceNinjaUrl) {
+      toast({
+        title: "Error",
+        description: "Please enter your Invoice Ninja URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingInvoice(true);
+    try {
+      // This is a placeholder for Invoice Ninja integration
+      // You would need to implement the actual API calls based on your Invoice Ninja setup
+      const invoiceData = {
+        client: {
+          name: `${orderDetails.profiles?.first_name || ''} ${orderDetails.profiles?.last_name || ''}`.trim() || 'Customer',
+          email: orderDetails.profiles?.email || '',
+          address1: orderDetails.shipping_address,
+        },
+        invoice_items: orderItems.map(item => ({
+          product_key: item.products.name,
+          notes: item.products.description || '',
+          cost: item.price,
+          qty: item.quantity,
+        })),
+        invoice_number: `ORD-${orderDetails.id.slice(0, 8)}`,
+        invoice_date: new Date().toISOString().split('T')[0],
+      };
+
+      console.log("Invoice data prepared:", invoiceData);
+      
+      toast({
+        title: "Invoice Generated",
+        description: "Invoice data has been prepared. Integrate with your Invoice Ninja API to complete the process.",
+      });
+    } catch (error: any) {
+      console.error("Error generating invoice:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate invoice",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingInvoice(false);
     }
   };
 
@@ -202,29 +275,18 @@ const OrderDetailsDialog = ({
     );
   };
 
-  const getNextStatus = (currentStatus: string) => {
-    const statusFlow: Record<string, string> = {
-      pending: "accepted",
-      accepted: "processing",
-      processing: "shipped",
-      shipped: "out_for_delivery",
-      out_for_delivery: "delivered",
-    };
-    return statusFlow[currentStatus];
+  const getCustomerName = () => {
+    if (!orderDetails?.profiles) {
+      return `Customer ${orderDetails?.user_id?.substring(0, 8) || 'Unknown'}`;
+    }
+    
+    const { first_name, last_name } = orderDetails.profiles;
+    if (first_name || last_name) {
+      return `${first_name || ''} ${last_name || ''}`.trim();
+    }
+    
+    return orderDetails.profiles.email || `Customer ${orderDetails.user_id?.substring(0, 8) || 'Unknown'}`;
   };
-
-  const getNextStatusLabel = (currentStatus: string) => {
-    const labels: Record<string, string> = {
-      pending: "Accept Order",
-      accepted: "Start Processing",
-      processing: "Mark as Shipped",
-      shipped: "Out for Delivery",
-      out_for_delivery: "Mark as Delivered",
-    };
-    return labels[currentStatus] || "";
-  };
-
-  const safeProfile = orderDetails?.profiles && typeof orderDetails.profiles === "object" && !("error" in orderDetails.profiles) ? orderDetails.profiles : null;
 
   if (!orderDetails && !loading) {
     return (
@@ -243,7 +305,7 @@ const OrderDetailsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Hash className="h-5 w-5" />
@@ -268,21 +330,40 @@ const OrderDetailsDialog = ({
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">
-                      Current Status:
-                    </span>
+                    <span className="text-sm font-medium">Current Status:</span>
                     <Badge className={getStatusColor(orderDetails.status)}>
                       {orderDetails.status.replace("_", " ").toUpperCase()}
                     </Badge>
                   </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="status-select">Change Status:</Label>
+                    <Select
+                      value={orderDetails.status}
+                      onValueChange={(value: OrderStatus) => {
+                        onUpdateStatus(orderDetails.id, value);
+                        setOrderDetails({ ...orderDetails, status: value });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="accepted">Accepted</SelectItem>
+                        <SelectItem value="processing">Processing</SelectItem>
+                        <SelectItem value="shipped">Shipped</SelectItem>
+                        <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
+                        <SelectItem value="delivered">Delivered</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                   <div className="flex justify-between">
-                    <span className="text-sm font-medium">
-                      Total Amount:
-                    </span>
-                    <span className="font-bold text-lg">
-                      ₹{Number(orderDetails.total).toFixed(2)}
-                    </span>
+                    <span className="text-sm font-medium">Total Amount:</span>
+                    <span className="font-bold text-lg">₹{Number(orderDetails.total).toFixed(2)}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -297,18 +378,11 @@ const OrderDetailsDialog = ({
                 <CardContent className="space-y-3">
                   <div>
                     <span className="text-sm font-medium">Order Date:</span>
-                    <p className="text-sm">
-                      {formatDate(orderDetails.created_at)}
-                    </p>
+                    <p className="text-sm">{formatDate(orderDetails.created_at)}</p>
                   </div>
-
                   <div>
-                    <span className="text-sm font-medium">
-                      Last Updated:
-                    </span>
-                    <p className="text-sm">
-                      {formatDate(orderDetails.updated_at)}
-                    </p>
+                    <span className="text-sm font-medium">Last Updated:</span>
+                    <p className="text-sm">{formatDate(orderDetails.updated_at)}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -317,24 +391,28 @@ const OrderDetailsDialog = ({
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Truck className="h-5 w-5" />
-                    Shipping Info
+                    Shipping & Tracking
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {orderDetails.tracking_number ? (
-                    <div>
-                      <span className="text-sm font-medium">
-                        Tracking Number:
-                      </span>
-                      <p className="font-mono text-sm bg-gray-100 p-2 rounded">
-                        {orderDetails.tracking_number}
-                      </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="tracking-number">Tracking Number:</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="tracking-number"
+                        value={trackingNumber}
+                        onChange={(e) => setTrackingNumber(e.target.value)}
+                        placeholder="Enter tracking number"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={updateTrackingNumber}
+                        disabled={isUpdatingTracking}
+                      >
+                        <Save className="h-4 w-4" />
+                      </Button>
                     </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      No tracking number assigned yet
-                    </p>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -351,52 +429,36 @@ const OrderDetailsDialog = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <div>
-                      <span className="text-sm font-medium">
-                        Full Name:
-                      </span>
-                      <p>
-                        {safeProfile
-                          ? `${safeProfile.first_name || ""} ${safeProfile.last_name || ""}`
-                          : "N/A"}
-                      </p>
+                      <span className="text-sm font-medium">Full Name:</span>
+                      <p>{getCustomerName()}</p>
                     </div>
-
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4" />
                       <div>
-                        <span className="text-sm font-medium">
-                          Email:
-                        </span>
-                        <p>{safeProfile?.email || "N/A"}</p>
+                        <span className="text-sm font-medium">Email:</span>
+                        <p>{orderDetails.profiles?.email || "N/A"}</p>
                       </div>
                     </div>
-
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4" />
                       <div>
-                        <span className="text-sm font-medium">
-                          Phone:
-                        </span>
-                        <p>{safeProfile?.phone || "N/A"}</p>
+                        <span className="text-sm font-medium">Phone:</span>
+                        <p>{orderDetails.profiles?.phone || "N/A"}</p>
                       </div>
                     </div>
                   </div>
-
                   <div className="space-y-3">
                     <div>
-                      <span className="text-sm font-medium">
-                        Profile Address:
-                      </span>
+                      <span className="text-sm font-medium">Profile Address:</span>
                       <p className="text-sm">
-                        {safeProfile?.address ? (
+                        {orderDetails.profiles?.address ? (
                           <>
-                            {safeProfile.address}
+                            {orderDetails.profiles.address}
                             <br />
-                            {safeProfile.city && `${safeProfile.city}, `}
-                            {safeProfile.postal_code &&
-                              `${safeProfile.postal_code}`}
+                            {orderDetails.profiles.city && `${orderDetails.profiles.city}, `}
+                            {orderDetails.profiles.postal_code && `${orderDetails.profiles.postal_code}`}
                             <br />
-                            {safeProfile.country}
+                            {orderDetails.profiles.country}
                           </>
                         ) : (
                           "No address on file"
@@ -417,9 +479,45 @@ const OrderDetailsDialog = ({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-line">
-                  {orderDetails.shipping_address}
-                </p>
+                <p className="whitespace-pre-line">{orderDetails.shipping_address}</p>
+              </CardContent>
+            </Card>
+
+            {/* What to Pack */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  What to Pack - Items Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-blue-900 mb-2">Packing Instructions</h4>
+                    <ul className="space-y-1 text-sm text-blue-800">
+                      <li>• Total items: {orderItems.length} different products</li>
+                      <li>• Total quantity: {orderItems.reduce((sum, item) => sum + item.quantity, 0)} pieces</li>
+                      <li>• Order value: ₹{Number(orderDetails.total).toFixed(2)}</li>
+                      <li>• Customer: {getCustomerName()}</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h5 className="font-medium">Items to pack:</h5>
+                    {orderItems.map((item, index) => (
+                      <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-medium">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{item.products.name}</p>
+                          <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -449,30 +547,20 @@ const OrderDetailsDialog = ({
                           <Package className="h-8 w-8 text-gray-400" />
                         )}
                       </div>
-
                       <div className="flex-1">
-                        <h4 className="font-medium">
-                          {item.products.name}
-                        </h4>
+                        <h4 className="font-medium">{item.products.name}</h4>
                         {item.products.description && (
                           <p className="text-sm text-gray-600 mt-1">
                             {item.products.description}
                           </p>
                         )}
                         <div className="flex items-center gap-4 mt-2">
-                          <span className="text-sm">
-                            Quantity: {item.quantity}
-                          </span>
-                          <span className="text-sm">
-                            Unit Price: ₹{Number(item.price).toFixed(2)}
-                          </span>
+                          <span className="text-sm">Quantity: {item.quantity}</span>
+                          <span className="text-sm">Unit Price: ₹{Number(item.price).toFixed(2)}</span>
                         </div>
                       </div>
-
                       <div className="text-right">
-                        <p className="font-semibold">
-                          ₹{(item.quantity * Number(item.price)).toFixed(2)}
-                        </p>
+                        <p className="font-semibold">₹{(item.quantity * Number(item.price)).toFixed(2)}</p>
                       </div>
                     </div>
                   ))}
@@ -481,35 +569,46 @@ const OrderDetailsDialog = ({
 
                   <div className="flex justify-between items-center pt-4">
                     <div className="space-y-1">
-                      <p className="text-sm">
-                        Items Total: ₹{calculateItemsTotal().toFixed(2)}
-                      </p>
-                      <p className="text-lg font-bold">
-                        Order Total: ₹{Number(orderDetails.total).toFixed(2)}
-                      </p>
+                      <p className="text-sm">Items Total: ₹{calculateItemsTotal().toFixed(2)}</p>
+                      <p className="text-lg font-bold">Order Total: ₹{Number(orderDetails.total).toFixed(2)}</p>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Actions */}
-            <div className="flex gap-3 pt-4 border-t">
-              {getNextStatus(orderDetails.status) && (
+            {/* Invoice Generation */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Invoice Generation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="invoice-ninja-url">Invoice Ninja URL:</Label>
+                  <Input
+                    id="invoice-ninja-url"
+                    value={invoiceNinjaUrl}
+                    onChange={(e) => setInvoiceNinjaUrl(e.target.value)}
+                    placeholder="https://your-invoice-ninja-url.com"
+                  />
+                </div>
                 <Button
-                  onClick={() => {
-                    const nextStatus = getNextStatus(orderDetails.status);
-                    if (nextStatus) {
-                      onUpdateStatus(orderDetails.id, nextStatus);
-                    }
-                  }}
+                  onClick={generateInvoice}
+                  disabled={isGeneratingInvoice || !invoiceNinjaUrl}
                   className="flex items-center gap-2"
                 >
-                  <Truck className="h-4 w-4" />
-                  {getNextStatusLabel(orderDetails.status)}
+                  <FileText className="h-4 w-4" />
+                  {isGeneratingInvoice ? "Generating..." : "Generate Invoice"}
+                  <ExternalLink className="h-4 w-4" />
                 </Button>
-              )}
+              </CardContent>
+            </Card>
 
+            {/* Actions */}
+            <div className="flex gap-3 pt-4 border-t">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Close
               </Button>
