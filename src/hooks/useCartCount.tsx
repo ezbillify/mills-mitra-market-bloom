@@ -8,6 +8,7 @@ export const useCartCount = () => {
   const [cartCount, setCartCount] = useState(0);
   const subscriptionRef = useRef<any>(null);
   const userIdRef = useRef<string | null>(null);
+  const isSubscribingRef = useRef(false);
 
   const fetchCartCount = useCallback(async () => {
     if (!user) {
@@ -40,24 +41,44 @@ export const useCartCount = () => {
     const cleanupSubscription = () => {
       if (subscriptionRef.current) {
         console.log('🧹 Cleaning up existing cart subscription');
-        subscriptionRef.current.unsubscribe();
+        try {
+          subscriptionRef.current.unsubscribe();
+        } catch (error) {
+          console.log('🧹 Subscription already cleaned up or error during cleanup:', error);
+        }
         subscriptionRef.current = null;
       }
+      isSubscribingRef.current = false;
     };
 
-    // If user changed, cleanup previous subscription
-    if (userIdRef.current && userIdRef.current !== user?.id) {
-      cleanupSubscription();
+    // Always cleanup first
+    cleanupSubscription();
+
+    if (!user) {
+      setCartCount(0);
+      userIdRef.current = null;
+      return;
     }
 
-    if (user) {
-      // Only create new subscription if we don't have one for this user
-      if (!subscriptionRef.current || userIdRef.current !== user.id) {
-        cleanupSubscription(); // Make sure we're clean
-        
-        // Initial fetch
-        fetchCartCount();
-        
+    // Prevent multiple subscriptions
+    if (isSubscribingRef.current) {
+      console.log('🛒 Already subscribing, skipping...');
+      return;
+    }
+
+    isSubscribingRef.current = true;
+    userIdRef.current = user.id;
+
+    // Initial fetch
+    fetchCartCount();
+    
+    // Set up subscription with a delay to ensure cleanup is complete
+    const setupSubscription = () => {
+      if (!isSubscribingRef.current || !user) {
+        return;
+      }
+
+      try {
         // Create unique channel name with user ID and timestamp
         const channelName = `cart_changes_${user.id}_${Date.now()}`;
         console.log('🔔 Setting up cart real-time subscription:', channelName);
@@ -78,23 +99,22 @@ export const useCartCount = () => {
           )
           .subscribe((status) => {
             console.log('🔔 Cart subscription status:', status);
+            if (status === 'SUBSCRIBED') {
+              subscriptionRef.current = subscription;
+            }
           });
-
-        subscriptionRef.current = subscription;
-        userIdRef.current = user.id;
+      } catch (error) {
+        console.error('🔔 Error setting up subscription:', error);
+        isSubscribingRef.current = false;
       }
-    } else {
-      cleanupSubscription();
-      setCartCount(0);
-      userIdRef.current = null;
-    }
+    };
+
+    // Small delay to ensure any existing subscriptions are fully cleaned up
+    const timeoutId = setTimeout(setupSubscription, 100);
 
     return () => {
-      if (subscriptionRef.current) {
-        console.log('🧹 Cleaning up cart subscription on unmount');
-        subscriptionRef.current.unsubscribe();
-        subscriptionRef.current = null;
-      }
+      clearTimeout(timeoutId);
+      cleanupSubscription();
     };
   }, [user?.id]); // Only depend on user.id to prevent multiple subscriptions
 
