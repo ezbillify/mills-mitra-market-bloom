@@ -62,26 +62,10 @@ export const useOrders = () => {
     try {
       console.log("🔍 Fetching orders with profile data...");
 
-      // Query orders with profiles join - the foreign key constraint should ensure this works properly now
+      // First, let's try a different approach - fetch orders and profiles separately to debug
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
-        .select(
-          `
-          id,
-          user_id,
-          total,
-          status,
-          created_at,
-          shipping_address,
-          tracking_number,
-          profiles (
-            first_name,
-            last_name,
-            email,
-            phone
-          )
-        `
-        )
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (ordersError) {
@@ -102,16 +86,51 @@ export const useOrders = () => {
         setOrders([]);
         return;
       }
+
+      // Now fetch profiles for all user_ids in the orders
+      const userIds = [...new Set(ordersData.map(order => order.user_id))];
+      console.log(`🔍 Fetching profiles for ${userIds.length} unique users:`, userIds.map(id => id.substring(0, 8)));
+
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", userIds);
+
+      if (profilesError) {
+        console.error("❌ Error fetching profiles:", profilesError);
+      } else {
+        console.log(`✅ Fetched ${profilesData?.length || 0} profiles:`, profilesData?.map(p => ({
+          id: p.id.substring(0, 8),
+          firstName: p.first_name,
+          lastName: p.last_name,
+          email: p.email
+        })));
+      }
+
+      // Create a map of profiles by user_id for quick lookup
+      const profilesMap = new Map();
+      if (profilesData) {
+        profilesData.forEach(profile => {
+          profilesMap.set(profile.id, profile);
+        });
+      }
       
       // Process and sanitize orders with detailed logging
       const sanitizedOrders = ordersData.map((order: any, index: number) => {
         console.log(`🔄 Processing order ${index + 1}/${ordersData.length}:`, {
           orderId: order.id.substring(0, 8),
           userId: order.user_id.substring(0, 8),
-          profileData: order.profiles
         });
         
-        const sanitizedProfile = sanitizeProfile(order.profiles);
+        // Look up the profile for this order's user_id
+        const userProfile = profilesMap.get(order.user_id);
+        console.log(`🔍 Profile lookup for user ${order.user_id.substring(0, 8)}:`, userProfile ? {
+          firstName: userProfile.first_name,
+          lastName: userProfile.last_name,
+          email: userProfile.email
+        } : 'NOT FOUND');
+        
+        const sanitizedProfile = sanitizeProfile(userProfile);
         
         if (sanitizedProfile) {
           console.log(`✅ Valid profile found for order ${order.id.substring(0, 8)}:`, {
