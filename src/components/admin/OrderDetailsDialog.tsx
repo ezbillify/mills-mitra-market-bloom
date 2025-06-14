@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -112,7 +111,7 @@ const OrderDetailsDialog = ({ orderId, open, onOpenChange, onUpdateStatus }: Ord
       console.log('Order details fetched:', order);
       console.log('Order items fetched:', items);
 
-      setOrderDetails(order);
+      setOrderDetails(order as OrderDetails);
       setOrderItems(items || []);
     } catch (error: any) {
       console.error('Error fetching order details:', error);

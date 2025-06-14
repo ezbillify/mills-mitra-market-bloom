@@ -20,6 +20,7 @@ interface Order {
     first_name: string | null;
     last_name: string | null;
     email: string | null;
+    phone?: string | null;
   } | null;
 }
 
@@ -80,7 +81,7 @@ const AdminOrders = () => {
       }
 
       console.log('Orders fetched successfully:', ordersData);
-      setOrders(ordersData || []);
+      setOrders(ordersData as Order[] || []);
     } catch (error) {
       console.error('Unexpected error fetching orders:', error);
       toast({
