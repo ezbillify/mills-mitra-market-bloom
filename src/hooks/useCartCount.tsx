@@ -7,6 +7,7 @@ export const useCartCount = () => {
   const { user } = useAuth();
   const [cartCount, setCartCount] = useState(0);
   const subscriptionRef = useRef<any>(null);
+  const userIdRef = useRef<string | null>(null);
 
   const fetchCartCount = useCallback(async () => {
     if (!user) {
@@ -35,54 +36,63 @@ export const useCartCount = () => {
     }
   }, [user]);
 
-  useEffect(() => {
-    // Cleanup any existing subscription first
+  const cleanupSubscription = useCallback(() => {
     if (subscriptionRef.current) {
       console.log('🧹 Cleaning up existing cart subscription');
       subscriptionRef.current.unsubscribe();
       subscriptionRef.current = null;
     }
+  }, []);
+
+  useEffect(() => {
+    // If user changed, cleanup previous subscription
+    if (userIdRef.current && userIdRef.current !== user?.id) {
+      cleanupSubscription();
+    }
 
     if (user) {
-      // Initial fetch
-      fetchCartCount();
-      
-      // Subscribe to cart changes with enhanced real-time updates
-      console.log('🔔 Setting up cart real-time subscription for user:', user.id);
-      
-      const subscription = supabase
-        .channel(`cart_changes_${user.id}`)
-        .on('postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'cart_items',
-            filter: `user_id=eq.${user.id}`
-          }, 
-          (payload) => {
-            console.log('🔔 Cart change detected:', payload.eventType, payload);
-            // Immediate refetch on any cart change
-            fetchCartCount();
-          }
-        )
-        .subscribe((status) => {
-          console.log('🔔 Cart subscription status:', status);
-        });
+      // Only create new subscription if we don't have one for this user
+      if (!subscriptionRef.current || userIdRef.current !== user.id) {
+        cleanupSubscription(); // Make sure we're clean
+        
+        // Initial fetch
+        fetchCartCount();
+        
+        // Create unique channel name with user ID
+        const channelName = `cart_changes_${user.id}_${Date.now()}`;
+        console.log('🔔 Setting up cart real-time subscription:', channelName);
+        
+        const subscription = supabase
+          .channel(channelName)
+          .on('postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'cart_items',
+              filter: `user_id=eq.${user.id}`
+            }, 
+            (payload) => {
+              console.log('🔔 Cart change detected:', payload.eventType, payload);
+              fetchCartCount();
+            }
+          )
+          .subscribe((status) => {
+            console.log('🔔 Cart subscription status:', status);
+          });
 
-      // Store the subscription reference
-      subscriptionRef.current = subscription;
-
-      return () => {
-        console.log('🧹 Cleaning up cart subscription');
-        if (subscriptionRef.current) {
-          subscriptionRef.current.unsubscribe();
-          subscriptionRef.current = null;
-        }
-      };
+        subscriptionRef.current = subscription;
+        userIdRef.current = user.id;
+      }
     } else {
+      cleanupSubscription();
       setCartCount(0);
+      userIdRef.current = null;
     }
-  }, [user?.id]); // Only depend on user.id, not the entire user object or fetchCartCount
+
+    return () => {
+      cleanupSubscription();
+    };
+  }, [user?.id, fetchCartCount, cleanupSubscription]);
 
   return { cartCount, refetchCartCount: fetchCartCount };
 };
