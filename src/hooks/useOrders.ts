@@ -57,14 +57,20 @@ export const useOrders = () => {
 
   const fetchOrders = async () => {
     try {
-      console.log("Fetching orders...");
+      console.log("Fetching orders with profiles...");
 
-      // Use the correct join syntax with profiles table
+      // Fetch orders with proper profile joins
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(
           `
-          *,
+          id,
+          user_id,
+          total,
+          status,
+          created_at,
+          shipping_address,
+          tracking_number,
           profiles (
             first_name,
             last_name,
@@ -85,7 +91,8 @@ export const useOrders = () => {
         return;
       }
 
-      console.log("Orders fetched successfully:", ordersData);
+      console.log("Orders fetched successfully:", ordersData?.length);
+      console.log("Sample order with profile:", ordersData?.[0]);
 
       // Only valid profile shape or null goes into order.profiles
       const sanitizedOrders =
@@ -94,6 +101,9 @@ export const useOrders = () => {
           profiles: sanitizeProfile(order.profiles),
         })) || [];
 
+      console.log("Sanitized orders:", sanitizedOrders.length);
+      console.log("Sample sanitized order:", sanitizedOrders[0]);
+      
       setOrders(sanitizedOrders);
     } catch (error) {
       console.error("Unexpected error fetching orders:", error);
@@ -155,8 +165,8 @@ export const useOrders = () => {
   useEffect(() => {
     fetchOrders();
 
-    // Set up real-time subscription
-    const channel = supabase
+    // Set up real-time subscription for orders
+    const ordersChannel = supabase
       .channel("orders-changes")
       .on(
         "postgres_changes",
@@ -172,8 +182,26 @@ export const useOrders = () => {
       )
       .subscribe();
 
+    // Also listen for profile changes since they affect order display
+    const profilesChannel = supabase
+      .channel("profiles-changes-for-orders")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+        },
+        () => {
+          console.log("Profiles changed, refetching orders...");
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(profilesChannel);
     };
   }, []);
 

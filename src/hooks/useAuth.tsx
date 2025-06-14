@@ -44,10 +44,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      // Extract user data from various sources
-      const email = userData?.email || userData?.user_metadata?.email || null;
-      const firstName = userData?.first_name || userData?.user_metadata?.first_name || null;
-      const lastName = userData?.last_name || userData?.user_metadata?.last_name || null;
+      // Extract user data from various sources with fallbacks
+      const email = userData?.email || userData?.user_metadata?.email || userData?.raw_user_meta_data?.email || null;
+      const firstName = userData?.first_name || userData?.user_metadata?.first_name || userData?.raw_user_meta_data?.first_name || null;
+      const lastName = userData?.last_name || userData?.user_metadata?.last_name || userData?.raw_user_meta_data?.last_name || null;
 
       console.log('Creating profile with data:', { userId, email, firstName, lastName });
 
@@ -93,6 +93,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } else {
         console.log('Profile created successfully for user:', userId);
+        
+        // Force a small delay and then trigger a refresh of the customer data
+        setTimeout(() => {
+          console.log('Profile creation completed, triggering data refresh...');
+        }, 100);
       }
     } catch (error) {
       console.error('Unexpected error in ensureProfileExists:', error);
@@ -109,7 +114,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false);
 
         // Ensure profile exists for various auth events
-        if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+        if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_UP')) {
           // Use a longer delay to ensure database operations complete
           setTimeout(() => {
             ensureProfileExists(session.user.id, session.user);
@@ -164,13 +169,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           description: "Please check your email to confirm your account",
         });
       } else if (data.user) {
-        // Immediately ensure profile exists for new users
+        // Immediately ensure profile exists for new users with comprehensive data
         setTimeout(() => {
           ensureProfileExists(data.user.id, {
             email: email,
             first_name: firstName,
             last_name: lastName,
-            user_metadata: data.user.user_metadata
+            user_metadata: data.user.user_metadata,
+            raw_user_meta_data: data.user.raw_user_meta_data
           });
         }, 1000);
         

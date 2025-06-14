@@ -46,7 +46,7 @@ const AdminCustomers = () => {
 
       console.log('Fetching customer profiles...');
       
-      // Fetch profiles with order statistics
+      // Fetch ALL profiles first, then get order statistics
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select(`
@@ -60,7 +60,8 @@ const AdminCustomers = () => {
           postal_code,
           country,
           created_at
-        `);
+        `)
+        .order('created_at', { ascending: false });
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
@@ -68,6 +69,7 @@ const AdminCustomers = () => {
       }
 
       console.log('Profiles fetched:', profiles?.length || 0, 'profiles found');
+      console.log('Profile data sample:', profiles?.[0]);
 
       // Fetch order statistics for each customer
       const { data: orderStats, error: orderStatsError } = await supabase
@@ -76,7 +78,8 @@ const AdminCustomers = () => {
 
       if (orderStatsError) {
         console.error('Error fetching order stats:', orderStatsError);
-        throw orderStatsError;
+        // Don't throw here, just log and continue with empty order stats
+        console.log('Continuing without order stats due to error:', orderStatsError);
       }
 
       console.log('Order stats fetched:', orderStats?.length || 0, 'orders found');
@@ -87,10 +90,18 @@ const AdminCustomers = () => {
         const totalOrders = userOrders.length;
         const totalSpent = userOrders.reduce((sum, order) => sum + Number(order.total), 0);
         
+        // Better name handling with fallbacks
+        let customerName = 'Unknown User';
+        if (profile.first_name || profile.last_name) {
+          customerName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+        } else if (profile.email) {
+          customerName = profile.email.split('@')[0]; // Use email prefix as fallback
+        }
+        
         return {
           id: profile.id,
-          name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown User',
-          email: profile.email || '',
+          name: customerName,
+          email: profile.email || 'No email provided',
           phone: profile.phone || '',
           totalOrders,
           totalSpent,
@@ -108,6 +119,7 @@ const AdminCustomers = () => {
       }) || [];
 
       console.log('Processed customers data:', customersData.length, 'customers');
+      console.log('Customers sample:', customersData[0]);
       setCustomers(customersData);
 
       if (showRefreshToast) {
@@ -146,8 +158,8 @@ const AdminCustomers = () => {
           schema: 'public',
           table: 'profiles'
         },
-        () => {
-          console.log('Profiles updated, refreshing data...');
+        (payload) => {
+          console.log('Profiles updated, refreshing data...', payload);
           fetchCustomers();
         }
       )
@@ -163,8 +175,8 @@ const AdminCustomers = () => {
           schema: 'public',
           table: 'orders'
         },
-        () => {
-          console.log('Orders updated, refreshing data...');
+        (payload) => {
+          console.log('Orders updated, refreshing data...', payload);
           fetchCustomers();
         }
       )
@@ -272,65 +284,79 @@ const AdminCustomers = () => {
           <CardTitle>Customer Directory</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Orders</TableHead>
-                <TableHead>Total Spent</TableHead>
-                <TableHead>Tier</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Join Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {customers.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                        <User className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <div className="font-medium">{customer.name}</div>
-                        <div className="text-sm text-gray-500">{customer.id.substring(0, 8)}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="text-sm">{customer.email}</div>
-                      <div className="text-sm text-gray-500">{customer.phone || 'Not provided'}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{customer.totalOrders}</TableCell>
-                  <TableCell>₹{customer.totalSpent.toFixed(2)}</TableCell>
-                  <TableCell>{getCustomerTier(customer.totalSpent)}</TableCell>
-                  <TableCell>{getStatusBadge(customer.status)}</TableCell>
-                  <TableCell>{new Date(customer.joinDate).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleViewCustomer(customer)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Mail className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Phone className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {customers.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No customers found. New customers will appear here after they sign up.</p>
+              <Button 
+                variant="outline" 
+                onClick={handleRefresh}
+                className="mt-4"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Data
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Orders</TableHead>
+                  <TableHead>Total Spent</TableHead>
+                  <TableHead>Tier</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Join Date</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {customers.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                          <User className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="font-medium">{customer.name}</div>
+                          <div className="text-sm text-gray-500">{customer.id.substring(0, 8)}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="text-sm">{customer.email}</div>
+                        <div className="text-sm text-gray-500">{customer.phone || 'Not provided'}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{customer.totalOrders}</TableCell>
+                    <TableCell>₹{customer.totalSpent.toFixed(2)}</TableCell>
+                    <TableCell>{getCustomerTier(customer.totalSpent)}</TableCell>
+                    <TableCell>{getStatusBadge(customer.status)}</TableCell>
+                    <TableCell>{new Date(customer.joinDate).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewCustomer(customer)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Phone className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 

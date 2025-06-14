@@ -29,10 +29,22 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   };
 
   const getCustomerName = (order: Order) => {
+    console.log('Processing order for customer name:', order.id, order.profiles);
+    
     if (order.profiles?.first_name || order.profiles?.last_name) {
-      return `${order.profiles.first_name || ''} ${order.profiles.last_name || ''}`.trim();
+      const name = `${order.profiles.first_name || ''} ${order.profiles.last_name || ''}`.trim();
+      console.log('Found customer name from profile:', name);
+      return name;
     }
-    return order.profiles?.email || 'Unknown Customer';
+    
+    if (order.profiles?.email) {
+      const emailName = order.profiles.email.split('@')[0];
+      console.log('Using email prefix as name:', emailName);
+      return emailName;
+    }
+    
+    console.log('No profile data found for order:', order.id, 'user_id:', order.user_id);
+    return `Customer ${order.user_id.substring(0, 8)}`;
   };
 
   if (orders.length === 0) {
@@ -73,7 +85,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
               <TableRow key={order.id}>
                 <TableCell className="font-medium">{order.id.slice(0, 8)}...</TableCell>
                 <TableCell>{getCustomerName(order)}</TableCell>
-                <TableCell>{order.profiles?.email || 'N/A'}</TableCell>
+                <TableCell>{order.profiles?.email || 'No email'}</TableCell>
                 <TableCell>₹{Number(order.total).toFixed(2)}</TableCell>
                 <TableCell>{getStatusBadge(order.status)}</TableCell>
                 <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
