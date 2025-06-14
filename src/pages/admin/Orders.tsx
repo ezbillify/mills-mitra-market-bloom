@@ -41,6 +41,7 @@ const AdminOrders = () => {
         schema: 'public',
         table: 'orders'
       }, () => {
+        console.log('Orders changed, refetching...');
         fetchOrders();
       })
       .subscribe();
@@ -52,52 +53,39 @@ const AdminOrders = () => {
 
   const fetchOrders = async () => {
     try {
-      // First, fetch orders without the problematic join
+      console.log('Fetching orders...');
+      
+      // Fetch orders with profile information using a proper join
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          profiles!orders_user_id_fkey (
+            first_name,
+            last_name,
+            email,
+            phone
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (ordersError) {
-        console.error('Error fetching orders:', ordersError);
+        console.error('Supabase error fetching orders:', ordersError);
         toast({
           title: "Error",
-          description: "Failed to fetch orders",
+          description: `Failed to fetch orders: ${ordersError.message}`,
           variant: "destructive",
         });
         return;
       }
 
-      const userIds = [...new Set(ordersData?.map(order => order.user_id) || [])];
-      
-      if (userIds.length > 0) {
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, email')
-          .in('id', userIds);
-
-        if (profilesError) {
-          console.warn('Error fetching profiles:', profilesError);
-        }
-
-        const profilesMap = new Map(
-          (profilesData || []).map(profile => [profile.id, profile])
-        );
-
-        const ordersWithProfiles = (ordersData || []).map(order => ({
-          ...order,
-          profiles: profilesMap.get(order.user_id) || null
-        })) as Order[];
-
-        setOrders(ordersWithProfiles);
-      } else {
-        setOrders(ordersData || []);
-      }
+      console.log('Orders fetched successfully:', ordersData);
+      setOrders(ordersData || []);
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      console.error('Unexpected error fetching orders:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch orders",
+        description: "An unexpected error occurred while fetching orders",
         variant: "destructive",
       });
     } finally {
@@ -107,6 +95,8 @@ const AdminOrders = () => {
 
   const updateOrderStatus = async (orderId: string, newStatus: "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "accepted" | "out_for_delivery" | "completed") => {
     try {
+      console.log(`Updating order ${orderId} to status ${newStatus}`);
+      
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
@@ -116,7 +106,7 @@ const AdminOrders = () => {
         console.error('Error updating order:', error);
         toast({
           title: "Error",
-          description: "Failed to update order status",
+          description: `Failed to update order status: ${error.message}`,
           variant: "destructive",
         });
         return;
@@ -128,16 +118,17 @@ const AdminOrders = () => {
         description: "Order status updated successfully",
       });
     } catch (error) {
-      console.error('Error updating order:', error);
+      console.error('Unexpected error updating order:', error);
       toast({
         title: "Error",
-        description: "Failed to update order status",
+        description: "An unexpected error occurred while updating the order",
         variant: "destructive",
       });
     }
   };
 
   const handleViewDetails = (orderId: string) => {
+    console.log('Opening order details for:', orderId);
     setSelectedOrderId(orderId);
     setDetailsDialogOpen(true);
   };
@@ -155,9 +146,9 @@ const AdminOrders = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Orders Management</h1>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={fetchOrders}>
             <Package className="h-4 w-4 mr-2" />
-            Export Orders
+            Refresh Orders
           </Button>
         </div>
       </div>

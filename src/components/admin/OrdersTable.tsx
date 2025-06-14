@@ -17,6 +17,7 @@ interface Order {
     first_name: string | null;
     last_name: string | null;
     email: string | null;
+    phone?: string | null;
   } | null;
 }
 
@@ -49,10 +50,25 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     return order.profiles?.email || 'Unknown Customer';
   };
 
+  if (orders.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Orders</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <p className="text-gray-500">No orders found</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Orders</CardTitle>
+        <CardTitle>Recent Orders ({orders.length})</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
