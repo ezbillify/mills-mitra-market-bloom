@@ -5,6 +5,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, Mail, Phone, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import CustomerDetailsDialog from "@/components/admin/CustomerDetailsDialog";
 
 interface Customer {
   id: string;
@@ -15,51 +18,130 @@ interface Customer {
   totalSpent: number;
   status: 'active' | 'inactive';
   joinDate: string;
+  profile?: {
+    first_name: string | null;
+    last_name: string | null;
+    address: string | null;
+    city: string | null;
+    postal_code: string | null;
+    country: string | null;
+  };
 }
 
 const AdminCustomers = () => {
+  const { toast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Mock data for demonstration
-  useEffect(() => {
-    const mockCustomers: Customer[] = [
-      {
-        id: "CUST-001",
-        name: "John Doe",
-        email: "john@example.com",
-        phone: "+1 234 567 8900",
-        totalOrders: 5,
-        totalSpent: 1299.95,
-        status: "active",
-        joinDate: "2023-12-01"
-      },
-      {
-        id: "CUST-002",
-        name: "Jane Smith",
-        email: "jane@example.com",
-        phone: "+1 234 567 8901",
-        totalOrders: 3,
-        totalSpent: 589.97,
-        status: "active",
-        joinDate: "2023-11-15"
-      },
-      {
-        id: "CUST-003",
-        name: "Bob Johnson",
-        email: "bob@example.com",
-        phone: "+1 234 567 8902",
-        totalOrders: 1,
-        totalSpent: 89.99,
-        status: "inactive",
-        joinDate: "2023-10-20"
-      }
-    ];
-    
-    setTimeout(() => {
-      setCustomers(mockCustomers);
+  const fetchCustomers = async () => {
+    try {
+      // Fetch profiles with order statistics
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          email,
+          phone,
+          address,
+          city,
+          postal_code,
+          country,
+          created_at
+        `);
+
+      if (profilesError) throw profilesError;
+
+      // Fetch order statistics for each customer
+      const { data: orderStats, error: orderStatsError } = await supabase
+        .from('orders')
+        .select('user_id, total, status');
+
+      if (orderStatsError) throw orderStatsError;
+
+      // Process the data to create customer objects
+      const customersData: Customer[] = profiles.map(profile => {
+        const userOrders = orderStats.filter(order => order.user_id === profile.id && order.status !== 'cancelled');
+        const totalOrders = userOrders.length;
+        const totalSpent = userOrders.reduce((sum, order) => sum + Number(order.total), 0);
+        
+        return {
+          id: profile.id,
+          name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown User',
+          email: profile.email || '',
+          phone: profile.phone || '',
+          totalOrders,
+          totalSpent,
+          status: totalOrders > 0 ? 'active' : 'inactive',
+          joinDate: profile.created_at,
+          profile: {
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            address: profile.address,
+            city: profile.city,
+            postal_code: profile.postal_code,
+            country: profile.country
+          }
+        };
+      });
+
+      setCustomers(customersData);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load customers",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomers();
+
+    // Set up real-time subscription for profiles
+    const profilesChannel = supabase
+      .channel('profiles-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          console.log('Profiles updated, refreshing data...');
+          fetchCustomers();
+        }
+      )
+      .subscribe();
+
+    // Set up real-time subscription for orders
+    const ordersChannel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders'
+        },
+        () => {
+          console.log('Orders updated, refreshing data...');
+          fetchCustomers();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(ordersChannel);
+    };
   }, []);
 
   const getStatusBadge = (status: string) => {
@@ -77,6 +159,11 @@ const AdminCustomers = () => {
       return <Badge variant="secondary">Premium</Badge>;
     }
     return <Badge variant="outline">Regular</Badge>;
+  };
+
+  const handleViewCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setDialogOpen(true);
   };
 
   if (loading) {
@@ -168,14 +255,14 @@ const AdminCustomers = () => {
                       </div>
                       <div>
                         <div className="font-medium">{customer.name}</div>
-                        <div className="text-sm text-gray-500">{customer.id}</div>
+                        <div className="text-sm text-gray-500">{customer.id.substring(0, 8)}</div>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
                       <div className="text-sm">{customer.email}</div>
-                      <div className="text-sm text-gray-500">{customer.phone}</div>
+                      <div className="text-sm text-gray-500">{customer.phone || 'Not provided'}</div>
                     </div>
                   </TableCell>
                   <TableCell>{customer.totalOrders}</TableCell>
@@ -185,7 +272,11 @@ const AdminCustomers = () => {
                   <TableCell>{new Date(customer.joinDate).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewCustomer(customer)}
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" size="sm">
@@ -202,6 +293,13 @@ const AdminCustomers = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <CustomerDetailsDialog
+        customer={selectedCustomer}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onCustomerUpdated={fetchCustomers}
+      />
     </div>
   );
 };
