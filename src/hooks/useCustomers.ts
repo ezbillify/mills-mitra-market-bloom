@@ -15,35 +15,27 @@ export const useCustomers = () => {
     try {
       if (showRefreshToast) {
         setRefreshing(true);
-        console.log('🔄 Manual refresh triggered for customers data...');
+        console.log('🔄 Manual refresh triggered...');
       } else {
         setLoading(true);
       }
 
       const processedCustomers = await fetchCustomersData();
       
-      console.log('📊 Setting customers state:', {
-        count: processedCustomers.length,
-        customers: processedCustomers.map(c => ({
-          id: c.id.substring(0, 8),
-          name: c.name,
-          email: c.email
-        }))
-      });
-      
+      console.log('📊 Setting customers state:', processedCustomers.length);
       setCustomers(processedCustomers);
 
       if (showRefreshToast) {
         toast({
           title: "✅ Data Refreshed",
-          description: `Found ${processedCustomers.length} customers (including users with orders)`,
+          description: `Found ${processedCustomers.length} customers`,
         });
       }
     } catch (error) {
-      console.error('💥 === ERROR IN CUSTOMER FETCH ===', error);
+      console.error('💥 Error fetching customers:', error);
       toast({
         title: "❌ Error",
-        description: "Failed to load customer data. Please try again.",
+        description: "Failed to load customer data",
         variant: "destructive",
       });
     } finally {
@@ -53,13 +45,11 @@ export const useCustomers = () => {
   }, [toast]);
 
   const handleRefresh = useCallback(() => {
-    console.log('🔄 Manual refresh triggered by user...');
     fetchCustomers(true);
   }, [fetchCustomers]);
 
-  // Enhanced real-time data change handler
   const handleRealtimeDataChange = useCallback(() => {
-    console.log('🔔 Real-time data change detected, refreshing customers...');
+    console.log('🔔 Real-time change detected, refreshing...');
     fetchCustomers(false);
   }, [fetchCustomers]);
 
@@ -67,8 +57,7 @@ export const useCustomers = () => {
   useRealtimeSubscriptions({ onDataChange: handleRealtimeDataChange });
 
   useEffect(() => {
-    // Initial fetch
-    console.log('🚀 Initial customer data fetch...');
+    console.log('🚀 Initial customer fetch...');
     fetchCustomers();
   }, [fetchCustomers]);
 

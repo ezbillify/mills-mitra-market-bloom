@@ -4,10 +4,10 @@ import { Customer } from "@/types/customer";
 import { processCustomerData } from "@/utils/customerUtils";
 
 export const fetchCustomersData = async (): Promise<Customer[]> => {
-  console.log('🚀 === STARTING ENHANCED CUSTOMER FETCH ===');
+  console.log('🚀 Fetching customer data...');
   
   try {
-    // First, get all profiles with better error handling
+    // Fetch all profiles
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('*')
@@ -18,11 +18,9 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
       throw profilesError;
     }
 
-    console.log('✅ === PROFILES FETCHED ===');
-    console.log(`📊 Profiles count: ${profiles?.length || 0}`);
-    console.log('📋 Sample profiles:', profiles?.slice(0, 3));
-    
-    // Get all orders to find users who might not have profiles
+    console.log(`✅ Fetched ${profiles?.length || 0} profiles`);
+
+    // Fetch all orders
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select('user_id, total, status, created_at')
@@ -30,44 +28,29 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
 
     if (ordersError) {
       console.error('❌ Error fetching orders:', ordersError);
-      // Don't throw here, continue with just profiles
+      // Continue without orders if there's an error
     }
 
-    console.log('✅ === ORDERS FETCHED ===');
-    console.log(`📊 Orders count: ${orders?.length || 0}`);
+    console.log(`✅ Fetched ${orders?.length || 0} orders`);
 
-    // Create a comprehensive user map
+    // Create user map
     const userMap = new Map();
     
-    // Add all profiles to the map first
+    // Add profiles first
     profiles?.forEach(profile => {
-      console.log(`➕ Adding profile to map: ${profile.id.substring(0, 8)} - ${profile.first_name} ${profile.last_name}`);
       userMap.set(profile.id, {
-        profile: {
-          ...profile,
-          // Ensure we have the basic required fields
-          email: profile.email || '',
-          first_name: profile.first_name || '',
-          last_name: profile.last_name || '',
-          phone: profile.phone || '',
-          address: profile.address || '',
-          city: profile.city || '',
-          postal_code: profile.postal_code || '',
-          country: profile.country || ''
-        },
+        profile,
         orders: [],
         hasProfile: true
       });
     });
 
-    // Add order data and identify users without profiles
+    // Add orders to existing users or create new entries
     orders?.forEach(order => {
       if (userMap.has(order.user_id)) {
         userMap.get(order.user_id).orders.push(order);
-        console.log(`📦 Added order to existing user: ${order.user_id.substring(0, 8)}`);
       } else {
-        // User has orders but no profile - create minimal entry
-        console.log(`⚠️ Found user with orders but no profile: ${order.user_id.substring(0, 8)}`);
+        // User with orders but no profile
         userMap.set(order.user_id, {
           profile: {
             id: order.user_id,
@@ -87,37 +70,16 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
       }
     });
 
-    console.log('⚡ === USER MAP CREATED ===');
-    console.log(`📈 Total unique users: ${userMap.size}`);
+    // Process all users into customers
+    const customers = Array.from(userMap.values()).map(userData => 
+      processCustomerData(userData)
+    );
 
-    // Process all users into customers with detailed logging
-    const processedCustomers: Customer[] = Array.from(userMap.values()).map((userData, index) => {
-      console.log(`🔄 Processing customer ${index + 1}/${userMap.size}:`, {
-        id: userData.profile.id.substring(0, 8),
-        hasProfile: userData.hasProfile,
-        orderCount: userData.orders.length
-      });
-      return processCustomerData(userData);
-    });
+    console.log(`🎯 Processed ${customers.length} customers`);
+    return customers;
 
-    console.log('🏁 === FINAL CUSTOMERS LIST ===');
-    console.log(`📊 Total customers processed: ${processedCustomers.length}`);
-    
-    // Log detailed customer info for debugging
-    processedCustomers.forEach((customer, index) => {
-      console.log(`👤 Customer ${index + 1}:`, {
-        id: customer.id.substring(0, 8),
-        name: customer.name,
-        email: customer.email,
-        totalOrders: customer.totalOrders,
-        status: customer.status,
-        joinDate: customer.joinDate
-      });
-    });
-    
-    return processedCustomers;
   } catch (error) {
-    console.error('💥 === CRITICAL ERROR IN CUSTOMER FETCH ===', error);
+    console.error('💥 Error in customer fetch:', error);
     throw error;
   }
 };

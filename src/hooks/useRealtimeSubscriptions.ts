@@ -8,15 +8,14 @@ interface UseRealtimeSubscriptionsProps {
 
 export const useRealtimeSubscriptions = ({ onDataChange }: UseRealtimeSubscriptionsProps) => {
   const mountedRef = useRef(true);
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
-    console.log('📡 Setting up enhanced real-time subscriptions for customer data...');
+    console.log('📡 Setting up real-time subscriptions...');
     
-    // Create unique channel names to avoid conflicts
-    const channelName = `customer-data-${Date.now()}`;
-    
+    // Create a single channel for all table changes
     const channel = supabase
-      .channel(channelName)
+      .channel('customer-data-changes')
       .on(
         'postgres_changes',
         {
@@ -25,17 +24,9 @@ export const useRealtimeSubscriptions = ({ onDataChange }: UseRealtimeSubscripti
           table: 'profiles'
         },
         (payload) => {
-          console.log('🔴 REAL-TIME: Profile change detected!', {
-            eventType: payload.eventType,
-            table: payload.table,
-            new: payload.new,
-            old: payload.old
-          });
+          console.log('🔴 Profile change detected:', payload.eventType);
           if (mountedRef.current) {
-            // Add a small delay to ensure database consistency
-            setTimeout(() => {
-              onDataChange();
-            }, 500);
+            setTimeout(() => onDataChange(), 300);
           }
         }
       )
@@ -47,38 +38,27 @@ export const useRealtimeSubscriptions = ({ onDataChange }: UseRealtimeSubscripti
           table: 'orders'
         },
         (payload) => {
-          console.log('🟡 REAL-TIME: Order change detected!', {
-            eventType: payload.eventType,
-            table: payload.table,
-            new: payload.new,
-            old: payload.old
-          });
+          console.log('🟡 Order change detected:', payload.eventType);
           if (mountedRef.current) {
-            // Add a small delay to ensure database consistency
-            setTimeout(() => {
-              onDataChange();
-            }, 500);
+            setTimeout(() => onDataChange(), 300);
           }
         }
       )
       .subscribe((status) => {
-        console.log('📡 Real-time subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to real-time updates');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Real-time subscription error');
-        }
+        console.log('📡 Subscription status:', status);
       });
 
-    // Cleanup function
+    channelRef.current = channel;
+
     return () => {
-      console.log('🧹 Cleaning up real-time subscriptions...');
+      console.log('🧹 Cleaning up subscriptions...');
       mountedRef.current = false;
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
     };
   }, [onDataChange]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       mountedRef.current = false;

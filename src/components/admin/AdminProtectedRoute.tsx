@@ -22,15 +22,12 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
       }
 
       try {
-        // Check if user has admin role or is admin by email
         const { data: profile } = await supabase
           .from('profiles')
           .select('email')
           .eq('id', user.id)
           .single();
 
-        // For now, we'll make admin@ezbillify.com an admin
-        // You can extend this with a proper roles system later
         const adminEmails = ['admin@ezbillify.com', 'admin@millsmitra.com'];
         const userIsAdmin = adminEmails.includes(profile?.email || user.email || '');
         
