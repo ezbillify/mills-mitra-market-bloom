@@ -20,19 +20,83 @@ interface Product {
   featured: boolean;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
+
 const Products = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
 
-  const categories = ["All", "cotton", "silk", "linen", "wool", "denim", "synthetic"];
-
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
+    
+    // Set up real-time subscription for categories
+    const categoriesChannel = supabase
+      .channel('categories-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'categories'
+        },
+        () => {
+          console.log('Categories changed, refetching...');
+          fetchCategories();
+        }
+      )
+      .subscribe();
+
+    // Set up real-time subscription for products
+    const productsChannel = supabase
+      .channel('products-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products'
+        },
+        () => {
+          console.log('Products changed, refetching...');
+          fetchProducts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(categoriesChannel);
+      supabase.removeChannel(productsChannel);
+    };
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name, is_active')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching categories:', error);
+        return;
+      }
+
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -54,10 +118,13 @@ const Products = () => {
     }
   };
 
+  // Create dynamic categories array with "All" option
+  const allCategories = ["All", ...categories.map(cat => cat.name)];
+
   const filteredProducts = products
     .filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
+      const matchesCategory = selectedCategory === "All" || product.category === selectedCategory.toLowerCase();
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
@@ -138,7 +205,7 @@ const Products = () => {
           {/* Category Filters - Collapsible on mobile */}
           <div className={`${showFilters ? 'block' : 'hidden'} sm:block`}>
             <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
+              {allCategories.map((category) => (
                 <Button 
                   key={category} 
                   variant={selectedCategory === category ? "default" : "outline"} 
@@ -146,7 +213,7 @@ const Products = () => {
                   onClick={() => setSelectedCategory(category)}
                   className="text-xs"
                 >
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
+                  {category}
                 </Button>
               ))}
             </div>
