@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 import { Order } from "@/hooks/useOrders";
+import { generateCustomerName } from "@/utils/customerUtils";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -29,22 +30,28 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   };
 
   const getCustomerName = (order: Order) => {
-    console.log('Processing order for customer name:', order.id, order.profiles);
+    console.log('🏷️ OrdersTable processing order for customer name:', {
+      orderId: order.id.substring(0, 8),
+      userId: order.user_id.substring(0, 8),
+      profileData: order.profiles
+    });
     
-    if (order.profiles?.first_name || order.profiles?.last_name) {
-      const name = `${order.profiles.first_name || ''} ${order.profiles.last_name || ''}`.trim();
-      console.log('Found customer name from profile:', name);
-      return name;
+    // Use the centralized utility with the profile data
+    if (order.profiles) {
+      const customerName = generateCustomerName({
+        id: order.user_id,
+        first_name: order.profiles.first_name,
+        last_name: order.profiles.last_name,
+        email: order.profiles.email
+      });
+      console.log(`✅ Generated customer name for order ${order.id.substring(0, 8)}: "${customerName}"`);
+      return customerName;
     }
     
-    if (order.profiles?.email) {
-      const emailName = order.profiles.email.split('@')[0];
-      console.log('Using email prefix as name:', emailName);
-      return emailName;
-    }
-    
-    console.log('No profile data found for order:', order.id, 'user_id:', order.user_id);
-    return `Customer ${order.user_id.substring(0, 8)}`;
+    // Fallback for orders without profile data
+    const fallbackName = `Customer ${order.user_id.substring(0, 8)}`;
+    console.log(`🔄 Using fallback name for order ${order.id.substring(0, 8)}: "${fallbackName}"`);
+    return fallbackName;
   };
 
   if (orders.length === 0) {

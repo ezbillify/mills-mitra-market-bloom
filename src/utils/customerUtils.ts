@@ -1,3 +1,4 @@
+
 import { Customer } from "@/types/customer";
 
 export const generateCustomerName = (profile: any): string => {
@@ -15,12 +16,12 @@ export const generateCustomerName = (profile: any): string => {
   const rawLastName = profile.last_name;
 
   // First priority: use first_name and last_name from profile
-  if (rawFirstName || rawLastName) { // Check if either has a truthy value
+  if (rawFirstName || rawLastName) {
     console.log('Attempting name from profile fields: rawFirstName exists_and_truthy=', !!rawFirstName, 'rawLastName exists_and_truthy=', !!rawLastName);
     const firstName = (rawFirstName || '').trim();
     const lastName = (rawLastName || '').trim();
     
-    if (firstName || lastName) { // Check if either is non-empty after trim
+    if (firstName || lastName) {
       const fullName = `${firstName} ${lastName}`.trim();
       console.log(`✅ Generated name from profile data: "${fullName}" (trimmed first: "${firstName}", trimmed last: "${lastName}")`);
       return fullName;

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -37,29 +36,30 @@ export const useOrders = () => {
 
   // Helper to sanitize profiles so the UI never gets the error object
   function sanitizeProfile(profile: any): OrderProfile {
-    if (
-      !profile ||
-      (typeof profile === "object" &&
-        Object.prototype.hasOwnProperty.call(profile, "error"))
-    ) {
+    console.log('🔍 Sanitizing profile data:', profile);
+    
+    if (!profile || (typeof profile === "object" && Object.prototype.hasOwnProperty.call(profile, "error"))) {
+      console.log('❌ Profile is null or has error, returning null');
       return null;
     }
-    // check minimal shape
-    if (
-      typeof profile.first_name === "undefined" ||
-      typeof profile.last_name === "undefined" ||
-      typeof profile.email === "undefined"
-    ) {
-      return null;
-    }
-    return profile;
+    
+    // Ensure we have the expected structure
+    const sanitized = {
+      first_name: profile.first_name || null,
+      last_name: profile.last_name || null,
+      email: profile.email || null,
+      phone: profile.phone || null
+    };
+    
+    console.log('✅ Profile sanitized:', sanitized);
+    return sanitized;
   }
 
   const fetchOrders = async () => {
     try {
-      console.log("Fetching orders with profiles...");
+      console.log("🚀 Starting comprehensive order fetch with profiles...");
 
-      // Fetch orders with proper profile joins
+      // Fetch orders with proper profile joins and enhanced logging
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(
@@ -71,7 +71,7 @@ export const useOrders = () => {
           created_at,
           shipping_address,
           tracking_number,
-          profiles (
+          profiles!orders_user_id_fkey (
             first_name,
             last_name,
             email,
@@ -82,7 +82,7 @@ export const useOrders = () => {
         .order("created_at", { ascending: false });
 
       if (ordersError) {
-        console.error("Supabase error fetching orders:", ordersError);
+        console.error("❌ Supabase error fetching orders:", ordersError);
         toast({
           title: "Error",
           description: `Failed to fetch orders: ${ordersError.message}`,
@@ -91,22 +91,47 @@ export const useOrders = () => {
         return;
       }
 
-      console.log("Orders fetched successfully:", ordersData?.length);
-      console.log("Sample order with profile:", ordersData?.[0]);
+      console.log(`✅ Successfully fetched ${ordersData?.length || 0} orders`);
+      
+      // Log sample order data for debugging
+      if (ordersData && ordersData.length > 0) {
+        console.log("📋 Sample order data:", {
+          orderId: ordersData[0].id.substring(0, 8),
+          userId: ordersData[0].user_id.substring(0, 8),
+          profileData: ordersData[0].profiles,
+          total: ordersData[0].total
+        });
+      }
 
-      // Only valid profile shape or null goes into order.profiles
-      const sanitizedOrders =
-        ordersData?.map((order: any) => ({
+      // Process and sanitize orders
+      const sanitizedOrders = ordersData?.map((order: any, index) => {
+        console.log(`🔄 Processing order ${index + 1}/${ordersData.length}:`, {
+          id: order.id.substring(0, 8),
+          userId: order.user_id.substring(0, 8),
+          hasProfile: !!order.profiles,
+          profileData: order.profiles
+        });
+
+        const sanitizedOrder = {
           ...order,
           profiles: sanitizeProfile(order.profiles),
-        })) || [];
+        };
 
-      console.log("Sanitized orders:", sanitizedOrders.length);
-      console.log("Sample sanitized order:", sanitizedOrders[0]);
-      
+        console.log(`✅ Order ${index + 1} processed:`, {
+          id: sanitizedOrder.id.substring(0, 8),
+          profileName: sanitizedOrder.profiles ? 
+            `${sanitizedOrder.profiles.first_name || ''} ${sanitizedOrder.profiles.last_name || ''}`.trim() : 
+            'No profile',
+          profileEmail: sanitizedOrder.profiles?.email || 'No email'
+        });
+
+        return sanitizedOrder;
+      }) || [];
+
+      console.log(`🎯 Final order processing complete: ${sanitizedOrders.length} orders ready`);
       setOrders(sanitizedOrders);
     } catch (error) {
-      console.error("Unexpected error fetching orders:", error);
+      console.error("💥 Unexpected error fetching orders:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred while fetching orders",
