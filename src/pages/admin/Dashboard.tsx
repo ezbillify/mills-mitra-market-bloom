@@ -142,7 +142,7 @@ const AdminDashboard = () => {
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-golden-millet to-olive-leaf rounded-2xl p-8 text-white shadow-xl">
         <h2 className="text-4xl font-bold mb-2 text-green-950">Welcome back! 👋</h2>
-        <p className="text-white/90 text-lg">
+        <p className="text-lg text-emerald-500">
           Here's what's happening with your millet marketplace today.
         </p>
       </div>
