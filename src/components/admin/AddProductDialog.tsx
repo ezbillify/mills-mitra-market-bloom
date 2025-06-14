@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +18,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ProductImageUpload from "./ProductImageUpload";
 
+interface Category {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
+
 interface AddProductDialogProps {
   onProductAdded: () => void;
 }
@@ -25,6 +31,7 @@ interface AddProductDialogProps {
 const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -38,7 +45,30 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
     featured: false,
   });
 
-  const categories = ["electronics", "clothing", "books", "home", "sports"];
+  useEffect(() => {
+    if (open) {
+      fetchCategories();
+    }
+  }, [open]);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name, is_active')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching categories:', error);
+        return;
+      }
+
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,8 +221,8 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    <SelectItem key={category.id} value={category.name.toLowerCase()}>
+                      {category.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

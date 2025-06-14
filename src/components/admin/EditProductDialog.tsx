@@ -29,6 +29,12 @@ interface Product {
   featured: boolean;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
+
 interface EditProductDialogProps {
   product: Product;
   open: boolean;
@@ -38,6 +44,7 @@ interface EditProductDialogProps {
 
 const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: EditProductDialogProps) => {
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -51,7 +58,11 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
     featured: false,
   });
 
-  const categories = ["electronics", "clothing", "books", "home", "sports"];
+  useEffect(() => {
+    if (open) {
+      fetchCategories();
+    }
+  }, [open]);
 
   useEffect(() => {
     if (product) {
@@ -67,6 +78,25 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
       });
     }
   }, [product]);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name, is_active')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching categories:', error);
+        return;
+      }
+
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,8 +242,8 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    <SelectItem key={category.id} value={category.name.toLowerCase()}>
+                      {category.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
