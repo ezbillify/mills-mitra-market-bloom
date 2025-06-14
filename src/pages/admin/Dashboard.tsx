@@ -113,7 +113,9 @@ const AdminDashboard = () => {
       change: "+12.5%",
       trend: "up",
       icon: DollarSign,
-      color: "text-green-600"
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-50",
+      iconColor: "text-emerald-600"
     },
     {
       title: "Orders",
@@ -121,7 +123,9 @@ const AdminDashboard = () => {
       change: "+8.2%",
       trend: "up",
       icon: ShoppingCart,
-      color: "text-blue-600"
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      iconColor: "text-blue-600"
     },
     {
       title: "Customers",
@@ -129,7 +133,9 @@ const AdminDashboard = () => {
       change: "+15.3%",
       trend: "up",
       icon: Users,
-      color: "text-purple-600"
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+      iconColor: "text-purple-600"
     },
     {
       title: "Products",
@@ -137,49 +143,55 @@ const AdminDashboard = () => {
       change: "-2.4%",
       trend: "down",
       icon: Package,
-      color: "text-orange-600"
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      iconColor: "text-orange-600"
     }
   ];
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-golden-millet border-t-transparent"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <p className="text-muted-foreground">
-          Welcome back! Here's an overview of your business.
+    <div className="space-y-8">
+      {/* Welcome Section */}
+      <div className="bg-gradient-to-r from-golden-millet to-olive-leaf rounded-2xl p-8 text-white shadow-xl">
+        <h2 className="text-4xl font-bold mb-2">Welcome back! 👋</h2>
+        <p className="text-white/90 text-lg">
+          Here's what's happening with your millet marketplace today.
         </p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {dashboardStats.map((stat, index) => (
-          <Card key={index}>
+          <Card key={index} className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className={`absolute top-0 right-0 w-20 h-20 ${stat.bgColor} rounded-bl-full opacity-10`}></div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium text-earth-brown">
                 {stat.title}
               </CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              <div className={`p-2 rounded-lg ${stat.bgColor}`}>
+                <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <div className="flex items-center text-xs text-muted-foreground">
+              <div className="text-3xl font-bold text-warm-brown mb-1">{stat.value}</div>
+              <div className="flex items-center text-sm">
                 {stat.trend === "up" ? (
-                  <TrendingUp className="h-3 w-3 mr-1 text-green-600" />
+                  <TrendingUp className="h-4 w-4 mr-1 text-emerald-600" />
                 ) : (
-                  <TrendingDown className="h-3 w-3 mr-1 text-red-600" />
+                  <TrendingDown className="h-4 w-4 mr-1 text-red-600" />
                 )}
-                <span className={stat.trend === "up" ? "text-green-600" : "text-red-600"}>
+                <span className={stat.trend === "up" ? "text-emerald-600" : "text-red-600"}>
                   {stat.change}
                 </span>
-                <span className="ml-1">from last month</span>
+                <span className="ml-1 text-earth-brown/70">from last month</span>
               </div>
             </CardContent>
           </Card>
@@ -187,69 +199,92 @@ const AdminDashboard = () => {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AnalyticsChart
-          data={stats.salesData}
-          type="line"
-          title="Revenue Trend (Last 7 Days)"
-          dataKey="revenue"
-          xAxisKey="date"
-          color="#2563eb"
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-warm-cream to-warm-beige/50">
+            <CardTitle className="text-warm-brown flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Revenue Trend (Last 7 Days)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <AnalyticsChart
+              data={stats.salesData}
+              type="line"
+              title=""
+              dataKey="revenue"
+              xAxisKey="date"
+              color="#2563eb"
+            />
+          </CardContent>
+        </Card>
         
-        <AnalyticsChart
-          data={stats.salesData}
-          type="bar"
-          title="Orders Trend (Last 7 Days)"
-          dataKey="orders"
-          xAxisKey="date"
-          color="#60a5fa"
-        />
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-warm-cream to-warm-beige/50">
+            <CardTitle className="text-warm-brown flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              Orders Trend (Last 7 Days)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <AnalyticsChart
+              data={stats.salesData}
+              type="bar"
+              title=""
+              dataKey="orders"
+              xAxisKey="date"
+              color="#60a5fa"
+            />
+          </CardContent>
+        </Card>
       </div>
 
       {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-warm-cream to-warm-beige/50">
+            <CardTitle className="flex items-center gap-2 text-warm-brown">
               <Clock className="h-5 w-5" />
               Pending Orders
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8">
-              <div className="text-3xl font-bold text-orange-600">{stats.pendingOrders}</div>
-              <p className="text-gray-600 mt-2">Orders awaiting processing</p>
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="h-8 w-8 text-orange-600" />
+              </div>
+              <div className="text-4xl font-bold text-orange-600 mb-2">{stats.pendingOrders}</div>
+              <p className="text-earth-brown">Orders awaiting processing</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-warm-cream to-warm-beige/50">
+            <CardTitle className="flex items-center gap-2 text-warm-brown">
               <Eye className="h-5 w-5" />
               Quick Stats
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Avg Order Value</span>
-                <span className="font-semibold">
+            <div className="space-y-6 py-4">
+              <div className="flex justify-between items-center p-4 bg-warm-beige/20 rounded-lg">
+                <span className="font-medium text-earth-brown">Avg Order Value</span>
+                <span className="font-bold text-golden-millet text-lg">
                   ₹{stats.totalOrders > 0 ? (stats.totalRevenue / stats.totalOrders).toFixed(2) : '0.00'}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Orders Today</span>
-                <span className="font-semibold">
+              <div className="flex justify-between items-center p-4 bg-warm-beige/20 rounded-lg">
+                <span className="font-medium text-earth-brown">Orders Today</span>
+                <span className="font-bold text-olive-leaf text-lg">
                   {stats.recentOrders.filter((order: any) => 
                     new Date(order.created_at).toDateString() === new Date().toDateString()
                   ).length}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Conversion Rate</span>
-                <span className="font-semibold">3.2%</span>
+              <div className="flex justify-between items-center p-4 bg-warm-beige/20 rounded-lg">
+                <span className="font-medium text-earth-brown">Conversion Rate</span>
+                <span className="font-bold text-golden-millet text-lg">3.2%</span>
               </div>
             </div>
           </CardContent>

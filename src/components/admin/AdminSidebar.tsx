@@ -72,12 +72,22 @@ const AdminSidebar = () => {
   };
 
   return (
-    <div className="flex h-full w-64 flex-col bg-olive-leaf">
-      <div className="flex h-16 items-center px-6">
-        <h1 className="text-xl font-bold text-warm-cream">Admin Panel</h1>
+    <div className="flex h-full w-72 flex-col bg-gradient-to-b from-olive-leaf to-olive-leaf/90 shadow-2xl border-r border-olive-leaf/20">
+      {/* Header */}
+      <div className="flex h-20 items-center px-8 border-b border-warm-beige/20">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-golden-millet rounded-xl flex items-center justify-center shadow-lg">
+            <LayoutDashboard className="w-6 h-6 text-warm-brown" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-warm-cream">Admin Panel</h1>
+            <p className="text-sm text-warm-beige/80">Mills Mitra Market</p>
+          </div>
+        </div>
       </div>
       
-      <nav className="flex-1 space-y-1 px-4 py-4">
+      {/* Navigation */}
+      <nav className="flex-1 space-y-2 px-6 py-6">
         {navigation.map((item) => {
           const isActive = location.pathname === item.href;
           return (
@@ -85,24 +95,28 @@ const AdminSidebar = () => {
               key={item.name}
               to={item.href}
               className={cn(
-                "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                "flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group",
                 isActive
-                  ? "bg-golden-millet text-warm-brown"
-                  : "text-warm-cream hover:bg-warm-beige hover:text-warm-brown"
+                  ? "bg-golden-millet text-warm-brown shadow-lg shadow-golden-millet/30 transform scale-105"
+                  : "text-warm-cream hover:bg-warm-beige/20 hover:text-warm-cream hover:translate-x-1"
               )}
             >
-              <item.icon className="mr-3 h-5 w-5" />
+              <item.icon className={cn(
+                "mr-3 h-5 w-5 transition-transform duration-200",
+                isActive ? "text-warm-brown" : "text-warm-beige group-hover:text-warm-cream"
+              )} />
               {item.name}
             </Link>
           );
         })}
       </nav>
       
-      <div className="p-4">
+      {/* Footer */}
+      <div className="p-6 border-t border-warm-beige/20">
         <Button
           onClick={handleSignOut}
           variant="outline"
-          className="w-full justify-start text-warm-cream border-warm-beige hover:bg-warm-beige hover:text-warm-brown"
+          className="w-full justify-start text-warm-cream border-warm-beige/30 hover:bg-warm-beige/20 hover:text-warm-cream hover:border-warm-beige/50 transition-all duration-200"
         >
           <LogOut className="mr-3 h-5 w-5" />
           Sign Out

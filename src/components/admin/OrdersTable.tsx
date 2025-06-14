@@ -17,17 +17,24 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   console.log(`🔥 OrdersTable received ${orders.length} orders:`, orders);
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      pending: "outline",
-      processing: "default",
-      shipped: "secondary",
-      delivered: "default",
-      accepted: "default",
-      out_for_delivery: "secondary",
-      completed: "default",
-      cancelled: "destructive"
+    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", className: string }> = {
+      pending: { variant: "outline", className: "border-orange-200 text-orange-700 bg-orange-50" },
+      processing: { variant: "default", className: "bg-blue-100 text-blue-700 border-blue-200" },
+      shipped: { variant: "secondary", className: "bg-purple-100 text-purple-700 border-purple-200" },
+      delivered: { variant: "default", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+      accepted: { variant: "default", className: "bg-green-100 text-green-700 border-green-200" },
+      out_for_delivery: { variant: "secondary", className: "bg-indigo-100 text-indigo-700 border-indigo-200" },
+      completed: { variant: "default", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+      cancelled: { variant: "destructive", className: "bg-red-100 text-red-700 border-red-200" }
     };
-    return <Badge variant={variants[status] || "default"} className="bg-golden-millet text-warm-brown">{status.replace("_", " ")}</Badge>;
+    
+    const config = variants[status] || { variant: "default" as const, className: "bg-gray-100 text-gray-700" };
+    
+    return (
+      <Badge variant={config.variant} className={config.className}>
+        {status.replace("_", " ").toUpperCase()}
+      </Badge>
+    );
   };
 
   const getCustomerName = (order: Order) => {
@@ -66,13 +73,17 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
 
   if (orders.length === 0) {
     return (
-      <Card className="bg-white border-warm-beige shadow-sm">
-        <CardHeader>
+      <Card className="border-0 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-warm-cream to-warm-beige/50">
           <CardTitle className="text-warm-brown">Recent Orders</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <p className="text-earth-brown">No orders found</p>
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Eye className="h-8 w-8 text-gray-400" />
+            </div>
+            <p className="text-earth-brown text-lg">No orders found</p>
+            <p className="text-earth-brown/60 text-sm mt-2">Orders will appear here once customers start placing them.</p>
           </div>
         </CardContent>
       </Card>
@@ -94,58 +105,70 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   });
 
   return (
-    <Card className="bg-white border-warm-beige shadow-sm">
-      <CardHeader>
+    <Card className="border-0 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-warm-cream to-warm-beige/50">
         <CardTitle className="text-warm-brown">Recent Orders ({orders.length})</CardTitle>
       </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow className="border-warm-beige">
-              <TableHead className="text-earth-brown">Order ID</TableHead>
-              <TableHead className="text-earth-brown">Customer</TableHead>
-              <TableHead className="text-earth-brown">Email</TableHead>
-              <TableHead className="text-earth-brown">Total</TableHead>
-              <TableHead className="text-earth-brown">Status</TableHead>
-              <TableHead className="text-earth-brown">Date</TableHead>
-              <TableHead className="text-earth-brown">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((order, index) => {
-              console.log(`🎨 Rendering row ${index + 1} for order ${order.id.substring(0, 8)}`);
-              
-              const customerName = getCustomerName(order);
-              const customerEmail = getCustomerEmail(order);
-              
-              console.log(`✨ Final display values for row ${index + 1} - Name: "${customerName}", Email: "${customerEmail}"`);
-              
-              return (
-                <TableRow key={order.id} className="border-warm-beige hover:bg-warm-cream/50">
-                  <TableCell className="font-medium text-warm-brown">{order.id.slice(0, 8)}...</TableCell>
-                  <TableCell>
-                    <div className="font-medium text-warm-brown">{customerName}</div>
-                  </TableCell>
-                  <TableCell className="text-earth-brown">{customerEmail}</TableCell>
-                  <TableCell className="text-golden-millet font-semibold">₹{Number(order.total).toFixed(2)}</TableCell>
-                  <TableCell>{getStatusBadge(order.status)}</TableCell>
-                  <TableCell className="text-earth-brown">{new Date(order.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onViewDetails(order.id)}
-                      className="border-olive-leaf text-olive-leaf hover:bg-olive-leaf hover:text-warm-cream"
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-warm-beige/30 bg-warm-beige/10">
+                <TableHead className="text-earth-brown font-semibold">Order ID</TableHead>
+                <TableHead className="text-earth-brown font-semibold">Customer</TableHead>
+                <TableHead className="text-earth-brown font-semibold">Email</TableHead>
+                <TableHead className="text-earth-brown font-semibold">Total</TableHead>
+                <TableHead className="text-earth-brown font-semibold">Status</TableHead>
+                <TableHead className="text-earth-brown font-semibold">Date</TableHead>
+                <TableHead className="text-earth-brown font-semibold">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {orders.map((order, index) => {
+                console.log(`🎨 Rendering row ${index + 1} for order ${order.id.substring(0, 8)}`);
+                
+                const customerName = getCustomerName(order);
+                const customerEmail = getCustomerEmail(order);
+                
+                console.log(`✨ Final display values for row ${index + 1} - Name: "${customerName}", Email: "${customerEmail}"`);
+                
+                return (
+                  <TableRow key={order.id} className="border-warm-beige/20 hover:bg-warm-cream/30 transition-colors">
+                    <TableCell className="font-mono text-sm text-warm-brown bg-gray-50 rounded-md m-1 px-3 py-2">
+                      #{order.id.slice(0, 8)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium text-warm-brown">{customerName}</div>
+                    </TableCell>
+                    <TableCell className="text-earth-brown">{customerEmail}</TableCell>
+                    <TableCell>
+                      <span className="font-bold text-golden-millet text-lg">₹{Number(order.total).toFixed(2)}</span>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(order.status)}</TableCell>
+                    <TableCell className="text-earth-brown">
+                      {new Date(order.created_at).toLocaleDateString('en-IN', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onViewDetails(order.id)}
+                        className="border-olive-leaf/30 text-olive-leaf hover:bg-olive-leaf hover:text-warm-cream transition-all duration-200 shadow-sm"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );
