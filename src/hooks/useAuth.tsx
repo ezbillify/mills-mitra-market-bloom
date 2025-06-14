@@ -22,13 +22,71 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Helper function to ensure profile exists for a user
+  const ensureProfileExists = async (userId: string, userData?: any) => {
+    try {
+      console.log('Checking if profile exists for user:', userId);
+      
+      // Check if profile already exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking profile:', checkError);
+        return;
+      }
+
+      if (existingProfile) {
+        console.log('Profile already exists for user:', userId);
+        return;
+      }
+
+      // Create profile if it doesn't exist
+      console.log('Creating profile for user:', userId, userData);
+      const profileData = {
+        id: userId,
+        email: userData?.email || user?.email || null,
+        first_name: userData?.first_name || userData?.user_metadata?.first_name || null,
+        last_name: userData?.last_name || userData?.user_metadata?.last_name || null,
+      };
+
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert(profileData);
+
+      if (insertError) {
+        console.error('Error creating profile:', insertError);
+        toast({
+          title: "Profile Creation Error",
+          description: "There was an issue setting up your profile. Please contact support if this persists.",
+          variant: "destructive",
+        });
+      } else {
+        console.log('Profile created successfully for user:', userId);
+      }
+    } catch (error) {
+      console.error('Unexpected error in ensureProfileExists:', error);
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Ensure profile exists when user signs in or up
+        if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          setTimeout(() => {
+            ensureProfileExists(session.user.id, session.user);
+          }, 100);
+        }
       }
     );
 
@@ -37,6 +95,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Ensure profile exists for existing session
+      if (session?.user) {
+        setTimeout(() => {
+          ensureProfileExists(session.user.id, session.user);
+        }, 100);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -45,7 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -64,10 +129,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         variant: "destructive",
       });
     } else {
-      toast({
-        title: "Success",
-        description: "Please check your email to confirm your account",
-      });
+      // For immediate signup (when email confirmation is disabled)
+      if (data.user && !data.user.email_confirmed_at) {
+        toast({
+          title: "Success",
+          description: "Please check your email to confirm your account",
+        });
+      } else if (data.user) {
+        // Profile will be created via the auth state change listener
+        toast({
+          title: "Success",
+          description: "Account created successfully",
+        });
+      }
     }
 
     return { error };
