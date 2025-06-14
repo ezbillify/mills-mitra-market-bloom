@@ -1,14 +1,11 @@
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Search, Filter, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import AddToCartButton from "@/components/customer/AddToCartButton";
+import ProductCard from "@/components/customer/ProductCard";
 
 interface Product {
   id: string;
@@ -77,14 +74,6 @@ const Products = () => {
           return a.name.localeCompare(b.name);
       }
     });
-
-  const calculateDiscountPercentage = (originalPrice: number, discountedPrice: number) => {
-    return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
-  };
-
-  const getDisplayPrice = (product: Product) => {
-    return product.selling_price_with_tax || product.discounted_price || product.price;
-  };
 
   if (loading) {
     return (
@@ -163,13 +152,14 @@ const Products = () => {
             </div>
           </div>
 
-          {/* Price Information Banner */}
+          {/* Enhanced Price Information Banner */}
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-blue-600 shrink-0" />
-              <p className="text-sm text-blue-700">
-                All prices shown include GST. Final price breakdown available on product detail page.
-              </p>
+              <div className="text-sm text-blue-700">
+                <p className="font-medium mb-1">Transparent Pricing</p>
+                <p>All prices include detailed breakdowns: base price, discounts, GST ({products.length > 0 ? products[0].gst_percentage || 18 : 18}%), and final amount. No hidden charges!</p>
+              </div>
             </div>
           </div>
         </div>
@@ -177,65 +167,37 @@ const Products = () => {
 
       {/* Products Grid */}
       <div className="container mx-auto px-4 py-6">
+        {/* Stats Summary */}
+        <div className="bg-white rounded-lg p-4 mb-6 border">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+            <div>
+              <div className="text-lg font-bold text-primary">{filteredProducts.length}</div>
+              <div className="text-xs text-gray-600">Total Products</div>
+            </div>
+            <div>
+              <div className="text-lg font-bold text-green-600">
+                {filteredProducts.filter(p => p.discounted_price).length}
+              </div>
+              <div className="text-xs text-gray-600">On Sale</div>
+            </div>
+            <div>
+              <div className="text-lg font-bold text-blue-600">
+                {filteredProducts.filter(p => p.featured).length}
+              </div>
+              <div className="text-xs text-gray-600">Featured</div>
+            </div>
+            <div>
+              <div className="text-lg font-bold text-orange-600">
+                {filteredProducts.filter(p => p.stock > 0).length}
+              </div>
+              <div className="text-xs text-gray-600">In Stock</div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredProducts.map((product) => (
-            <Card key={product.id} className="group hover:shadow-md transition-all duration-200 bg-white">
-              <CardContent className="p-0">
-                <div className="relative">
-                  <img
-                    src={product.image || "/placeholder.svg"}
-                    alt={product.name}
-                    className="w-full h-40 sm:h-48 object-cover rounded-t-lg group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {product.stock === 0 && (
-                    <Badge className="absolute top-2 left-2 bg-red-500 text-xs">Out of Stock</Badge>
-                  )}
-                  {product.featured && (
-                    <Badge className="absolute top-2 right-2 text-xs">Featured</Badge>
-                  )}
-                  {product.discounted_price && (
-                    <Badge className="absolute bottom-2 left-2 bg-green-500 text-xs">
-                      {calculateDiscountPercentage(product.price, product.discounted_price)}% OFF
-                    </Badge>
-                  )}
-                </div>
-                <div className="p-3 sm:p-4">
-                  <h3 className="font-semibold text-sm sm:text-base mb-1 line-clamp-2">{product.name}</h3>
-                  <p className="text-xs text-gray-500 mb-2 capitalize">{product.category}</p>
-                  
-                  <div className="space-y-2 mb-3">
-                    {product.discounted_price ? (
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-500 line-through">₹{Number(product.price).toFixed(2)}</span>
-                          <span className="text-sm font-medium text-green-600">₹{Number(product.discounted_price).toFixed(2)}</span>
-                        </div>
-                        <div className="text-lg font-bold text-primary">₹{Number(getDisplayPrice(product)).toFixed(2)}</div>
-                        <div className="text-xs text-gray-500">incl. GST</div>
-                      </div>
-                    ) : (
-                      <div className="space-y-1">
-                        <div className="text-lg font-bold text-primary">₹{Number(getDisplayPrice(product)).toFixed(2)}</div>
-                        <div className="text-xs text-gray-500">incl. {product.gst_percentage || 18}% GST</div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Link to={`/products/${product.id}`}>
-                      <Button variant="outline" size="sm" className="w-full h-9 text-xs">
-                        View Details
-                      </Button>
-                    </Link>
-                    <AddToCartButton 
-                      productId={product.id}
-                      productName={product.name}
-                      disabled={product.stock === 0}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
 
