@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Mail, Phone, User } from "lucide-react";
+import { Eye, Mail, Phone, User, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import CustomerDetailsDialog from "@/components/admin/CustomerDetailsDialog";
@@ -32,11 +31,21 @@ const AdminCustomers = () => {
   const { toast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = async (showRefreshToast = false) => {
     try {
+      if (showRefreshToast) {
+        setRefreshing(true);
+        console.log('Manual refresh triggered for customers data...');
+      } else {
+        setLoading(true);
+      }
+
+      console.log('Fetching customer profiles...');
+      
       // Fetch profiles with order statistics
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
@@ -53,18 +62,28 @@ const AdminCustomers = () => {
           created_at
         `);
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      console.log('Profiles fetched:', profiles?.length || 0, 'profiles found');
 
       // Fetch order statistics for each customer
       const { data: orderStats, error: orderStatsError } = await supabase
         .from('orders')
         .select('user_id, total, status');
 
-      if (orderStatsError) throw orderStatsError;
+      if (orderStatsError) {
+        console.error('Error fetching order stats:', orderStatsError);
+        throw orderStatsError;
+      }
+
+      console.log('Order stats fetched:', orderStats?.length || 0, 'orders found');
 
       // Process the data to create customer objects
-      const customersData: Customer[] = profiles.map(profile => {
-        const userOrders = orderStats.filter(order => order.user_id === profile.id && order.status !== 'cancelled');
+      const customersData: Customer[] = profiles?.map(profile => {
+        const userOrders = orderStats?.filter(order => order.user_id === profile.id && order.status !== 'cancelled') || [];
         const totalOrders = userOrders.length;
         const totalSpent = userOrders.reduce((sum, order) => sum + Number(order.total), 0);
         
@@ -86,9 +105,17 @@ const AdminCustomers = () => {
             country: profile.country
           }
         };
-      });
+      }) || [];
 
+      console.log('Processed customers data:', customersData.length, 'customers');
       setCustomers(customersData);
+
+      if (showRefreshToast) {
+        toast({
+          title: "Success",
+          description: `Refreshed customer data - found ${customersData.length} customers`,
+        });
+      }
     } catch (error) {
       console.error('Error fetching customers:', error);
       toast({
@@ -98,7 +125,12 @@ const AdminCustomers = () => {
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchCustomers(true);
   };
 
   useEffect(() => {
@@ -179,6 +211,14 @@ const AdminCustomers = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Customer Management</h1>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
           <Button variant="outline">
             <Mail className="h-4 w-4 mr-2" />
             Send Newsletter

@@ -22,17 +22,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Helper function to ensure profile exists for a user
+  // Enhanced profile creation function with better error handling and retry logic
   const ensureProfileExists = async (userId: string, userData?: any) => {
     try {
-      console.log('Checking if profile exists for user:', userId);
+      console.log('Ensuring profile exists for user:', userId, userData);
       
-      // Check if profile already exists
+      // First check if profile already exists
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, email, first_name, last_name')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (checkError && checkError.code !== 'PGRST116') {
         console.error('Error checking profile:', checkError);
@@ -40,17 +40,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (existingProfile) {
-        console.log('Profile already exists for user:', userId);
+        console.log('Profile already exists for user:', userId, existingProfile);
         return;
       }
 
-      // Create profile if it doesn't exist
-      console.log('Creating profile for user:', userId, userData);
+      // Extract user data from various sources
+      const email = userData?.email || userData?.user_metadata?.email || userData?.raw_user_meta_data?.email || null;
+      const firstName = userData?.first_name || userData?.user_metadata?.first_name || userData?.raw_user_meta_data?.first_name || null;
+      const lastName = userData?.last_name || userData?.user_metadata?.last_name || userData?.raw_user_meta_data?.last_name || null;
+
+      console.log('Creating profile with data:', { userId, email, firstName, lastName });
+
+      // Create profile with extracted data
       const profileData = {
         id: userId,
-        email: userData?.email || user?.email || null,
-        first_name: userData?.first_name || userData?.user_metadata?.first_name || null,
-        last_name: userData?.last_name || userData?.user_metadata?.last_name || null,
+        email: email,
+        first_name: firstName,
+        last_name: lastName,
       };
 
       const { error: insertError } = await supabase
@@ -59,11 +65,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (insertError) {
         console.error('Error creating profile:', insertError);
-        toast({
-          title: "Profile Creation Error",
-          description: "There was an issue setting up your profile. Please contact support if this persists.",
-          variant: "destructive",
-        });
+        
+        // If it's a conflict error, try to update instead
+        if (insertError.code === '23505') {
+          console.log('Profile conflict detected, trying to update instead...');
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              email: email,
+              first_name: firstName,
+              last_name: lastName,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', userId);
+
+          if (updateError) {
+            console.error('Error updating profile after conflict:', updateError);
+          } else {
+            console.log('Profile updated successfully after conflict for user:', userId);
+          }
+        } else {
+          toast({
+            title: "Profile Creation Error",
+            description: "There was an issue setting up your profile. Please contact support if this persists.",
+            variant: "destructive",
+          });
+        }
       } else {
         console.log('Profile created successfully for user:', userId);
       }
@@ -81,11 +108,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Ensure profile exists when user signs in or up
-        if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+        // Ensure profile exists for various auth events
+        if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_UP')) {
+          // Use a longer delay to ensure database operations complete
           setTimeout(() => {
             ensureProfileExists(session.user.id, session.user);
-          }, 100);
+          }, 500);
         }
       }
     );
@@ -100,7 +128,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (session?.user) {
         setTimeout(() => {
           ensureProfileExists(session.user.id, session.user);
-        }, 100);
+        }, 500);
       }
     });
 
@@ -136,7 +164,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           description: "Please check your email to confirm your account",
         });
       } else if (data.user) {
-        // Profile will be created via the auth state change listener
+        // Immediately ensure profile exists for new users
+        setTimeout(() => {
+          ensureProfileExists(data.user.id, {
+            email: email,
+            first_name: firstName,
+            last_name: lastName,
+            user_metadata: data.user.user_metadata,
+            raw_user_meta_data: data.user.raw_user_meta_data
+          });
+        }, 1000);
+        
         toast({
           title: "Success",
           description: "Account created successfully",
@@ -148,7 +186,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -159,6 +197,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: error.message,
         variant: "destructive",
       });
+    } else if (data.user) {
+      // Ensure profile exists on sign in
+      setTimeout(() => {
+        ensureProfileExists(data.user.id, data.user);
+      }, 500);
     }
 
     return { error };
