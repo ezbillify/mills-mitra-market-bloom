@@ -1,15 +1,21 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Plus } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface AddProductDialogProps {
   onProductAdded: () => void;
@@ -24,8 +30,8 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
     name: "",
     description: "",
     price: "",
-    stock: "",
     category: "",
+    stock: "",
     image: "",
     featured: false,
   });
@@ -41,23 +47,15 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
         .from('products')
         .insert({
           name: formData.name,
-          description: formData.description,
+          description: formData.description || null,
           price: parseFloat(formData.price),
-          stock: parseInt(formData.stock),
           category: formData.category,
+          stock: parseInt(formData.stock) || 0,
           image: formData.image || null,
           featured: formData.featured,
         });
 
-      if (error) {
-        console.error('Error adding product:', error);
-        toast({
-          title: "Error",
-          description: "Failed to add product",
-          variant: "destructive",
-        });
-        return;
-      }
+      if (error) throw error;
 
       toast({
         title: "Success",
@@ -68,11 +66,12 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
         name: "",
         description: "",
         price: "",
-        stock: "",
         category: "",
+        stock: "",
         image: "",
         featured: false,
       });
+      
       setOpen(false);
       onProductAdded();
     } catch (error) {
@@ -95,58 +94,58 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
           Add Product
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Product</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="name">Product Name</Label>
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               required
             />
           </div>
-          
-          <div>
+
+          <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={3}
             />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="price">Price (₹)</Label>
               <Input
                 id="price"
                 type="number"
                 step="0.01"
                 value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
                 required
               />
             </div>
-            <div>
+
+            <div className="space-y-2">
               <Label htmlFor="stock">Stock</Label>
               <Input
                 id="stock"
                 type="number"
                 value={formData.stock}
-                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                required
+                onChange={(e) => setFormData(prev => ({ ...prev, stock: e.target.value }))}
               />
             </div>
           </div>
-          
-          <div>
+
+          <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
-            <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+            <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
@@ -159,35 +158,30 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
               </SelectContent>
             </Select>
           </div>
-          
-          <div>
+
+          <div className="space-y-2">
             <Label htmlFor="image">Image URL</Label>
             <Input
               id="image"
               type="url"
               value={formData.image}
-              onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
               placeholder="https://example.com/image.jpg"
             />
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Switch
               id="featured"
               checked={formData.featured}
-              onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, featured: checked }))}
             />
             <Label htmlFor="featured">Featured Product</Label>
           </div>
-          
-          <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? "Adding..." : "Add Product"}
-            </Button>
-          </div>
+
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Adding..." : "Add Product"}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

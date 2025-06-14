@@ -82,7 +82,8 @@ const AddToCartButton = ({ productId, productName, disabled }: AddToCartButtonPr
     <Button 
       onClick={handleAddToCart}
       disabled={disabled || loading}
-      className="w-full"
+      className="w-full h-9 sm:h-10"
+      size="sm"
     >
       <ShoppingCart className="h-4 w-4 mr-2" />
       {loading ? "Adding..." : "Add to Cart"}

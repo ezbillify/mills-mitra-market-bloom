@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Heart, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AddToCartButton from "@/components/customer/AddToCartButton";
 
@@ -76,68 +76,83 @@ const ProductDetail = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile-optimized header */}
+      <div className="bg-white border-b px-4 py-3 sticky top-0 z-10">
         <Link to="/products">
-          <Button variant="outline">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Products
+          <Button variant="ghost" size="sm" className="p-2">
+            <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div>
-          <img
-            src={product.image || "/placeholder.svg"}
-            alt={product.name}
-            className="w-full h-96 object-cover rounded-lg"
-          />
-        </div>
-
+      <div className="container mx-auto px-4 py-4">
+        {/* Mobile-first layout */}
         <div className="space-y-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <h1 className="text-3xl font-bold">{product.name}</h1>
-              {product.featured && <Badge>Featured</Badge>}
-            </div>
-            <p className="text-gray-600 capitalize">Category: {product.category}</p>
+          {/* Product Image - Full width on mobile */}
+          <div className="w-full">
+            <img
+              src={product.image || "/placeholder.svg"}
+              alt={product.name}
+              className="w-full h-64 sm:h-80 md:h-96 object-cover rounded-lg shadow-sm"
+            />
           </div>
 
-          <div>
-            <p className="text-3xl font-bold text-primary">₹{Number(product.price).toFixed(2)}</p>
-          </div>
+          {/* Product Info Card */}
+          <Card className="shadow-sm">
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              {/* Title and Featured Badge */}
+              <div>
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold leading-tight">{product.name}</h1>
+                  {product.featured && <Badge className="shrink-0">Featured</Badge>}
+                </div>
+                <p className="text-sm text-gray-600 capitalize">Category: {product.category}</p>
+              </div>
 
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Stock Status</h3>
-            {product.stock > 0 ? (
-              <Badge variant="default" className="bg-green-500">
-                {product.stock} units in stock
-              </Badge>
-            ) : (
-              <Badge variant="destructive">Out of Stock</Badge>
-            )}
-          </div>
+              {/* Price */}
+              <div>
+                <p className="text-2xl sm:text-3xl font-bold text-primary">₹{Number(product.price).toFixed(2)}</p>
+              </div>
 
-          {product.description && (
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Description</h3>
-              <p className="text-gray-700">{product.description}</p>
-            </div>
-          )}
+              {/* Stock Status */}
+              <div>
+                <h3 className="text-base font-semibold mb-2">Stock Status</h3>
+                {product.stock > 0 ? (
+                  <Badge variant="default" className="bg-green-500">
+                    {product.stock} units in stock
+                  </Badge>
+                ) : (
+                  <Badge variant="destructive">Out of Stock</Badge>
+                )}
+              </div>
 
-          <div className="space-y-4">
+              {/* Description */}
+              {product.description && (
+                <div>
+                  <h3 className="text-base font-semibold mb-2">Description</h3>
+                  <p className="text-gray-700 text-sm sm:text-base leading-relaxed">{product.description}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons - Mobile optimized */}
+          <div className="space-y-3">
             <AddToCartButton 
               productId={product.id}
               productName={product.name}
               disabled={product.stock === 0}
             />
             
-            <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" className="w-full">
+            {/* Secondary Actions */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" className="w-full h-12 text-sm">
+                <Heart className="h-4 w-4 mr-2" />
                 Add to Wishlist
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full h-12 text-sm">
+                <Share2 className="h-4 w-4 mr-2" />
                 Share Product
               </Button>
             </div>
