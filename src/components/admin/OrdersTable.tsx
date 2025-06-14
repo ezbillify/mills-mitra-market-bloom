@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 import { Order } from "@/hooks/useOrders";
-import { generateCustomerName } from "@/utils/customerUtils";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -30,72 +29,37 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   };
 
   const getCustomerName = (order: Order) => {
-    console.log('🏷️ OrdersTable DETAILED customer name processing:', {
-      orderId: order.id.substring(0, 8),
-      userId: order.user_id.substring(0, 8),
-      profileExists: !!order.profiles,
-      profileType: typeof order.profiles,
-      profileData: order.profiles,
-      profileFirstName: order.profiles?.first_name,
-      profileLastName: order.profiles?.last_name,
-      profileEmail: order.profiles?.email
-    });
-    
-    // Check if we have valid profile data
-    if (!order.profiles || typeof order.profiles !== 'object') {
-      const fallbackName = `Customer ${order.user_id.substring(0, 8)}`;
-      console.log(`🔄 No valid profile data for order ${order.id.substring(0, 8)}, using fallback: "${fallbackName}"`);
-      return fallbackName;
+    if (!order.profiles) {
+      return `Customer ${order.user_id.substring(0, 8)}`;
     }
     
-    // Create a customer-like object for the utility function
-    const customerData = {
-      id: order.user_id,
-      first_name: order.profiles.first_name,
-      last_name: order.profiles.last_name,
-      email: order.profiles.email
-    };
+    const { first_name, last_name, email } = order.profiles;
     
-    console.log('🔧 Calling generateCustomerName with data:', customerData);
-    
-    try {
-      const customerName = generateCustomerName(customerData);
-      console.log(`✅ Generated customer name for order ${order.id.substring(0, 8)}: "${customerName}"`);
-      return customerName;
-    } catch (error) {
-      console.error(`❌ Error generating customer name for order ${order.id.substring(0, 8)}:`, error);
-      const fallbackName = `Customer ${order.user_id.substring(0, 8)}`;
-      console.log(`🔄 Using fallback name after error: "${fallbackName}"`);
-      return fallbackName;
+    // Try to build name from first and last name
+    if (first_name || last_name) {
+      return `${first_name || ''} ${last_name || ''}`.trim();
     }
+    
+    // Fall back to email-based name if available
+    if (email && !email.startsWith('user-') && email !== 'No email provided') {
+      const emailPrefix = email.split('@')[0];
+      const cleanName = emailPrefix.replace(/[0-9._-]/g, ' ').trim();
+      if (cleanName && cleanName.length > 2) {
+        return cleanName.split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+      }
+    }
+    
+    return `Customer ${order.user_id.substring(0, 8)}`;
   };
 
   const getCustomerEmail = (order: Order) => {
-    console.log('📧 Getting customer email for order:', {
-      orderId: order.id.substring(0, 8),
-      profileExists: !!order.profiles,
-      profileEmail: order.profiles?.email
-    });
-    
-    if (!order.profiles || typeof order.profiles !== 'object') {
-      console.log('📧 No profile, returning "No email"');
+    if (!order.profiles?.email) {
       return 'No email';
     }
-    
-    const email = order.profiles.email || 'No email';
-    console.log(`📧 Returning email: "${email}"`);
-    return email;
+    return order.profiles.email;
   };
-
-  console.log('📊 OrdersTable rendering with orders:', {
-    orderCount: orders.length,
-    sampleOrder: orders.length > 0 ? {
-      id: orders[0].id.substring(0, 8),
-      userId: orders[0].user_id.substring(0, 8),
-      hasProfile: !!orders[0].profiles,
-      profileData: orders[0].profiles
-    } : 'No orders'
-  });
 
   if (orders.length === 0) {
     return (
@@ -131,34 +95,26 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order, index) => {
-              console.log(`🔄 Rendering order row ${index + 1}:`, {
-                orderId: order.id.substring(0, 8),
-                userId: order.user_id.substring(0, 8),
-                profileData: order.profiles
-              });
-              
-              return (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.id.slice(0, 8)}...</TableCell>
-                  <TableCell>{getCustomerName(order)}</TableCell>
-                  <TableCell>{getCustomerEmail(order)}</TableCell>
-                  <TableCell>₹{Number(order.total).toFixed(2)}</TableCell>
-                  <TableCell>{getStatusBadge(order.status)}</TableCell>
-                  <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => onViewDetails(order.id)}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+            {orders.map((order) => (
+              <TableRow key={order.id}>
+                <TableCell className="font-medium">{order.id.slice(0, 8)}...</TableCell>
+                <TableCell>{getCustomerName(order)}</TableCell>
+                <TableCell>{getCustomerEmail(order)}</TableCell>
+                <TableCell>₹{Number(order.total).toFixed(2)}</TableCell>
+                <TableCell>{getStatusBadge(order.status)}</TableCell>
+                <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => onViewDetails(order.id)}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Details
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </CardContent>

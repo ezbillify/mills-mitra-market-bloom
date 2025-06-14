@@ -37,50 +37,32 @@ export const useOrders = () => {
 
   // Helper to sanitize profiles so the UI never gets the error object
   function sanitizeProfile(profile: any): OrderProfile {
-    console.log('🔍 DETAILED Profile Analysis:', {
-      rawProfile: profile,
-      typeofProfile: typeof profile,
-      isArray: Array.isArray(profile),
-      isNull: profile === null,
-      isUndefined: profile === undefined,
-      hasFirstName: profile?.first_name,
-      hasLastName: profile?.last_name,
-      hasEmail: profile?.email,
-      profileKeys: profile ? Object.keys(profile) : 'no keys'
-    });
+    console.log('Profile sanitization:', { profile, type: typeof profile });
     
     // Handle null, undefined, or invalid objects
-    if (!profile || typeof profile !== "object" || profile === null || Array.isArray(profile)) {
-      console.log('❌ Profile is null/undefined/invalid/array, returning null');
+    if (!profile || typeof profile !== "object" || Array.isArray(profile)) {
       return null;
     }
     
     // Handle error objects or objects with error properties
-    if (Object.prototype.hasOwnProperty.call(profile, "error") || 
-        Object.prototype.hasOwnProperty.call(profile, "message")) {
-      console.log('❌ Profile has error property, returning null');
+    if ("error" in profile || "message" in profile) {
       return null;
     }
     
-    // Ensure we have the expected structure
-    const sanitized = {
+    // Return sanitized profile
+    return {
       first_name: profile.first_name || null,
       last_name: profile.last_name || null,
       email: profile.email || null,
       phone: profile.phone || null
     };
-    
-    console.log('✅ Profile sanitized successfully:', sanitized);
-    return sanitized;
   }
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      console.log("🚀 DEBUGGING: Starting order fetch with enhanced logging...");
+      console.log("Fetching orders with profile data...");
 
-      // Now fetch orders with profile join using the correct foreign key name
-      console.log("🔗 Fetching orders WITH profile join...");
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(
@@ -92,7 +74,7 @@ export const useOrders = () => {
           created_at,
           shipping_address,
           tracking_number,
-          profiles!orders_user_id_profiles_fkey (
+          profiles (
             first_name,
             last_name,
             email,
@@ -103,7 +85,7 @@ export const useOrders = () => {
         .order("created_at", { ascending: false });
 
       if (ordersError) {
-        console.error("❌ Supabase error fetching orders with profiles:", ordersError);
+        console.error("Error fetching orders:", ordersError);
         toast({
           title: "Error",
           description: `Failed to fetch orders: ${ordersError.message}`,
@@ -113,68 +95,23 @@ export const useOrders = () => {
         return;
       }
 
-      console.log(`✅ Orders with profiles fetched: ${ordersData?.length || 0}`);
+      console.log(`Fetched ${ordersData?.length || 0} orders`);
       
-      // Handle empty results
       if (!ordersData || ordersData.length === 0) {
-        console.log("📋 No orders found in database");
         setOrders([]);
         return;
       }
       
-      // Detailed analysis of each order
-      console.log("🔍 DETAILED ORDER ANALYSIS:");
-      ordersData.forEach((order, index) => {
-        console.log(`📦 Order ${index + 1}/${ordersData.length}:`, {
-          orderId: order.id.substring(0, 8),
-          userId: order.user_id.substring(0, 8),
-          total: order.total,
-          status: order.status,
-          profileRaw: order.profiles,
-          profileType: typeof order.profiles,
-          profileIsArray: Array.isArray(order.profiles),
-          profileIsNull: order.profiles === null,
-          // Safe property access
-          profileFirstName: order.profiles && typeof order.profiles === 'object' && 'first_name' in order.profiles ? order.profiles.first_name : 'N/A',
-          profileLastName: order.profiles && typeof order.profiles === 'object' && 'last_name' in order.profiles ? order.profiles.last_name : 'N/A',
-          profileEmail: order.profiles && typeof order.profiles === 'object' && 'email' in order.profiles ? order.profiles.email : 'N/A'
-        });
-      });
-
       // Process and sanitize orders
-      const sanitizedOrders = ordersData.map((order: any, index) => {
-        console.log(`🔄 Processing order ${index + 1}:`, order.id.substring(0, 8));
+      const sanitizedOrders = ordersData.map((order: any) => ({
+        ...order,
+        profiles: sanitizeProfile(order.profiles),
+      }));
 
-        const sanitizedOrder = {
-          ...order,
-          profiles: sanitizeProfile(order.profiles),
-        };
-
-        console.log(`✅ Order ${index + 1} processed with profile:`, {
-          id: sanitizedOrder.id.substring(0, 8),
-          hasProfile: !!sanitizedOrder.profiles,
-          profileData: sanitizedOrder.profiles
-        });
-
-        return sanitizedOrder;
-      });
-
-      console.log(`🎯 FINAL RESULT: ${sanitizedOrders.length} orders processed successfully`);
-      
-      // Log first few orders for verification
-      if (sanitizedOrders.length > 0) {
-        console.log("📊 First 2 processed orders:", sanitizedOrders.slice(0, 2).map(order => ({
-          id: order.id.substring(0, 8),
-          userId: order.user_id.substring(0, 8),
-          total: order.total,
-          profileName: order.profiles ? `${order.profiles.first_name || ''} ${order.profiles.last_name || ''}`.trim() : 'No profile',
-          profileEmail: order.profiles?.email || 'No email'
-        })));
-      }
-      
+      console.log(`Processed ${sanitizedOrders.length} orders successfully`);
       setOrders(sanitizedOrders);
     } catch (error) {
-      console.error("💥 Unexpected error in fetchOrders:", error);
+      console.error("Unexpected error in fetchOrders:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred while fetching orders",
