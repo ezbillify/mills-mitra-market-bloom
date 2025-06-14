@@ -6,6 +6,7 @@ import OrdersHeader from "@/components/admin/OrdersHeader";
 import OrdersLoading from "@/components/admin/OrdersLoading";
 import { useOrders } from "@/hooks/useOrders";
 import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const AdminOrders = () => {
   const { orders, loading, fetchOrders, updateOrderStatus } = useOrders();
@@ -25,12 +26,29 @@ const AdminOrders = () => {
   return (
     <div className="space-y-6">
       <OrdersHeader onRefresh={fetchOrders} />
-      <OrdersStats orders={orders} />
-      <OrdersTable
-        orders={orders}
-        onUpdateStatus={updateOrderStatus}
-        onViewDetails={handleViewDetails}
-      />
+      
+      {orders.length === 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Orders Management</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <p className="text-gray-500">No orders found. Orders will appear here once customers start placing them.</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <OrdersStats orders={orders} />
+          <OrdersTable
+            orders={orders}
+            onUpdateStatus={updateOrderStatus}
+            onViewDetails={handleViewDetails}
+          />
+        </>
+      )}
+      
       <OrderDetailsDialog
         orderId={selectedOrderId}
         open={detailsDialogOpen}

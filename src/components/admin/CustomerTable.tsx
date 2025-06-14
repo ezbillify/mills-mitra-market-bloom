@@ -4,31 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Mail, Phone, User, Wifi, Clock, RefreshCw } from "lucide-react";
-
-interface Customer {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  totalOrders: number;
-  totalSpent: number;
-  status: 'active' | 'inactive';
-  joinDate: string;
-  lastLoginAt?: string;
-  profile?: {
-    id: string;
-    user_id: string;
-    first_name: string | null;
-    last_name: string | null;
-    address: string | null;
-    city: string | null;
-    postal_code: string | null;
-    country: string | null;
-    phone: string | null;
-    created_at: string;
-    updated_at: string;
-  };
-}
+import { Customer } from "@/types/customer";
 
 interface CustomerTableProps {
   customers?: Customer[];

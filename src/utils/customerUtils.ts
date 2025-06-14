@@ -9,32 +9,34 @@ export const generateCustomerName = (profile: any): string => {
     email: profile.email
   });
 
-  // First try to use first_name and last_name - prioritize this
+  // First priority: use first_name and last_name from profile
   if (profile.first_name || profile.last_name) {
     const firstName = (profile.first_name || '').trim();
     const lastName = (profile.last_name || '').trim();
     
     if (firstName || lastName) {
       const fullName = `${firstName} ${lastName}`.trim();
-      console.log(`✅ Generated name from profile: "${fullName}"`);
+      console.log(`✅ Generated name from profile data: "${fullName}"`);
       return fullName;
     }
   }
 
-  // If no name components, try to extract from email
+  // Second priority: extract name from email (only for real emails)
   if (profile.email && !profile.email.startsWith('user-') && profile.email !== 'No email provided') {
-    // Only process real emails, not generated ones
     const emailPrefix = profile.email.split('@')[0];
-    // Remove numbers and special characters, capitalize first letter
+    // Clean up email prefix - remove numbers and special characters
     const cleanName = emailPrefix.replace(/[0-9._-]/g, ' ').trim();
-    if (cleanName && cleanName.length > 0) {
-      const capitalizedName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+    if (cleanName && cleanName.length > 2) {
+      // Capitalize first letter of each word
+      const capitalizedName = cleanName.split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
       console.log(`📧 Generated name from email: "${capitalizedName}"`);
       return capitalizedName;
     }
   }
 
-  // For generated emails (user-xxx@unknown.com) or other cases, use a simple fallback
+  // Fallback: use a simple customer identifier
   const fallbackName = `Customer ${profile.id?.substring(0, 8) || 'Unknown'}`;
   console.log(`🔄 Using fallback name: "${fallbackName}"`);
   return fallbackName;
@@ -43,12 +45,15 @@ export const generateCustomerName = (profile: any): string => {
 export const processCustomerData = (userData: any): Customer => {
   const { profile, orders, hasProfile } = userData;
   
-  console.log(`🔄 Processing user: ${profile.id.substring(0, 8)}, hasProfile: ${hasProfile}, orderCount: ${orders.length}`);
-  console.log(`📝 Raw profile data:`, {
+  console.log(`🔄 Processing customer data for user: ${profile.id.substring(0, 8)}, hasProfile: ${hasProfile}, orderCount: ${orders.length}`);
+  console.log(`📝 Profile data available:`, {
     firstName: profile.first_name,
     lastName: profile.last_name,
     email: profile.email,
-    phone: profile.phone
+    phone: profile.phone,
+    address: profile.address,
+    city: profile.city,
+    country: profile.country
   });
 
   // Calculate order statistics
@@ -57,9 +62,9 @@ export const processCustomerData = (userData: any): Customer => {
   
   // Generate customer name with enhanced debugging
   const customerName = generateCustomerName(profile);
-  console.log(`🎯 Generated customer name: "${customerName}"`);
+  console.log(`🎯 Final customer name: "${customerName}"`);
 
-  // Determine status based on profile existence and orders
+  // Determine status based on profile existence and recent orders
   let status: 'active' | 'inactive' = 'inactive';
   if (hasProfile && totalOrders > 0) {
     status = 'active';
@@ -88,15 +93,15 @@ export const processCustomerData = (userData: any): Customer => {
     } : undefined
   };
 
-  console.log('🎯 Final customer object:', {
+  console.log('🎯 Final customer object created:', {
     id: customer.id.substring(0, 8),
     name: customer.name,
     email: customer.email,
-    phone: customer.phone,
+    phone: customer.phone || 'No phone',
     totalOrders: customer.totalOrders,
     totalSpent: customer.totalSpent,
     status: customer.status,
-    hasProfile
+    hasProfileData: !!customer.profile
   });
 
   return customer;
