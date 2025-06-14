@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -23,10 +23,14 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     
-    const { error } = await signIn(email, password);
-    
-    if (!error) {
-      navigate("/account");
+    try {
+      const { error } = await signIn(email, password);
+      
+      if (!error) {
+        navigate("/account");
+      }
+    } catch (error) {
+      console.error('Login error:', error);
     }
     
     setLoading(false);
@@ -34,7 +38,11 @@ const Login = () => {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
-    await signInWithGoogle();
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Google sign in error:', error);
+    }
     setLoading(false);
   };
 

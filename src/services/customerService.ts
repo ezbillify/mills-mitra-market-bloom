@@ -70,28 +70,30 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
     });
 
     // Add auth users who might not have profiles
-    users?.forEach(user => {
-      if (!userMap.has(user.id)) {
-        console.log(`🔍 Found auth user without profile: ${user.id.substring(0, 8)} - ${user.email}`);
-        userMap.set(user.id, {
-          profile: {
-            id: user.id,
-            email: user.email || '',
-            first_name: user.user_metadata?.first_name || '',
-            last_name: user.user_metadata?.last_name || '',
-            phone: user.phone || '',
-            address: '',
-            city: '',
-            postal_code: '',
-            country: '',
-            created_at: user.created_at
-          },
-          orders: [],
-          hasProfile: false,
-          source: 'auth_users'
-        });
-      }
-    });
+    if (users) {
+      users.forEach(user => {
+        if (!userMap.has(user.id)) {
+          console.log(`🔍 Found auth user without profile: ${user.id.substring(0, 8)} - ${user.email}`);
+          userMap.set(user.id, {
+            profile: {
+              id: user.id,
+              email: user.email || '',
+              first_name: user.user_metadata?.first_name || '',
+              last_name: user.user_metadata?.last_name || '',
+              phone: user.phone || '',
+              address: '',
+              city: '',
+              postal_code: '',
+              country: '',
+              created_at: user.created_at
+            },
+            orders: [],
+            hasProfile: false,
+            source: 'auth_users'
+          });
+        }
+      });
+    }
 
     // Add orders to existing users or create new entries
     orders?.forEach(order => {

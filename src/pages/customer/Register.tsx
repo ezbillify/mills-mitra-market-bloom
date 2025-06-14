@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -33,15 +33,19 @@ const Register = () => {
     
     setLoading(true);
     
-    const { error } = await signUp(
-      formData.email, 
-      formData.password, 
-      formData.firstName, 
-      formData.lastName
-    );
-    
-    if (!error) {
-      navigate("/login");
+    try {
+      const { error } = await signUp(
+        formData.email, 
+        formData.password, 
+        formData.firstName, 
+        formData.lastName
+      );
+      
+      if (!error) {
+        navigate("/login");
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
     }
     
     setLoading(false);
@@ -56,7 +60,11 @@ const Register = () => {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
-    await signInWithGoogle();
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Google sign in error:', error);
+    }
     setLoading(false);
   };
 
