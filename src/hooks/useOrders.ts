@@ -59,13 +59,13 @@ export const useOrders = () => {
     try {
       console.log("Fetching orders...");
 
-      // Use the foreign key relationship: orders.user_id -> profiles.id
+      // Use the correct join syntax with profiles table
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(
           `
           *,
-          profiles:orders_user_id_fkey (
+          profiles (
             first_name,
             last_name,
             email,
