@@ -1,4 +1,3 @@
-
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, User, LogOut, Package, Menu } from "lucide-react";
@@ -6,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { useCartCount } from "@/hooks/useCartCount";
 import AdminAccessButton from "./AdminAccessButton";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +21,7 @@ import {
 
 const CustomerHeader = () => {
   const { user, signOut } = useAuth();
-  const { cartCount } = useCartCount();
+  const { cartCount, refetchCartCount } = useCartCount();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -31,6 +30,18 @@ const CustomerHeader = () => {
     navigate("/");
     setMobileMenuOpen(false);
   };
+
+  // Ensure cart badge updates as soon as a product is added to cart in ANY tab/component
+  useEffect(() => {
+    // Listen for the custom event fired when "Add to Cart" occurs
+    function handleInstantRecount() {
+      refetchCartCount();
+    }
+    window.addEventListener("cart_instant_update", handleInstantRecount);
+    return () => {
+      window.removeEventListener("cart_instant_update", handleInstantRecount);
+    };
+  }, [refetchCartCount]);
 
   return (
     <header className="bg-white shadow-sm border-b sticky top-0 z-50">

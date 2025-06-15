@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
@@ -69,6 +68,9 @@ const AddToCartButton = ({ productId, productName, disabled }: AddToCartButtonPr
 
       // Immediately refresh cart count to ensure UI updates
       await refetchCartCount();
+
+      // Fire custom event so CustomerHeader catches and updates instantly
+      window.dispatchEvent(new Event("cart_instant_update"));
 
       toast({
         title: "Added to cart",

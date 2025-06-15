@@ -49,7 +49,13 @@ const ProductCard = ({ product }: ProductCardProps) => {
           <img
             src={product.image || "/placeholder.svg"}
             alt={product.name}
-            className="w-full h-40 sm:h-48 object-cover rounded-t-lg group-hover:scale-105 transition-transform duration-300"
+            // Responsive: ensures image is visible and sized right on mobile
+            className="w-full h-40 sm:h-48 object-cover rounded-t-lg group-hover:scale-105 transition-transform duration-300 block"
+            style={{
+              minHeight: "140px", // Ensures on mobile it's tall enough to see 
+              maxHeight: "12rem",  // Prevent image overflow in all modes
+              objectFit: "cover"
+            }}
           />
           {product.stock === 0 && (
             <Badge className="absolute top-2 left-2 bg-red-500 text-xs">Out of Stock</Badge>
