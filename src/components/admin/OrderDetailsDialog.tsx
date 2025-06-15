@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -16,7 +17,6 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -35,8 +35,9 @@ import {
   Hash,
   FileText,
   Save,
-  ExternalLink,
   Download,
+  Building,
+  CreditCard,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -94,9 +95,7 @@ const OrderDetailsDialog = ({
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
-  const [invoiceNinjaUrl, setInvoiceNinjaUrl] = useState("");
   const [isUpdatingTracking, setIsUpdatingTracking] = useState(false);
-  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const { toast } = useToast();
 
@@ -236,54 +235,6 @@ const OrderDetailsDialog = ({
     }
   };
 
-  const generateInvoice = async () => {
-    if (!orderDetails || !invoiceNinjaUrl) {
-      toast({
-        title: "Error",
-        description: "Please enter your Invoice Ninja URL",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsGeneratingInvoice(true);
-    try {
-      // This is a placeholder for Invoice Ninja integration
-      // You would need to implement the actual API calls based on your Invoice Ninja setup
-      const invoiceData = {
-        client: {
-          name: `${orderDetails.profiles?.first_name || ''} ${orderDetails.profiles?.last_name || ''}`.trim() || 'Customer',
-          email: orderDetails.profiles?.email || '',
-          address1: orderDetails.shipping_address,
-        },
-        invoice_items: orderItems.map(item => ({
-          product_key: item.products.name,
-          notes: item.products.description || '',
-          cost: item.price,
-          qty: item.quantity,
-        })),
-        invoice_number: `ORD-${orderDetails.id.slice(0, 8)}`,
-        invoice_date: new Date().toISOString().split('T')[0],
-      };
-
-      console.log("Invoice data prepared:", invoiceData);
-      
-      toast({
-        title: "Invoice Generated",
-        description: "Invoice data has been prepared. Integrate with your Invoice Ninja API to complete the process.",
-      });
-    } catch (error: any) {
-      console.error("Error generating invoice:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate invoice",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGeneratingInvoice(false);
-    }
-  };
-
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       pending: "bg-yellow-100 text-yellow-800",
@@ -309,17 +260,29 @@ const OrderDetailsDialog = ({
     );
   };
 
-  const getCustomerName = () => {
-    if (!orderDetails?.profiles) {
-      return `Customer ${orderDetails?.user_id?.substring(0, 8) || 'Unknown'}`;
+  const getCustomerInfo = () => {
+    if (!orderDetails) return { name: "Unknown", email: "Unknown", phone: "Unknown" };
+    
+    if (orderDetails.profiles) {
+      const { first_name, last_name, email, phone } = orderDetails.profiles;
+      const name = first_name || last_name 
+        ? `${first_name || ''} ${last_name || ''}`.trim()
+        : email || `Customer ${orderDetails.user_id?.substring(0, 8)}`;
+      
+      return {
+        name,
+        email: email || "No email provided",
+        phone: phone || "No phone provided",
+        hasProfile: true
+      };
     }
     
-    const { first_name, last_name } = orderDetails.profiles;
-    if (first_name || last_name) {
-      return `${first_name || ''} ${last_name || ''}`.trim();
-    }
-    
-    return orderDetails.profiles.email || `Customer ${orderDetails.user_id?.substring(0, 8) || 'Unknown'}`;
+    return {
+      name: `Customer ${orderDetails.user_id?.substring(0, 8)}`,
+      email: "Profile not completed",
+      phone: "Profile not completed",
+      hasProfile: false
+    };
   };
 
   if (!orderDetails && !loading) {
@@ -336,6 +299,8 @@ const OrderDetailsDialog = ({
       </Dialog>
     );
   }
+
+  const customerInfo = getCustomerInfo();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -451,40 +416,51 @@ const OrderDetailsDialog = ({
               </Card>
             </div>
 
-            {/* Customer Information */}
+            {/* Customer Information - Enhanced */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
                   Customer Information
+                  {!customerInfo.hasProfile && (
+                    <Badge variant="outline" className="text-orange-600 border-orange-600">
+                      Profile Incomplete
+                    </Badge>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
-                    <div>
-                      <span className="text-sm font-medium">Full Name:</span>
-                      <p>{getCustomerName()}</p>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <span className="text-sm font-medium">Customer Name:</span>
+                        <p className="text-gray-900">{customerInfo.name}</p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
+                      <Mail className="h-4 w-4 text-gray-500" />
                       <div>
                         <span className="text-sm font-medium">Email:</span>
-                        <p>{orderDetails.profiles?.email || "N/A"}</p>
+                        <p className="text-gray-900">{customerInfo.email}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
+                      <Phone className="h-4 w-4 text-gray-500" />
                       <div>
                         <span className="text-sm font-medium">Phone:</span>
-                        <p>{orderDetails.profiles?.phone || "N/A"}</p>
+                        <p className="text-gray-900">{customerInfo.phone}</p>
                       </div>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Customer ID: {orderDetails.user_id.substring(0, 8)}...
                     </div>
                   </div>
                   <div className="space-y-3">
                     <div>
                       <span className="text-sm font-medium">Profile Address:</span>
-                      <p className="text-sm">
+                      <p className="text-sm text-gray-600">
                         {orderDetails.profiles?.address ? (
                           <>
                             {orderDetails.profiles.address}
@@ -495,9 +471,49 @@ const OrderDetailsDialog = ({
                             {orderDetails.profiles.country}
                           </>
                         ) : (
-                          "No address on file"
+                          <span className="text-orange-600">No address on file - Customer needs to complete profile</span>
                         )}
                       </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Invoice Information - New Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Invoice Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <span className="text-sm font-medium">Invoice Number:</span>
+                        <p className="text-gray-900">INV-{orderDetails.id.substring(0, 8)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <span className="text-sm font-medium">Invoice Date:</span>
+                        <p className="text-gray-900">{new Date(orderDetails.created_at).toLocaleDateString('en-IN')}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <span className="text-sm font-medium">Company:</span>
+                        <p className="text-gray-900">Your Company Name</p>
+                        <p className="text-xs text-gray-500">GST: Your GST Number</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -513,7 +529,7 @@ const OrderDetailsDialog = ({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-line">{orderDetails.shipping_address}</p>
+                <p className="whitespace-pre-line bg-gray-50 p-3 rounded-md">{orderDetails.shipping_address}</p>
               </CardContent>
             </Card>
 
@@ -533,7 +549,8 @@ const OrderDetailsDialog = ({
                       <li>• Total items: {orderItems.length} different products</li>
                       <li>• Total quantity: {orderItems.reduce((sum, item) => sum + item.quantity, 0)} pieces</li>
                       <li>• Order value: ₹{Number(orderDetails.total).toFixed(2)}</li>
-                      <li>• Customer: {getCustomerName()}</li>
+                      <li>• Customer: {customerInfo.name}</li>
+                      <li>• Phone: {customerInfo.phone}</li>
                     </ul>
                   </div>
                   
@@ -621,7 +638,7 @@ const OrderDetailsDialog = ({
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-gray-600">
-                  Generate and download a professional A4 PDF invoice for this order.
+                  Generate and download a professional A4 PDF invoice for this order with complete customer and company information.
                 </p>
                 <Button
                   onClick={generatePDFInvoice}
@@ -630,36 +647,6 @@ const OrderDetailsDialog = ({
                 >
                   <Download className="h-4 w-4" />
                   {isGeneratingPDF ? "Generating PDF..." : "Download PDF Invoice"}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Invoice Generation */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Invoice Ninja Integration
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="invoice-ninja-url">Invoice Ninja URL:</Label>
-                  <Input
-                    id="invoice-ninja-url"
-                    value={invoiceNinjaUrl}
-                    onChange={(e) => setInvoiceNinjaUrl(e.target.value)}
-                    placeholder="https://your-invoice-ninja-url.com"
-                  />
-                </div>
-                <Button
-                  onClick={generateInvoice}
-                  disabled={isGeneratingInvoice || !invoiceNinjaUrl}
-                  className="flex items-center gap-2"
-                >
-                  <FileText className="h-4 w-4" />
-                  {isGeneratingInvoice ? "Generating..." : "Generate Invoice"}
-                  <ExternalLink className="h-4 w-4" />
                 </Button>
               </CardContent>
             </Card>
