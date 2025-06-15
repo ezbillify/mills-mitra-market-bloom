@@ -17,6 +17,7 @@ interface Profile {
   phone: string | null;
   address: string | null;
   city: string | null;
+  state: string | null; // <-- Added
   postal_code: string | null;
   country: string | null;
 }
@@ -59,6 +60,7 @@ const Account = () => {
         phone: "",
         address: "",
         city: "",
+        state: "", // <-- Added default value
         postal_code: "",
         country: ""
       });
@@ -179,13 +181,21 @@ const Account = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="city">City</Label>
                   <Input
                     id="city"
                     value={profile.city || ""}
                     onChange={(e) => setProfile({...profile, city: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    value={profile.state || ""}
+                    onChange={(e) => setProfile({...profile, state: e.target.value})}
                   />
                 </div>
                 <div>
