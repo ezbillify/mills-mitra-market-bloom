@@ -4,11 +4,12 @@ import { Navigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, Trash2, ShoppingBag, Info, Calculator } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, Info, Calculator, IndianRupee } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import CheckoutDialog from "@/components/customer/CheckoutDialog";
+import { TaxCalculator } from "@/utils/taxCalculator";
 
 interface CartItem {
   id: string;
@@ -121,33 +122,34 @@ const Cart = () => {
   };
 
   const calculateItemTotals = (item: CartItem) => {
-    const basePrice = item.products.discounted_price || item.products.price;
     const gstPercentage = item.products.gst_percentage || 18;
-    const gstAmount = (basePrice * gstPercentage) / 100;
-    const finalPricePerUnit = item.products.selling_price_with_tax || (basePrice + gstAmount);
+    const basePrice = item.products.discounted_price || item.products.price;
+    const itemTotal = basePrice * item.quantity;
+    
+    // Use proper tax calculation for consistent pricing
+    const taxBreakdown = TaxCalculator.calculateTaxBreakdown(itemTotal, gstPercentage, ""); // Empty address for cart
     
     return {
       basePrice,
-      gstAmount,
-      finalPricePerUnit,
-      totalBasePrice: basePrice * item.quantity,
-      totalGSTAmount: gstAmount * item.quantity,
-      totalFinalPrice: finalPricePerUnit * item.quantity,
+      itemTotal,
+      taxableAmount: taxBreakdown.taxableAmount,
+      totalTax: taxBreakdown.totalTax,
+      finalAmount: taxBreakdown.taxableAmount + taxBreakdown.totalTax,
       discountPerItem: item.products.discounted_price ? (item.products.price - item.products.discounted_price) : 0
     };
   };
 
   const calculateCartTotals = () => {
-    let totalBasePrice = 0;
-    let totalGSTAmount = 0;
+    let totalTaxableAmount = 0;
+    let totalTaxAmount = 0;
     let totalFinalPrice = 0;
     let totalDiscount = 0;
 
     cartItems.forEach(item => {
       const itemTotals = calculateItemTotals(item);
-      totalBasePrice += itemTotals.totalBasePrice;
-      totalGSTAmount += itemTotals.totalGSTAmount;
-      totalFinalPrice += itemTotals.totalFinalPrice;
+      totalTaxableAmount += itemTotals.taxableAmount;
+      totalTaxAmount += itemTotals.totalTax;
+      totalFinalPrice += itemTotals.finalAmount;
       totalDiscount += itemTotals.discountPerItem * item.quantity;
     });
 
@@ -155,8 +157,8 @@ const Cart = () => {
     const grandTotal = totalFinalPrice + shipping;
 
     return {
-      totalBasePrice,
-      totalGSTAmount,
+      totalTaxableAmount,
+      totalTaxAmount,
       totalFinalPrice,
       totalDiscount,
       shipping,
@@ -203,7 +205,10 @@ const Cart = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
+      <h1 className="text-3xl font-bold mb-8 flex items-center gap-2">
+        <ShoppingBag className="h-8 w-8" />
+        Shopping Cart
+      </h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-4">
@@ -236,36 +241,54 @@ const Cart = () => {
                           <div className="space-y-1 text-sm">
                             <div className="flex justify-between">
                               <span className="text-gray-600">Original Price:</span>
-                              <span className="line-through text-gray-500">₹{Number(item.products.price).toFixed(2)}</span>
+                              <span className="line-through text-gray-500 flex items-center gap-1">
+                                <IndianRupee className="h-3 w-3" />
+                                {Number(item.products.price).toFixed(2)}
+                              </span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Discounted Price:</span>
-                              <span className="font-medium text-green-600">₹{Number(item.products.discounted_price).toFixed(2)}</span>
+                              <span className="font-medium text-green-600 flex items-center gap-1">
+                                <IndianRupee className="h-3 w-3" />
+                                {Number(item.products.discounted_price).toFixed(2)}
+                              </span>
                             </div>
                           </div>
                         ) : (
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600">Base Price:</span>
-                            <span className="font-medium">₹{Number(item.products.price).toFixed(2)}</span>
+                            <span className="font-medium flex items-center gap-1">
+                              <IndianRupee className="h-3 w-3" />
+                              {Number(item.products.price).toFixed(2)}
+                            </span>
                           </div>
                         )}
                         
                         <div className="flex justify-between text-sm mt-1">
                           <span className="text-gray-600">GST ({item.products.gst_percentage || 18}%):</span>
-                          <span>₹{itemTotals.gstAmount.toFixed(2)}</span>
+                          <span className="flex items-center gap-1">
+                            <IndianRupee className="h-3 w-3" />
+                            {itemTotals.totalTax.toFixed(2)}
+                          </span>
                         </div>
                         
                         <div className="border-t pt-1 mt-1">
                           <div className="flex justify-between text-sm font-semibold">
                             <span>Price per unit:</span>
-                            <span className="text-primary">₹{itemTotals.finalPricePerUnit.toFixed(2)}</span>
+                            <span className="text-primary flex items-center gap-1">
+                              <IndianRupee className="h-3 w-3" />
+                              {itemTotals.finalAmount.toFixed(2)}
+                            </span>
                           </div>
                         </div>
                         
                         <div className="border-t pt-1 mt-1">
                           <div className="flex justify-between text-sm font-bold">
                             <span>Total for {item.quantity} unit(s):</span>
-                            <span className="text-primary">₹{itemTotals.totalFinalPrice.toFixed(2)}</span>
+                            <span className="text-primary flex items-center gap-1">
+                              <IndianRupee className="h-3 w-3" />
+                              {(itemTotals.finalAmount * item.quantity).toFixed(2)}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -274,8 +297,8 @@ const Cart = () => {
                         <div className="bg-green-50 border border-green-200 rounded-md p-2 mb-3">
                           <div className="flex items-center gap-1">
                             <Info className="h-3 w-3 text-green-600" />
-                            <p className="text-xs text-green-700">
-                              You save ₹{(itemTotals.discountPerItem * item.quantity).toFixed(2)} on this item!
+                            <p className="text-xs text-green-700 flex items-center gap-1">
+                              You save <IndianRupee className="h-2 w-2" />{(itemTotals.discountPerItem * item.quantity).toFixed(2)} on this item!
                             </p>
                           </div>
                         </div>
@@ -328,48 +351,69 @@ const Cart = () => {
                 <h4 className="font-semibold text-sm">Price Breakdown</h4>
                 
                 <div className="flex justify-between text-sm">
-                  <span>Subtotal (Base Price):</span>
-                  <span>₹{cartTotals.totalBasePrice.toFixed(2)}</span>
+                  <span>Subtotal (Taxable):</span>
+                  <span className="flex items-center gap-1">
+                    <IndianRupee className="h-3 w-3" />
+                    {cartTotals.totalTaxableAmount.toFixed(2)}
+                  </span>
                 </div>
                 
                 {cartTotals.totalDiscount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Total Discount:</span>
-                    <span>-₹{cartTotals.totalDiscount.toFixed(2)}</span>
+                    <span className="flex items-center gap-1">
+                      -<IndianRupee className="h-3 w-3" />{cartTotals.totalDiscount.toFixed(2)}
+                    </span>
                   </div>
                 )}
                 
                 <div className="flex justify-between text-sm">
                   <span>Total GST:</span>
-                  <span>₹{cartTotals.totalGSTAmount.toFixed(2)}</span>
+                  <span className="flex items-center gap-1">
+                    <IndianRupee className="h-3 w-3" />
+                    {cartTotals.totalTaxAmount.toFixed(2)}
+                  </span>
                 </div>
                 
                 <div className="border-t pt-2">
                   <div className="flex justify-between text-sm font-semibold">
                     <span>Products Total:</span>
-                    <span>₹{cartTotals.totalFinalPrice.toFixed(2)}</span>
+                    <span className="flex items-center gap-1">
+                      <IndianRupee className="h-3 w-3" />
+                      {cartTotals.totalFinalPrice.toFixed(2)}
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div className="flex justify-between">
                 <span>Shipping</span>
-                <span>{cartTotals.shipping === 0 ? 'Free' : `₹${cartTotals.shipping.toFixed(2)}`}</span>
+                <span className="flex items-center gap-1">
+                  {cartTotals.shipping === 0 ? 'Free' : (
+                    <>
+                      <IndianRupee className="h-3 w-3" />
+                      {cartTotals.shipping.toFixed(2)}
+                    </>
+                  )}
+                </span>
               </div>
               
               <hr />
               
               <div className="flex justify-between font-bold text-lg">
                 <span>Grand Total</span>
-                <span>₹{cartTotals.grandTotal.toFixed(2)}</span>
+                <span className="flex items-center gap-1">
+                  <IndianRupee className="h-4 w-4" />
+                  {cartTotals.grandTotal.toFixed(2)}
+                </span>
               </div>
 
               {cartTotals.totalFinalPrice < 500 && (
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                   <div className="flex items-center gap-1">
                     <Info className="h-3 w-3 text-blue-600" />
-                    <p className="text-xs text-blue-700">
-                      Add ₹{(500 - cartTotals.totalFinalPrice).toFixed(2)} more for free shipping!
+                    <p className="text-xs text-blue-700 flex items-center gap-1">
+                      Add <IndianRupee className="h-2 w-2" />{(500 - cartTotals.totalFinalPrice).toFixed(2)} more for free shipping!
                     </p>
                   </div>
                 </div>

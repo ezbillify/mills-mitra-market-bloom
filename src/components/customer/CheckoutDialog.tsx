@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { IndianRupee } from "@/components/ui/indian-rupee";
 
 interface CartItem {
   id: string;
@@ -218,23 +218,35 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
               {cartItems.map((item) => (
                 <div key={item.id} className="flex justify-between text-sm">
                   <span>{item.products.name} × {item.quantity}</span>
-                  <span>₹{(item.products.price * item.quantity).toFixed(2)}</span>
+                  <span className="flex items-center gap-1">
+                    <IndianRupee className="h-3 w-3" />
+                    {(item.products.price * item.quantity).toFixed(2)}
+                  </span>
                 </div>
               ))}
               <div className="border-t pt-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal:</span>
-                  <span>₹{total.toFixed(2)}</span>
+                  <span className="flex items-center gap-1">
+                    <IndianRupee className="h-3 w-3" />
+                    {total.toFixed(2)}
+                  </span>
                 </div>
                 {selectedShippingOption && (
                   <div className="flex justify-between text-sm">
                     <span>Shipping ({selectedShippingOption.name}):</span>
-                    <span>₹{shippingPrice.toFixed(2)}</span>
+                    <span className="flex items-center gap-1">
+                      <IndianRupee className="h-3 w-3" />
+                      {shippingPrice.toFixed(2)}
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between font-semibold text-lg border-t pt-2">
                   <span>Total:</span>
-                  <span>₹{finalTotal.toFixed(2)}</span>
+                  <span className="flex items-center gap-1">
+                    <IndianRupee className="h-4 w-4" />
+                    {finalTotal.toFixed(2)}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -274,8 +286,13 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                               </div>
                             )}
                           </div>
-                          <div className="font-semibold">
-                            {option.price === 0 ? 'Free' : `₹${Number(option.price).toFixed(2)}`}
+                          <div className="font-semibold flex items-center gap-1">
+                            {option.price === 0 ? 'Free' : (
+                              <>
+                                <IndianRupee className="h-3 w-3" />
+                                {Number(option.price).toFixed(2)}
+                              </>
+                            )}
                           </div>
                         </Label>
                       </div>
@@ -409,7 +426,11 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
               disabled={loading || loadingProfile || !formData.shippingOptionId || shippingOptions.length === 0} 
               className="flex-1 bg-[#C9A350] hover:bg-[#D49847] text-white"
             >
-              {loading ? "Placing Order..." : `Place Order (₹${finalTotal.toFixed(2)})`}
+              {loading ? "Placing Order..." : (
+                <span className="flex items-center gap-1">
+                  Place Order (<IndianRupee className="h-3 w-3" />{finalTotal.toFixed(2)})
+                </span>
+              )}
             </Button>
           </div>
         </form>
