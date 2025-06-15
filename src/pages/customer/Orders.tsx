@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useOrders } from "@/hooks/useOrders";
@@ -34,7 +33,7 @@ const badgeVariants: Record<string, "default" | "secondary" | "destructive" | "o
 };
 
 const Orders = () => {
-  const { orders, loading } = useOrders();
+  const { orders, loading } = useOrders({ isAdminView: false }); // Explicitly customer view
   const navigate = useNavigate();
   const { toast } = useToast();
   const [downloadingInvoices, setDownloadingInvoices] = useState<Set<string>>(new Set());

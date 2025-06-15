@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const AdminOrders = () => {
-  const { orders, loading, fetchOrders, updateOrderStatus } = useOrders();
+  const { orders, loading, fetchOrders, updateOrderStatus } = useOrders({ isAdminView: true });
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 

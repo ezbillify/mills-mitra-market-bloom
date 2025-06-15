@@ -6,7 +6,11 @@ import { OrderService } from "@/services/orderService";
 import { useOrderSubscriptions } from "@/hooks/useOrderSubscriptions";
 import { supabase } from "@/integrations/supabase/client";
 
-export const useOrders = () => {
+interface UseOrdersProps {
+  isAdminView?: boolean;
+}
+
+export const useOrders = ({ isAdminView = false }: UseOrdersProps = {}) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -23,7 +27,7 @@ export const useOrders = () => {
         return;
       }
 
-      const fetchedOrders = await OrderService.fetchOrders();
+      const fetchedOrders = await OrderService.fetchOrders(isAdminView);
       setOrders(fetchedOrders);
     } catch (error) {
       console.error("💥 Unexpected error in fetchOrders:", error);
@@ -42,7 +46,7 @@ export const useOrders = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, isAdminView]);
 
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {

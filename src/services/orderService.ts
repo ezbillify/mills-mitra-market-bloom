@@ -3,9 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Order, OrderStatus } from "@/types/order";
 
 export class OrderService {
-  static async fetchOrders(): Promise<Order[]> {
+  static async fetchOrders(isAdminView: boolean = false): Promise<Order[]> {
     try {
-      console.log("📦 Fetching orders for current user...");
+      console.log(`📦 Fetching orders - Admin view: ${isAdminView}`);
 
       // Get the current authenticated user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -15,10 +15,7 @@ export class OrderService {
         throw new Error("Authentication required to fetch orders");
       }
 
-      console.log("👤 Fetching orders for user:", user.id);
-
-      // Query orders with explicit user filtering to ensure data isolation
-      const { data: orders, error } = await supabase
+      let query = supabase
         .from("orders")
         .select(`
           *,
@@ -33,15 +30,24 @@ export class OrderService {
             country
           )
         `)
-        .eq("user_id", user.id) // Explicit filter for current user's orders only
         .order("created_at", { ascending: false });
+
+      // If not admin view, filter by user_id for customer isolation
+      if (!isAdminView) {
+        console.log("👤 Customer view - filtering orders for user:", user.id);
+        query = query.eq("user_id", user.id);
+      } else {
+        console.log("👨‍💼 Admin view - fetching all orders");
+      }
+
+      const { data: orders, error } = await query;
 
       if (error) {
         console.error("❌ Error fetching orders:", error);
         throw new Error(`Failed to fetch orders: ${error.message}`);
       }
 
-      console.log(`✅ Successfully fetched ${orders?.length || 0} orders for user ${user.id}`);
+      console.log(`✅ Successfully fetched ${orders?.length || 0} orders`);
       return orders || [];
     } catch (error) {
       console.error("💥 Unexpected error in fetchOrders:", error);
@@ -61,27 +67,13 @@ export class OrderService {
         throw new Error("Authentication required to update orders");
       }
 
-      // First verify the order belongs to the current user
-      const { data: orderCheck, error: checkError } = await supabase
-        .from("orders")
-        .select("user_id")
-        .eq("id", orderId)
-        .eq("user_id", user.id) // Ensure user can only update their own orders
-        .single();
-
-      if (checkError || !orderCheck) {
-        console.error("❌ Order not found or access denied:", checkError);
-        throw new Error("Order not found or you don't have permission to update it");
-      }
-
       const { error } = await supabase
         .from("orders")
         .update({ 
           status: newStatus,
           updated_at: new Date().toISOString()
         })
-        .eq("id", orderId)
-        .eq("user_id", user.id); // Double-check user ownership
+        .eq("id", orderId);
 
       if (error) {
         console.error("❌ Error updating order status:", error);
@@ -107,7 +99,7 @@ export class OrderService {
         throw new Error("Authentication required to fetch order details");
       }
 
-      // Query order with explicit user filtering
+      // Query order with explicit user filtering for customers
       const { data: order, error } = await supabase
         .from("orders")
         .select(`
@@ -124,7 +116,7 @@ export class OrderService {
           )
         `)
         .eq("id", orderId)
-        .eq("user_id", user.id) // Explicit filter for current user only
+        .eq("user_id", user.id) // Customers can only see their own orders
         .maybeSingle();
 
       if (error) {
