@@ -45,6 +45,7 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
     stock: "",
     image: "",
     featured: false,
+    hsnCode: "",
   });
 
   useEffect(() => {
@@ -105,6 +106,7 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
           stock: parseInt(formData.stock) || 0,
           image: formData.image || null,
           featured: formData.featured,
+          hsn_code: formData.hsnCode || null,
         });
 
       if (error) throw error;
@@ -125,6 +127,7 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
         stock: "",
         image: "",
         featured: false,
+        hsnCode: "",
       });
       
       setOpen(false);
@@ -242,7 +245,7 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="stock">Stock Quantity *</Label>
               <Input
@@ -269,6 +272,21 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
                 placeholder="18"
                 required
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="hsn-code">HSN Code</Label>
+              <Input
+                id="hsn-code"
+                value={formData.hsnCode}
+                onChange={(e) => setFormData(prev => ({ ...prev, hsnCode: e.target.value }))}
+                placeholder="e.g., 5208"
+              />
+              <p className="text-xs text-gray-500">
+                HSN (Harmonized System of Nomenclature) code for GST classification
+              </p>
             </div>
 
             <div className="space-y-2">

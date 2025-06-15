@@ -25,6 +25,7 @@ interface Product {
   featured: boolean;
   image: string | null;
   description: string | null;
+  hsn_code: string | null;
 }
 
 const AdminProducts = () => {
@@ -85,7 +86,8 @@ const AdminProducts = () => {
     if (searchTerm) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchTerm.toLowerCase())
+        product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.hsn_code && product.hsn_code.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
@@ -247,7 +249,7 @@ const AdminProducts = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Products Management</h1>
-          <p className="text-gray-600 mt-1">Manage your product inventory, pricing, and GST</p>
+          <p className="text-gray-600 mt-1">Manage your product inventory, pricing, HSN codes, and GST</p>
         </div>
         <AddProductDialog onProductAdded={fetchProducts} />
       </div>
@@ -307,7 +309,7 @@ const AdminProducts = () => {
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search products..."
+                placeholder="Search products, categories, HSN codes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -351,7 +353,7 @@ const AdminProducts = () => {
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">Product</TableHead>
-                  <TableHead className="font-semibold">Category</TableHead>
+                  <TableHead className="font-semibold">Category & HSN</TableHead>
                   <TableHead className="font-semibold">Price & GST</TableHead>
                   <TableHead className="font-semibold">Stock</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
@@ -377,9 +379,16 @@ const AdminProducts = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {product.category}
-                      </Badge>
+                      <div className="space-y-1">
+                        <Badge variant="outline" className="capitalize">
+                          {product.category}
+                        </Badge>
+                        {product.hsn_code && (
+                          <div className="text-xs text-gray-600">
+                            HSN: {product.hsn_code}
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       {renderPriceCell(product)}

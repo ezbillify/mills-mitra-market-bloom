@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import OrderItemTable from "./OrderItemTable";
 import { supabase } from "@/integrations/supabase/client";
 import { generateCustomerName } from "@/utils/customerUtils";
-import { ArrowLeft, Truck } from "lucide-react";
+import { ArrowLeft, Truck, Download } from "lucide-react";
+import { InvoiceService } from "@/services/invoiceService";
+import { useToast } from "@/hooks/use-toast";
 
 const statusLabels: Record<string, string> = {
   pending: "Pending",
@@ -35,7 +37,9 @@ const OrderDetails = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!orderId) return;
@@ -60,6 +64,31 @@ const OrderDetails = () => {
     };
     fetchOrder();
   }, [orderId]);
+
+  const handleDownloadInvoice = async () => {
+    if (!orderId) return;
+    
+    setDownloadingInvoice(true);
+    try {
+      await InvoiceService.downloadInvoiceForOrder(orderId);
+      toast({
+        title: "Success",
+        description: "Invoice downloaded successfully",
+      });
+    } catch (error) {
+      console.error("Error downloading invoice:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download invoice. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
+
+  // Check if invoice can be downloaded (order completed or delivered)
+  const canDownloadInvoice = order && (order.status === 'completed' || order.status === 'delivered' || order.status === 'shipped');
 
   if (loading) {
     return (
@@ -112,6 +141,19 @@ const OrderDetails = () => {
               <Badge variant={badgeVariants[order.status] || "default"}>
                 {statusLabels[order.status] || order.status}
               </Badge>
+              {canDownloadInvoice && (
+                <div className="mt-2">
+                  <Button 
+                    onClick={handleDownloadInvoice}
+                    disabled={downloadingInvoice}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {downloadingInvoice ? "Generating..." : "Download Invoice"}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -154,6 +196,23 @@ const OrderDetails = () => {
               <h4 className="font-medium mb-2">Order ID</h4>
               <p className="text-sm text-gray-600">{order.id}</p>
             </div>
+            {canDownloadInvoice && (
+              <div>
+                <h4 className="font-medium mb-2">Invoice</h4>
+                <Button 
+                  onClick={handleDownloadInvoice}
+                  disabled={downloadingInvoice}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  {downloadingInvoice ? "Generating..." : "Download Invoice"}
+                </Button>
+                <p className="text-xs text-gray-500 mt-1">
+                  Tax invoice with GST details and HSN codes
+                </p>
+              </div>
+            )}
           </div>
           <OrderItemTable orderId={order.id} />
         </CardContent>

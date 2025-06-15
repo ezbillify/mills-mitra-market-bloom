@@ -29,6 +29,7 @@ interface Product {
   stock: number;
   image: string | null;
   featured: boolean;
+  hsn_code: string | null;
 }
 
 interface Category {
@@ -60,6 +61,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
     stock: "",
     image: "",
     featured: false,
+    hsnCode: "",
   });
 
   useEffect(() => {
@@ -81,6 +83,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
         stock: product.stock.toString(),
         image: product.image || "",
         featured: product.featured,
+        hsnCode: product.hsn_code || "",
       });
     }
   }, [product]);
@@ -137,6 +140,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
           stock: parseInt(formData.stock) || 0,
           image: formData.image || null,
           featured: formData.featured,
+          hsn_code: formData.hsnCode || null,
         })
         .eq('id', product.id);
 
@@ -256,7 +260,7 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="edit-stock">Stock Quantity</Label>
               <Input
@@ -281,6 +285,21 @@ const EditProductDialog = ({ product, open, onOpenChange, onProductUpdated }: Ed
                 onChange={(e) => setFormData(prev => ({ ...prev, gstPercentage: e.target.value }))}
                 required
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-hsn-code">HSN Code</Label>
+              <Input
+                id="edit-hsn-code"
+                value={formData.hsnCode}
+                onChange={(e) => setFormData(prev => ({ ...prev, hsnCode: e.target.value }))}
+                placeholder="e.g., 5208"
+              />
+              <p className="text-xs text-gray-500">
+                HSN code for GST classification
+              </p>
             </div>
 
             <div className="space-y-2">
