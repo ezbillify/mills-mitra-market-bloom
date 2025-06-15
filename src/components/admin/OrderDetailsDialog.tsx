@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -14,68 +13,27 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Package,
-  Truck,
-  Calendar,
   User,
   MapPin,
   Phone,
   Mail,
   Hash,
   FileText,
-  Save,
   Download,
   Building,
   CreditCard,
+  Calendar,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { OrderStatus } from "@/types/order";
 import { InvoiceService } from "@/services/invoiceService";
-
-interface OrderDetailsProfile {
-  first_name: string | null;
-  last_name: string | null;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
-  city: string | null;
-  postal_code: string | null;
-  country: string | null;
-}
-
-interface OrderItem {
-  id: string;
-  quantity: number;
-  price: number;
-  products: {
-    name: string;
-    image: string | null;
-    description: string | null;
-  };
-}
-
-interface OrderDetails {
-  id: string;
-  user_id: string;
-  total: number;
-  status: OrderStatus;
-  created_at: string;
-  updated_at: string;
-  shipping_address: string;
-  tracking_number: string | null;
-  profiles: OrderDetailsProfile | null;
-}
+import { useOrderDetails } from "@/hooks/useOrderDetails";
+import OrderStatusCard from "./order-details/OrderStatusCard";
+import OrderTimelineCard from "./order-details/OrderTimelineCard";
+import TrackingCard from "./order-details/TrackingCard";
 
 interface OrderDetailsDialogProps {
   orderId: string | null;
@@ -90,9 +48,7 @@ const OrderDetailsDialog = ({
   onOpenChange,
   onUpdateStatus,
 }: OrderDetailsDialogProps) => {
-  const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { orderDetails, setOrderDetails, orderItems, loading } = useOrderDetails(orderId, open);
   const [trackingNumber, setTrackingNumber] = useState("");
   const [isUpdatingTracking, setIsUpdatingTracking] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -328,100 +284,26 @@ const OrderDetailsDialog = ({
           <div className="space-y-6">
             {/* Order Summary */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    Order Status
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Current Status:</span>
-                    <Badge className={getStatusColor(orderDetails.status)}>
-                      {orderDetails.status.replace("_", " ").toUpperCase()}
-                    </Badge>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="status-select">Change Status:</Label>
-                    <Select
-                      value={orderDetails.status}
-                      onValueChange={(value: OrderStatus) => {
-                        onUpdateStatus(orderDetails.id, value);
-                        setOrderDetails({ ...orderDetails, status: value });
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="accepted">Accepted</SelectItem>
-                        <SelectItem value="processing">Processing</SelectItem>
-                        <SelectItem value="shipped">Shipped</SelectItem>
-                        <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
-                        <SelectItem value="delivered">Delivered</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <OrderStatusCard
+                status={orderDetails.status}
+                total={orderDetails.total}
+                onStatusChange={(value: OrderStatus) => {
+                  onUpdateStatus(orderDetails.id, value);
+                  setOrderDetails({ ...orderDetails, status: value });
+                }}
+              />
 
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium">Total Amount:</span>
-                    <span className="font-bold text-lg">₹{Number(orderDetails.total).toFixed(2)}</span>
-                  </div>
-                </CardContent>
-              </Card>
+              <OrderTimelineCard
+                createdAt={orderDetails.created_at}
+                updatedAt={orderDetails.updated_at}
+              />
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Order Timeline
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <span className="text-sm font-medium">Order Date:</span>
-                    <p className="text-sm">{formatDate(orderDetails.created_at)}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium">Last Updated:</span>
-                    <p className="text-sm">{formatDate(orderDetails.updated_at)}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Truck className="h-5 w-5" />
-                    Shipping & Tracking
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="tracking-number">Tracking Number:</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="tracking-number"
-                        value={trackingNumber}
-                        onChange={(e) => setTrackingNumber(e.target.value)}
-                        placeholder="Enter tracking number"
-                      />
-                      <Button
-                        size="sm"
-                        onClick={updateTrackingNumber}
-                        disabled={isUpdatingTracking}
-                      >
-                        <Save className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <TrackingCard
+                trackingNumber={trackingNumber}
+                onTrackingNumberChange={setTrackingNumber}
+                onUpdate={updateTrackingNumber}
+                isUpdating={isUpdatingTracking}
+              />
             </div>
 
             {/* Customer Information */}

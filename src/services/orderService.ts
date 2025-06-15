@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Order, OrderProfile, OrderStatus } from "@/types/order";
+import { Order, OrderStatus } from "@/types/order";
 import { InvoiceService } from "@/services/invoiceService";
 
 export class OrderService {
@@ -8,7 +8,6 @@ export class OrderService {
     console.log("OrderService: Fetching orders with customer profiles...");
 
     try {
-      // Simple query with JOIN to get orders and their customer profiles
       const { data: ordersData, error } = await supabase
         .from("orders")
         .select(`
@@ -51,46 +50,44 @@ export class OrderService {
         return [];
       }
 
-      // Process orders with simplified logic
-      const processedOrders = ordersData.map((order: any) => {
-        let orderProfile: OrderProfile | null = null;
-
-        // Check if profile data exists and convert to OrderProfile format
-        if (order.profiles) {
-          orderProfile = {
-            first_name: order.profiles.first_name,
-            last_name: order.profiles.last_name,
-            email: order.profiles.email,
-            phone: order.profiles.phone,
-            address: order.profiles.address,
-            city: order.profiles.city,
-            postal_code: order.profiles.postal_code,
-            country: order.profiles.country
-          };
-        }
-
-        return {
-          id: order.id,
-          user_id: order.user_id,
-          total: order.total,
-          status: order.status,
-          created_at: order.created_at,
-          shipping_address: order.shipping_address,
-          tracking_number: order.tracking_number,
-          delivery_option_id: order.delivery_option_id,
-          delivery_price: order.delivery_price,
-          shipping_settings: order.delivery_options,
-          profiles: orderProfile
-        };
-      });
-
-      console.log(`OrderService: Processed ${processedOrders.length} orders successfully`);
-      return processedOrders;
-
+      return this.processOrdersData(ordersData);
     } catch (error) {
       console.error("OrderService: Error fetching orders", error);
       throw error;
     }
+  }
+
+  private static processOrdersData(ordersData: any[]): Order[] {
+    return ordersData.map((order: any) => {
+      let orderProfile = null;
+
+      if (order.profiles) {
+        orderProfile = {
+          first_name: order.profiles.first_name,
+          last_name: order.profiles.last_name,
+          email: order.profiles.email,
+          phone: order.profiles.phone,
+          address: order.profiles.address,
+          city: order.profiles.city,
+          postal_code: order.profiles.postal_code,
+          country: order.profiles.country
+        };
+      }
+
+      return {
+        id: order.id,
+        user_id: order.user_id,
+        total: order.total,
+        status: order.status,
+        created_at: order.created_at,
+        shipping_address: order.shipping_address,
+        tracking_number: order.tracking_number,
+        delivery_option_id: order.delivery_option_id,
+        delivery_price: order.delivery_price,
+        shipping_settings: order.delivery_options,
+        profiles: orderProfile
+      };
+    });
   }
 
   static async updateOrderStatus(orderId: string, newStatus: OrderStatus): Promise<void> {
@@ -108,18 +105,20 @@ export class OrderService {
 
     console.log("OrderService: Successfully updated order status");
 
-    // Auto-generate PDF invoice when status changes to processing
     if (newStatus === "processing") {
-      try {
-        console.log("OrderService: Auto-generating PDF invoice");
-        const pdfBlob = await InvoiceService.generateInvoiceForOrder(orderId);
-        if (pdfBlob) {
-          console.log("OrderService: PDF invoice auto-generated successfully");
-        }
-      } catch (error) {
-        console.error("OrderService: Failed to auto-generate invoice", error);
-        // Don't throw error here as the status update was successful
+      await this.handleInvoiceGeneration(orderId);
+    }
+  }
+
+  private static async handleInvoiceGeneration(orderId: string): Promise<void> {
+    try {
+      console.log("OrderService: Auto-generating PDF invoice");
+      const pdfBlob = await InvoiceService.generateInvoiceForOrder(orderId);
+      if (pdfBlob) {
+        console.log("OrderService: PDF invoice auto-generated successfully");
       }
+    } catch (error) {
+      console.error("OrderService: Failed to auto-generate invoice", error);
     }
   }
 
