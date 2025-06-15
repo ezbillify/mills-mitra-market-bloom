@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,7 +102,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     setLoadingProfile(true);
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('address, city, postal_code, phone')
+      .select('address, city, state, postal_code, phone')
       .eq('id', user.id)
       .single();
 
@@ -114,6 +115,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           ...prev,
           address: profile.address || "",
           city: profile.city || "",
+          state: profile.state || "",
           postalCode: profile.postal_code || "",
           phone: profile.phone || "",
         }));
@@ -373,6 +375,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                         value={formData.state}
                         onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                         required
+                        className={hasExistingAddress ? "border-[#88B04B]/50 focus:border-[#88B04B]" : ""}
                       />
                     </div>
                   </div>
