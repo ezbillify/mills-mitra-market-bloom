@@ -1,3 +1,4 @@
+
 import jsPDF from 'jspdf';
 import { Order } from '@/types/order';
 import { TaxCalculator, TaxBreakdown } from './taxCalculator';
@@ -49,118 +50,143 @@ export class InvoiceGenerator {
     const pageHeight = doc.internal.pageSize.getHeight();
     
     // Colors
-    const primaryColor = '#1f2937';
-    const secondaryColor = '#6b7280';
-    const accentColor = '#3b82f6';
+    const primaryColor = '#000000';
+    const borderColor = '#000000';
+    const headerBgColor = '#f5f5f5';
     
-    // Header
-    doc.setFillColor(59, 130, 246);
-    doc.rect(0, 0, pageWidth, 40, 'F');
+    // Helper function to draw borders
+    const drawBorder = (x: number, y: number, width: number, height: number) => {
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.5);
+      doc.rect(x, y, width, height);
+    };
     
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.text('TAX INVOICE', 20, 25);
+    // Main border
+    drawBorder(15, 15, pageWidth - 30, pageHeight - 30);
     
-    // Company Info
-    doc.setTextColor(31, 41, 55);
+    // Header section
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(companyInfo.name, 20, 55);
+    doc.setTextColor(0, 0, 0);
     
-    doc.setFontSize(10);
+    // TAX INVOICE header (centered)
+    const headerText = 'TAX INVOICE';
+    const headerWidth = doc.getTextWidth(headerText);
+    doc.text(headerText, (pageWidth - headerWidth) / 2, 30);
+    
+    // ORIGINAL FOR RECIPIENT (right aligned)
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text(companyInfo.address, 20, 65);
-    doc.text(`Phone: ${companyInfo.phone}`, 20, 72);
-    doc.text(`Email: ${companyInfo.email}`, 20, 79);
-    doc.text(`GST: ${companyInfo.gst}`, 20, 86);
+    doc.text('ORIGINAL FOR RECIPIENT', pageWidth - 20, 25, { align: 'right' });
     
-    let currentY = 86;
-    if (companyInfo.fssai) {
-      currentY += 7;
-      doc.text(`FSSAI: ${companyInfo.fssai}`, 20, currentY);
-    }
-    if (companyInfo.pan) {
-      currentY += 7;
-      doc.text(`PAN: ${companyInfo.pan}`, 20, currentY);
-    }
-    
-    // Invoice details
-    const invoiceDate = new Date(order.created_at).toLocaleDateString('en-IN');
+    // Company info section (left side)
+    let currentY = 45;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Invoice Number:', pageWidth - 80, 55);
-    doc.text('Invoice Date:', pageWidth - 80, 65);
+    doc.text(companyInfo.name.toUpperCase(), 20, currentY);
     
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text(invoiceNumber, pageWidth - 80, 62);
-    doc.text(invoiceDate, pageWidth - 80, 72);
+    currentY += 6;
     
-    // Payment method
-    let paymentType = order.payment_type || "cod";
-    let paymentText = paymentType === "cod"
-      ? "Cash on Delivery"
-      : paymentType === "razorpay"
-      ? "Paid via Razorpay"
-      : paymentType.charAt(0).toUpperCase() + paymentType.slice(1);
-    doc.setFontSize(11);
+    // Company details
+    const companyLines = [
+      `GSTIN: ${companyInfo.gst}`,
+      `FSSAI NO: ${companyInfo.fssai || 'N/A'}`,
+      companyInfo.address,
+      `Phone: ${companyInfo.phone}`,
+      `Email: ${companyInfo.email}`
+    ];
+    
+    companyLines.forEach(line => {
+      doc.text(line, 20, currentY);
+      currentY += 5;
+    });
+    
+    // Invoice details (right side)
+    const invoiceDate = new Date(order.created_at).toLocaleDateString('en-GB');
+    const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB');
+    
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text('Payment Method:', pageWidth - 80, 80);
-    doc.setFont('helvetica', 'normal');
-    doc.text(paymentText, pageWidth - 80, 87);
+    doc.text('Invoice #:', pageWidth - 80, 45);
+    doc.text('Invoice Date:', pageWidth - 80, 52);
+    doc.text('Place of Supply:', pageWidth - 80, 59);
+    doc.text('Due Date:', pageWidth - 80, 66);
     
-    // Customer Info
+    doc.setFont('helvetica', 'normal');
+    doc.text(invoiceNumber, pageWidth - 40, 45);
+    doc.text(invoiceDate, pageWidth - 40, 52);
+    
+    // Extract state from shipping address
+    const isKarnataka = order.shipping_address.toLowerCase().includes('karnataka') || 
+                       order.shipping_address.toLowerCase().includes('bengaluru') ||
+                       order.shipping_address.toLowerCase().includes('bangalore');
+    doc.text(isKarnataka ? '29-KARNATAKA' : 'OUTSIDE KARNATAKA', pageWidth - 40, 59);
+    doc.text(dueDate, pageWidth - 40, 66);
+    
+    // Bill To section
+    currentY = 85;
+    
+    // Customer info
     const customerName = order.profiles 
       ? `${order.profiles.first_name || ''} ${order.profiles.last_name || ''}`.trim() || 'Customer'
       : `Customer ${order.user_id.substring(0, 8)}`;
     
-    doc.setFontSize(14);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text('Bill To:', 20, 115);
+    doc.text('Bill To:', 20, currentY);
     
-    doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text(customerName, 20, 125);
-    if (order.profiles?.email) {
-      doc.text(order.profiles.email, 20, 132);
-    }
-    if (order.profiles?.phone) {
-      doc.text(order.profiles.phone, 20, 139);
-    }
+    currentY += 6;
+    doc.text(customerName, 20, currentY);
     
-    // Shipping Address
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Ship To:', 20, 155);
-    
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    const shippingLines = order.shipping_address.split('\n');
-    let yPos = 165;
-    shippingLines.forEach((line) => {
-      doc.text(line, 20, yPos);
-      yPos += 7;
+    // Shipping address (simplified)
+    const addressLines = order.shipping_address.split(',').slice(0, 3);
+    addressLines.forEach(line => {
+      currentY += 5;
+      doc.text(line.trim(), 20, currentY);
     });
     
     // Items table
-    const tableStartY = Math.max(yPos + 10, 190);
+    const tableStartY = 120;
+    const tableHeight = 120;
     
-    // Table header
-    doc.setFillColor(248, 250, 252);
+    // Table structure
+    const columns = [
+      { header: 'Sl', x: 20, width: 15 },
+      { header: 'Items', x: 35, width: 60 },
+      { header: 'HSN / SAC', x: 95, width: 25 },
+      { header: 'Rate / Item', x: 120, width: 20 },
+      { header: 'Disc (%)', x: 140, width: 15 },
+      { header: 'Qty', x: 155, width: 15 },
+      { header: 'Taxable Vat', x: 170, width: 20 },
+      { header: 'Tax Amount', x: 190, width: 20 },
+      { header: 'Amount', x: 210, width: 25 }
+    ];
+    
+    // Draw table header
+    drawBorder(20, tableStartY, pageWidth - 40, 15);
+    doc.setFillColor(245, 245, 245);
     doc.rect(20, tableStartY, pageWidth - 40, 15, 'F');
     
-    doc.setTextColor(31, 41, 55);
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.text('Item', 25, tableStartY + 10);
-    doc.text('HSN', 80, tableStartY + 10);
-    doc.text('Qty', 110, tableStartY + 10);
-    doc.text('Rate', 130, tableStartY + 10);
-    doc.text('GST%', 155, tableStartY + 10);
-    doc.text('Amount', pageWidth - 25, tableStartY + 10);
+    
+    columns.forEach(col => {
+      // Vertical lines
+      if (col.x > 20) {
+        doc.line(col.x, tableStartY, col.x, tableStartY + tableHeight);
+      }
+      // Header text
+      doc.text(col.header, col.x + 2, tableStartY + 10);
+    });
+    
+    // Right border
+    doc.line(pageWidth - 20, tableStartY, pageWidth - 20, tableStartY + tableHeight);
     
     // Table rows
-    let currentTableY = tableStartY + 20;
+    let rowY = tableStartY + 20;
     let subtotal = 0;
     let totalTaxAmount = 0;
     
@@ -173,42 +199,46 @@ export class InvoiceGenerator {
       totalTaxAmount += taxBreakdown.totalTax;
       
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       
-      // Item details
-      const itemName = item.products.name.length > 15 ? 
-        item.products.name.substring(0, 15) + '...' : 
+      // Row data
+      doc.text((index + 1).toString(), 22, rowY);
+      
+      // Item name (truncated if too long)
+      const itemName = item.products.name.length > 25 ? 
+        item.products.name.substring(0, 25) + '...' : 
         item.products.name;
+      doc.text(itemName, 37, rowY);
       
-      doc.text(itemName, 25, currentTableY);
-      doc.text(item.products.hsn_code || 'N/A', 80, currentTableY);
-      doc.text(item.quantity.toString(), 110, currentTableY);
-      doc.text(`₹${Number(item.price).toFixed(2)}`, 130, currentTableY);
-      doc.text(`${gstPercentage}%`, 155, currentTableY);
-      doc.text(`₹${itemTotal.toFixed(2)}`, pageWidth - 25, currentTableY);
+      doc.text(item.products.hsn_code || 'N/A', 97, rowY);
+      doc.text(`₹${Number(item.price).toFixed(2)}`, 122, rowY);
+      doc.text('0', 142, rowY); // Discount
+      doc.text(item.quantity.toString(), 157, rowY);
+      doc.text(`₹${taxBreakdown.taxableAmount.toFixed(2)}`, 172, rowY);
+      doc.text(`₹${taxBreakdown.totalTax.toFixed(2)}`, 192, rowY);
+      doc.text(`₹${itemTotal.toFixed(2)}`, 212, rowY);
       
-      currentTableY += 12;
-      
-      // Line separator
+      // Horizontal line after each row
+      rowY += 15;
       if (index < orderItems.length - 1) {
-        doc.setDrawColor(229, 231, 235);
-        doc.line(20, currentTableY - 2, pageWidth - 20, currentTableY - 2);
-        currentTableY += 3;
+        doc.line(20, rowY - 7, pageWidth - 20, rowY - 7);
       }
     });
     
-    // Totals section with improved tax breakdown
-    currentTableY += 20;
-    const totalsX = pageWidth - 120;
+    // Table footer section
+    const footerY = tableStartY + tableHeight;
     
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
+    // Total items line
+    doc.line(20, footerY, pageWidth - 20, footerY);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Total Items ( Qty ) : ${orderItems.reduce((sum, item) => sum + item.quantity, 0)} / ${orderItems.length}.000`, 22, footerY + 8);
     
-    // Subtotal
-    doc.text('Subtotal:', totalsX - 50, currentTableY);
-    doc.text(`₹${(subtotal + totalTaxAmount).toFixed(2)}`, totalsX + 10, currentTableY);
+    // Tax summary on right
+    doc.text('Taxable Amount:', 140, footerY + 8);
+    doc.text(`₹${(subtotal + totalTaxAmount).toFixed(2)}`, 190, footerY + 8);
     
-    // Tax breakdown by GST rate
+    // CGST/SGST or IGST breakdown
+    let taxDetailsY = footerY + 15;
     const taxByRate = new Map<number, { cgst: number, sgst: number, igst: number }>();
     
     orderItems.forEach(item => {
@@ -226,114 +256,153 @@ export class InvoiceGenerator {
       existing.igst += taxBreakdown.igst || 0;
     });
     
-    // Display tax breakdown by rate
+    // Tax breakdown table
+    drawBorder(20, taxDetailsY, pageWidth - 20, 35);
+    
+    // Headers
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('HSN SAC', 25, taxDetailsY + 8);
+    doc.text('Taxable Value', 60, taxDetailsY + 8);
+    doc.text('Central Tax', 100, taxDetailsY + 8);
+    doc.text('State/UT Tax', 130, taxDetailsY + 8);
+    doc.text('Total Tax Amount', 170, taxDetailsY + 8);
+    
+    // Tax lines
+    doc.line(20, taxDetailsY + 10, pageWidth - 20, taxDetailsY + 10);
+    
+    let taxRowY = taxDetailsY + 18;
     taxByRate.forEach((taxes, rate) => {
-      currentTableY += 8;
-      if (taxes.cgst > 0 && taxes.sgst > 0) {
-        doc.text(`CGST (${rate/2}%):`, totalsX - 50, currentTableY);
-        doc.text(`₹${taxes.cgst.toFixed(2)}`, totalsX + 10, currentTableY);
-        currentTableY += 7;
-        doc.text(`SGST (${rate/2}%):`, totalsX - 50, currentTableY);
-        doc.text(`₹${taxes.sgst.toFixed(2)}`, totalsX + 10, currentTableY);
-      } else if (taxes.igst > 0) {
-        doc.text(`IGST (${rate}%):`, totalsX - 50, currentTableY);
-        doc.text(`₹${taxes.igst.toFixed(2)}`, totalsX + 10, currentTableY);
+      const taxableForRate = subtotal / taxByRate.size; // Simplified calculation
+      
+      doc.setFont('helvetica', 'normal');
+      doc.text('1701', 25, taxRowY);
+      doc.text(`₹${taxableForRate.toFixed(2)}`, 60, taxRowY);
+      
+      if (isKarnataka) {
+        doc.text(`${rate/2}%`, 105, taxRowY);
+        doc.text(`₹${taxes.cgst.toFixed(2)}`, 115, taxRowY);
+        doc.text(`${rate/2}%`, 135, taxRowY);
+        doc.text(`₹${taxes.sgst.toFixed(2)}`, 145, taxRowY);
+      } else {
+        doc.text(`${rate}%`, 105, taxRowY);
+        doc.text(`₹${taxes.igst.toFixed(2)}`, 115, taxRowY);
+        doc.text('-', 135, taxRowY);
+        doc.text('-', 145, taxRowY);
       }
+      
+      doc.text(`₹${(taxes.cgst + taxes.sgst + taxes.igst).toFixed(2)}`, 175, taxRowY);
+      taxRowY += 8;
     });
     
-    // Shipping charges
-    if (order.delivery_price && order.delivery_price > 0) {
-      currentTableY += 10;
-      doc.text('Shipping Charges:', totalsX - 50, currentTableY);
-      doc.text(`₹${Number(order.delivery_price).toFixed(2)}`, totalsX + 10, currentTableY);
+    // TOTAL line
+    doc.line(80, taxRowY, pageWidth - 20, taxRowY);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL', 90, taxRowY + 6);
+    doc.text(`₹${totalTaxAmount.toFixed(2)}`, 175, taxRowY + 6);
+    
+    // Grand total
+    const grandTotalY = taxRowY + 20;
+    doc.setFontSize(10);
+    doc.text(`Total amount (in words): ${this.numberToWords(Number(order.total))} Rupees Only`, 20, grandTotalY);
+    
+    // Final total box
+    drawBorder(pageWidth - 80, grandTotalY - 15, 60, 20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Total', pageWidth - 75, grandTotalY - 5);
+    doc.setFontSize(12);
+    doc.text(`₹${Number(order.total).toFixed(2)}`, pageWidth - 45, grandTotalY - 5, { align: 'right' });
+    
+    // Bank details section
+    if (bankDetails && bankDetails.bankName) {
+      const bankY = grandTotalY + 20;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Bank Details:', 20, bankY);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(`Bank: ${bankDetails.bankName}`, 20, bankY + 8);
+      if (bankDetails.accountNumber) {
+        doc.text(`Account #: ${bankDetails.accountNumber}`, 20, bankY + 15);
+      }
+      if (bankDetails.ifscCode) {
+        doc.text(`IFSC Code: ${bankDetails.ifscCode}`, 20, bankY + 22);
+      }
+      doc.text('Branch: MAIN BRANCH', 20, bankY + 29);
     }
     
-    // Total line
-    currentTableY += 15;
-    doc.setDrawColor(31, 41, 55);
-    doc.line(totalsX - 60, currentTableY - 5, pageWidth - 20, currentTableY - 5);
-    
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('Total Amount:', totalsX - 50, currentTableY);
-    doc.text(`₹${Number(order.total).toFixed(2)}`, totalsX + 10, currentTableY);
-    
-    // Tax summary box
-    currentTableY += 20;
-    doc.setFillColor(248, 250, 252);
-    doc.rect(20, currentTableY, pageWidth - 40, 25, 'F');
+    // Payment terms
+    const paymentY = grandTotalY + 60;
+    let paymentType = order.payment_type || "cod";
+    let paymentText = paymentType === "cod"
+      ? "Cash on Delivery"
+      : paymentType === "razorpay"
+      ? "Paid via UPI"
+      : paymentType.charAt(0).toUpperCase() + paymentType.slice(1);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('Tax Summary:', 25, currentTableY + 10);
+    doc.text(`₹${Number(order.total).toFixed(2)} Paid via ${paymentText} on ${invoiceDate}`, pageWidth - 20, paymentY, { align: 'right' });
+    doc.text('For COMPANY NAME', pageWidth - 20, paymentY + 20, { align: 'right' });
     
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    const isKarnataka = order.shipping_address.toLowerCase().includes('karnataka') || 
-                       order.shipping_address.toLowerCase().includes('bengaluru') ||
-                       order.shipping_address.toLowerCase().includes('bangalore');
-    
-    if (isKarnataka) {
-      doc.text(`Karnataka Address - Total GST: ₹${totalTaxAmount.toFixed(2)} (CGST + SGST)`, 25, currentTableY + 17);
-    } else {
-      doc.text(`Outside Karnataka - Total GST: ₹${totalTaxAmount.toFixed(2)} (IGST)`, 25, currentTableY + 17);
-    }
-    
-    // Bank Details (if provided)
-    if (bankDetails && bankDetails.bankName) {
-      currentTableY += 35;
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Bank Details:', 20, currentTableY);
-      
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      currentTableY += 10;
-      doc.text(`Bank: ${bankDetails.bankName}`, 20, currentTableY);
-      
-      if (bankDetails.accountNumber) {
-        currentTableY += 7;
-        doc.text(`Account: ${bankDetails.accountNumber}`, 20, currentTableY);
-      }
-      
-      if (bankDetails.ifscCode) {
-        currentTableY += 7;
-        doc.text(`IFSC: ${bankDetails.ifscCode}`, 20, currentTableY);
-      }
-    }
-    
-    // Terms and Conditions
-    if (termsAndConditions) {
-      const termsStartY = Math.min(currentTableY + 20, pageHeight - 60);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Terms & Conditions:', 20, termsStartY);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      // Split terms into lines to fit the page width
-      const maxWidth = pageWidth - 40;
-      const termsLines = doc.splitTextToSize(termsAndConditions, maxWidth);
-      let termsY = termsStartY + 10;
-      
-      termsLines.forEach((line: string) => {
-        if (termsY < pageHeight - 20) {
-          doc.text(line, 20, termsY);
-          termsY += 7;
-        }
-      });
-    }
-    
-    // Footer
-    const footerY = pageHeight - 30;
+    // Signature section
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(107, 114, 128);
-    doc.text('Thank you for your business!', 20, footerY);
-    doc.text(`Generated on ${new Date().toLocaleDateString('en-IN')} at ${new Date().toLocaleTimeString('en-IN')}`, 20, footerY + 7);
+    doc.text('Receiver\'s Signature', 20, pageHeight - 35);
+    doc.text('Authorized Signatory', pageWidth - 20, pageHeight - 35, { align: 'right' });
     
     // Return PDF as blob
     return doc.output('blob');
+  }
+
+  // Helper function to convert number to words
+  static numberToWords(num: number): string {
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+    const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    const thousands = ['', 'Thousand', 'Lakh', 'Crore'];
+
+    if (num === 0) return 'Zero';
+
+    function convertGroup(n: number): string {
+      let result = '';
+      
+      if (n >= 100) {
+        result += ones[Math.floor(n / 100)] + ' Hundred ';
+        n %= 100;
+      }
+      
+      if (n >= 20) {
+        result += tens[Math.floor(n / 10)] + ' ';
+        n %= 10;
+      } else if (n >= 10) {
+        result += teens[n - 10] + ' ';
+        return result;
+      }
+      
+      if (n > 0) {
+        result += ones[n] + ' ';
+      }
+      
+      return result;
+    }
+
+    const integerPart = Math.floor(num);
+    let result = '';
+    let groupIndex = 0;
+
+    if (integerPart === 0) return 'Zero';
+
+    while (integerPart > 0) {
+      const group = integerPart % (groupIndex === 0 ? 1000 : 100);
+      if (group !== 0) {
+        result = convertGroup(group) + thousands[groupIndex] + ' ' + result;
+      }
+      integerPart = Math.floor(integerPart / (groupIndex === 0 ? 1000 : 100));
+      groupIndex++;
+    }
+
+    return result.trim();
   }
 
   static downloadInvoice(pdfBlob: Blob, filename: string) {
