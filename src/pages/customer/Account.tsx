@@ -17,7 +17,7 @@ interface Profile {
   phone: string | null;
   address: string | null;
   city: string | null;
-  state: string | null; // <-- Added
+  state: string | null;
   postal_code: string | null;
   country: string | null;
 }
@@ -60,7 +60,7 @@ const Account = () => {
         phone: "",
         address: "",
         city: "",
-        state: "", // <-- Added default value
+        state: "",
         postal_code: "",
         country: ""
       });
