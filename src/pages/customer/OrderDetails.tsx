@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { generateCustomerName } from "@/utils/customerUtils";
 import { ArrowLeft, Truck, Download, IndianRupee } from "lucide-react";
 import { InvoiceService } from "@/services/invoiceService";
 import { useToast } from "@/hooks/use-toast";
-import { TaxCalculator } from "@/utils/taxCalculator";
+import { PricingUtils } from "@/utils/pricingUtils";
 
 const statusLabels: Record<string, string> = {
   pending: "Pending",
@@ -48,7 +47,6 @@ const OrderDetails = () => {
     const fetchOrder = async () => {
       setLoading(true);
       
-      // Fetch order details
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select(`
@@ -70,7 +68,6 @@ const OrderDetails = () => {
         return;
       }
 
-      // Fetch order items with product details
       const { data: itemsData, error: itemsError } = await supabase
         .from("order_items")
         .select(`
@@ -99,29 +96,30 @@ const OrderDetails = () => {
   }, [orderId]);
 
   const calculateOrderTotals = () => {
-    if (!orderItems.length) return { subtotal: 0, totalTax: 0, grandTotal: 0 };
+    if (!orderItems.length) return { subtotal: 0, totalTax: 0, grandTotal: 0, shippingCost: 0 };
 
-    let subtotal = 0;
-    let totalTax = 0;
-
-    orderItems.forEach((item: any) => {
-      if (!item.products) return;
-      
-      const gstPercentage = item.products.gst_percentage || 18;
-      const basePrice = item.products.discounted_price || item.products.price;
-      const itemTotal = basePrice * item.quantity;
-      
-      // Calculate tax breakdown
-      const taxBreakdown = TaxCalculator.calculateTaxBreakdown(itemTotal, gstPercentage, order?.shipping_address || '');
-      
-      subtotal += taxBreakdown.taxableAmount;
-      totalTax += taxBreakdown.totalTax;
-    });
-
+    const shippingAddress = order?.shipping_address || '';
     const shippingCost = Number(order?.delivery_price || 0);
-    const grandTotal = subtotal + totalTax + shippingCost;
+    
+    const orderTotals = PricingUtils.calculateOrderTotals(
+      orderItems.map(item => ({
+        product: {
+          price: item.price, // Use the stored price from order_items
+          discounted_price: null, // Order items already have the effective price
+          gst_percentage: item.products?.gst_percentage || 18
+        },
+        quantity: item.quantity
+      })),
+      shippingAddress,
+      shippingCost
+    );
 
-    return { subtotal, totalTax, grandTotal, shippingCost };
+    return {
+      subtotal: orderTotals.totalTaxableAmount,
+      totalTax: orderTotals.totalTaxAmount,
+      grandTotal: orderTotals.grandTotal,
+      shippingCost: orderTotals.deliveryPrice
+    };
   };
 
   const handleDownloadInvoice = async () => {
@@ -146,7 +144,6 @@ const OrderDetails = () => {
     }
   };
 
-  // Check if invoice can be downloaded (order completed or delivered)
   const canDownloadInvoice = order && (order.status === 'completed' || order.status === 'delivered' || order.status === 'shipped');
 
   if (loading) {
@@ -200,7 +197,7 @@ const OrderDetails = () => {
             <div className="text-right">
               <div className="text-lg font-bold flex items-center gap-1">
                 <IndianRupee className="h-4 w-4" />
-                {orderTotals.grandTotal.toFixed(2)}
+                {Number(order.total).toFixed(2)}
               </div>
               <Badge variant={badgeVariants[order.status] || "default"}>
                 {statusLabels[order.status] || order.status}
@@ -257,7 +254,7 @@ const OrderDetails = () => {
                   <span>Total:</span>
                   <span className="flex items-center gap-1">
                     <IndianRupee className="h-3 w-3" />
-                    {orderTotals.grandTotal.toFixed(2)}
+                    {Number(order.total).toFixed(2)}
                   </span>
                 </div>
               </div>

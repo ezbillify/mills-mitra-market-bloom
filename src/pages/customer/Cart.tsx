@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import CheckoutDialog from "@/components/customer/CheckoutDialog";
-import { TaxCalculator } from "@/utils/taxCalculator";
+import { PricingUtils } from "@/utils/pricingUtils";
 
 interface CartItem {
   id: string;
@@ -121,55 +121,23 @@ const Cart = () => {
     }
   };
 
-  const calculateItemTotals = (item: CartItem) => {
-    const gstPercentage = item.products.gst_percentage || 18;
-    const basePrice = item.products.discounted_price || item.products.price;
-    const itemTotal = basePrice * item.quantity;
-    
-    // Use proper tax calculation for consistent pricing
-    const taxBreakdown = TaxCalculator.calculateTaxBreakdown(itemTotal, gstPercentage, ""); // Empty address for cart
-    
-    return {
-      basePrice,
-      itemTotal,
-      taxableAmount: taxBreakdown.taxableAmount,
-      totalTax: taxBreakdown.totalTax,
-      finalAmount: taxBreakdown.taxableAmount + taxBreakdown.totalTax,
-      discountPerItem: item.products.discounted_price ? (item.products.price - item.products.discounted_price) : 0
-    };
-  };
-
-  const calculateCartTotals = () => {
-    let totalTaxableAmount = 0;
-    let totalTaxAmount = 0;
-    let totalFinalPrice = 0;
-    let totalDiscount = 0;
-
-    cartItems.forEach(item => {
-      const itemTotals = calculateItemTotals(item);
-      totalTaxableAmount += itemTotals.taxableAmount;
-      totalTaxAmount += itemTotals.totalTax;
-      totalFinalPrice += itemTotals.finalAmount;
-      totalDiscount += itemTotals.discountPerItem * item.quantity;
-    });
-
-    const shipping = totalFinalPrice > 500 ? 0 : 50;
-    const grandTotal = totalFinalPrice + shipping;
-
-    return {
-      totalTaxableAmount,
-      totalTaxAmount,
-      totalFinalPrice,
-      totalDiscount,
-      shipping,
-      grandTotal
-    };
-  };
-
-  const cartTotals = calculateCartTotals();
+  // Calculate cart totals using centralized pricing
+  const cartTotals = PricingUtils.calculateOrderTotals(
+    cartItems.map(item => ({
+      product: item.products,
+      quantity: item.quantity
+    })),
+    "", // Empty address for cart calculation
+    cartItems.length > 0 && PricingUtils.calculateOrderTotals(
+      cartItems.map(item => ({
+        product: item.products,
+        quantity: item.quantity
+      }))
+    ).totalFinalPrice > 500 ? 0 : 50 // Free shipping over 500
+  );
 
   const handleOrderComplete = () => {
-    fetchCartItems(); // Refresh cart after order completion
+    fetchCartItems();
     toast({
       title: "Order placed successfully!",
       description: "You will receive a confirmation email shortly.",
@@ -213,7 +181,7 @@ const Cart = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-4">
           {cartItems.map((item) => {
-            const itemTotals = calculateItemTotals(item);
+            const itemPricing = PricingUtils.calculateProductPrice(item.products, item.quantity);
             
             return (
               <Card key={item.id}>
@@ -237,20 +205,20 @@ const Cart = () => {
                           Price Breakdown
                         </h4>
                         
-                        {item.products.discounted_price ? (
+                        {PricingUtils.hasDiscount(item.products) ? (
                           <div className="space-y-1 text-sm">
                             <div className="flex justify-between">
                               <span className="text-gray-600">Original Price:</span>
                               <span className="line-through text-gray-500 flex items-center gap-1">
                                 <IndianRupee className="h-3 w-3" />
-                                {Number(item.products.price).toFixed(2)}
+                                {itemPricing.basePrice.toFixed(2)}
                               </span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Discounted Price:</span>
                               <span className="font-medium text-green-600 flex items-center gap-1">
                                 <IndianRupee className="h-3 w-3" />
-                                {Number(item.products.discounted_price).toFixed(2)}
+                                {itemPricing.discountedPrice.toFixed(2)}
                               </span>
                             </div>
                           </div>
@@ -259,16 +227,16 @@ const Cart = () => {
                             <span className="text-gray-600">Base Price:</span>
                             <span className="font-medium flex items-center gap-1">
                               <IndianRupee className="h-3 w-3" />
-                              {Number(item.products.price).toFixed(2)}
+                              {itemPricing.basePrice.toFixed(2)}
                             </span>
                           </div>
                         )}
                         
                         <div className="flex justify-between text-sm mt-1">
-                          <span className="text-gray-600">GST ({item.products.gst_percentage || 18}%):</span>
+                          <span className="text-gray-600">GST ({itemPricing.gstPercentage}%):</span>
                           <span className="flex items-center gap-1">
                             <IndianRupee className="h-3 w-3" />
-                            {itemTotals.totalTax.toFixed(2)}
+                            {(itemPricing.taxAmount / item.quantity).toFixed(2)}
                           </span>
                         </div>
                         
@@ -277,7 +245,7 @@ const Cart = () => {
                             <span>Price per unit:</span>
                             <span className="text-primary flex items-center gap-1">
                               <IndianRupee className="h-3 w-3" />
-                              {itemTotals.finalAmount.toFixed(2)}
+                              {(itemPricing.finalPrice / item.quantity).toFixed(2)}
                             </span>
                           </div>
                         </div>
@@ -287,18 +255,18 @@ const Cart = () => {
                             <span>Total for {item.quantity} unit(s):</span>
                             <span className="text-primary flex items-center gap-1">
                               <IndianRupee className="h-3 w-3" />
-                              {(itemTotals.finalAmount * item.quantity).toFixed(2)}
+                              {itemPricing.finalPrice.toFixed(2)}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      {item.products.discounted_price && (
+                      {PricingUtils.hasDiscount(item.products) && (
                         <div className="bg-green-50 border border-green-200 rounded-md p-2 mb-3">
                           <div className="flex items-center gap-1">
                             <Info className="h-3 w-3 text-green-600" />
                             <p className="text-xs text-green-700 flex items-center gap-1">
-                              You save <IndianRupee className="h-2 w-2" />{(itemTotals.discountPerItem * item.quantity).toFixed(2)} on this item!
+                              You save <IndianRupee className="h-2 w-2" />{(itemPricing.discountAmount * item.quantity).toFixed(2)} on this item!
                             </p>
                           </div>
                         </div>
@@ -358,11 +326,11 @@ const Cart = () => {
                   </span>
                 </div>
                 
-                {cartTotals.totalDiscount > 0 && (
+                {cartTotals.totalDiscountAmount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Total Discount:</span>
                     <span className="flex items-center gap-1">
-                      -<IndianRupee className="h-3 w-3" />{cartTotals.totalDiscount.toFixed(2)}
+                      -<IndianRupee className="h-3 w-3" />{cartTotals.totalDiscountAmount.toFixed(2)}
                     </span>
                   </div>
                 )}
@@ -389,10 +357,10 @@ const Cart = () => {
               <div className="flex justify-between">
                 <span>Shipping</span>
                 <span className="flex items-center gap-1">
-                  {cartTotals.shipping === 0 ? 'Free' : (
+                  {cartTotals.deliveryPrice === 0 ? 'Free' : (
                     <>
                       <IndianRupee className="h-3 w-3" />
-                      {cartTotals.shipping.toFixed(2)}
+                      {cartTotals.deliveryPrice.toFixed(2)}
                     </>
                   )}
                 </span>

@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { IndianRupee } from "lucide-react";
+import { PricingUtils } from "@/utils/pricingUtils";
 
 interface CartItem {
   id: string;
@@ -19,6 +20,8 @@ interface CartItem {
     id: string;
     name: string;
     price: number;
+    discounted_price?: number | null;
+    gst_percentage?: number | null;
   };
 }
 
@@ -84,7 +87,6 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
       console.log('Fetched shipping options:', data);
       setShippingOptions(data || []);
       
-      // Set first option as default
       if (data && data.length > 0) {
         setFormData(prev => ({ ...prev, shippingOptionId: data[0].id }));
       }
@@ -120,9 +122,19 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     setLoadingProfile(false);
   };
 
+  // Calculate order totals using centralized pricing
+  const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} - ${formData.postalCode}`;
   const selectedShippingOption = shippingOptions.find(option => option.id === formData.shippingOptionId);
   const shippingPrice = selectedShippingOption?.price || 0;
-  const finalTotal = total + shippingPrice;
+  
+  const orderTotals = PricingUtils.calculateOrderTotals(
+    cartItems.map(item => ({
+      product: item.products,
+      quantity: item.quantity
+    })),
+    shippingAddress,
+    shippingPrice
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,14 +143,11 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     setLoading(true);
 
     try {
-      const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} - ${formData.postalCode}`;
-      
-      // Create order with delivery option reference
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           user_id: user.id,
-          total: finalTotal,
+          total: orderTotals.grandTotal,
           status: 'pending',
           shipping_address: shippingAddress,
           delivery_option_id: formData.shippingOptionId,
@@ -149,13 +158,16 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
 
       if (orderError) throw orderError;
 
-      // Create order items
-      const orderItems = cartItems.map(item => ({
-        order_id: order.id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        price: item.products.price,
-      }));
+      // Create order items with proper pricing
+      const orderItems = cartItems.map(item => {
+        const itemPricing = PricingUtils.calculateProductPrice(item.products, 1);
+        return {
+          order_id: order.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price: itemPricing.discountedPrice, // Use the effective price (discounted or regular)
+        };
+      });
 
       const { error: itemsError } = await supabase
         .from('order_items')
@@ -215,21 +227,24 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
               <CardTitle className="text-lg">Order Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span>{item.products.name} × {item.quantity}</span>
-                  <span className="flex items-center gap-1">
-                    <IndianRupee className="h-3 w-3" />
-                    {(item.products.price * item.quantity).toFixed(2)}
-                  </span>
-                </div>
-              ))}
+              {cartItems.map((item) => {
+                const itemPricing = PricingUtils.calculateProductPrice(item.products, item.quantity);
+                return (
+                  <div key={item.id} className="flex justify-between text-sm">
+                    <span>{item.products.name} × {item.quantity}</span>
+                    <span className="flex items-center gap-1">
+                      <IndianRupee className="h-3 w-3" />
+                      {itemPricing.finalPrice.toFixed(2)}
+                    </span>
+                  </div>
+                );
+              })}
               <div className="border-t pt-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal:</span>
                   <span className="flex items-center gap-1">
                     <IndianRupee className="h-3 w-3" />
-                    {total.toFixed(2)}
+                    {orderTotals.totalFinalPrice.toFixed(2)}
                   </span>
                 </div>
                 {selectedShippingOption && (
@@ -245,7 +260,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                   <span>Total:</span>
                   <span className="flex items-center gap-1">
                     <IndianRupee className="h-4 w-4" />
-                    {finalTotal.toFixed(2)}
+                    {orderTotals.grandTotal.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -428,7 +443,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             >
               {loading ? "Placing Order..." : (
                 <span className="flex items-center gap-1">
-                  Place Order (<IndianRupee className="h-3 w-3" />{finalTotal.toFixed(2)})
+                  Place Order (<IndianRupee className="h-3 w-3" />{orderTotals.grandTotal.toFixed(2)})
                 </span>
               )}
             </Button>
