@@ -17,10 +17,8 @@ interface ShippingOption {
   description: string | null;
   price: number;
   is_active: boolean;
-  min_order_value: number | null;
-  max_weight: number | null;
-  delivery_days_min: number | null;
-  delivery_days_max: number | null;
+  estimated_days_min: number | null;
+  estimated_days_max: number | null;
   created_at: string;
 }
 
@@ -44,7 +42,7 @@ const AdminShippingSettings = () => {
   const fetchShippingOptions = async () => {
     try {
       const { data, error } = await supabase
-        .from('shipping_settings')
+        .from('delivery_options')
         .select('*')
         .order('price', { ascending: true });
 
@@ -94,7 +92,7 @@ const AdminShippingSettings = () => {
 
     try {
       const { error } = await supabase
-        .from('shipping_settings')
+        .from('delivery_options')
         .delete()
         .eq('id', optionId);
 
@@ -126,7 +124,7 @@ const AdminShippingSettings = () => {
   const toggleOptionStatus = async (optionId: string, currentStatus: boolean) => {
     try {
       const { error } = await supabase
-        .from('shipping_settings')
+        .from('delivery_options')
         .update({ is_active: !currentStatus })
         .eq('id', optionId);
 
@@ -245,7 +243,6 @@ const AdminShippingSettings = () => {
                   <TableHead className="font-semibold text-warm-brown">Name</TableHead>
                   <TableHead className="font-semibold text-warm-brown">Price</TableHead>
                   <TableHead className="font-semibold text-warm-brown">Delivery Time</TableHead>
-                  <TableHead className="font-semibold text-warm-brown">Min Order</TableHead>
                   <TableHead className="font-semibold text-warm-brown">Status</TableHead>
                   <TableHead className="font-semibold text-warm-brown">Actions</TableHead>
                 </TableRow>
@@ -266,12 +263,7 @@ const AdminShippingSettings = () => {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm text-earth-brown">
-                        {option.delivery_days_min}-{option.delivery_days_max} days
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-earth-brown">
-                        {option.min_order_value ? `₹${Number(option.min_order_value).toFixed(2)}` : 'No minimum'}
+                        {option.estimated_days_min}-{option.estimated_days_max} days
                       </div>
                     </TableCell>
                     <TableCell>

@@ -412,48 +412,6 @@ export type Database = {
         }
         Relationships: []
       }
-      shipping_settings: {
-        Row: {
-          created_at: string
-          delivery_days_max: number | null
-          delivery_days_min: number | null
-          description: string | null
-          id: string
-          is_active: boolean
-          max_weight: number | null
-          min_order_value: number | null
-          name: string
-          price: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          delivery_days_max?: number | null
-          delivery_days_min?: number | null
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          max_weight?: number | null
-          min_order_value?: number | null
-          name: string
-          price?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          delivery_days_max?: number | null
-          delivery_days_min?: number | null
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          max_weight?: number | null
-          min_order_value?: number | null
-          name?: string
-          price?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       website_visits: {
         Row: {
           created_at: string
