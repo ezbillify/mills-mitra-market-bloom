@@ -4,7 +4,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useRealtimeSubscriptions } from "@/hooks/useRealtimeSubscriptions";
 import CustomerLayout from "@/layouts/CustomerLayout";
 import AdminLayout from "@/layouts/AdminLayout";
 import AdminProtectedRoute from "@/components/admin/AdminProtectedRoute";
@@ -35,8 +34,6 @@ import NotFound from "@/pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
-  useRealtimeSubscriptions();
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

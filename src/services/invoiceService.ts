@@ -4,6 +4,7 @@ import { InvoiceGenerator } from "@/utils/invoiceGenerator";
 import { Order } from "@/types/order";
 
 interface InvoiceSettings {
+  id: string;
   company_name: string;
   company_address: string;
   company_phone: string;
