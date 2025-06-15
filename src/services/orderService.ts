@@ -8,7 +8,7 @@ export class OrderService {
     DebugUtils.log("OrderService", "🔍 fetchOrders() called");
 
     try {
-      // First, get the orders with proper joins
+      // Fetch orders with proper joins using the correct foreign key relationship
       DebugUtils.log("OrderService", "📥 Fetching orders with profiles from database...");
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
@@ -28,7 +28,7 @@ export class OrderService {
             description,
             price
           ),
-          profiles!user_id (
+          profiles!orders_user_id_profiles_fkey (
             id,
             first_name,
             last_name,
@@ -82,7 +82,7 @@ export class OrderService {
             postal_code: order.profiles.postal_code || null,
             country: order.profiles.country || null
           };
-          DebugUtils.log("OrderService", `✅ Found real profile for order ${order.id.substring(0, 8)}:`, {
+          DebugUtils.log("OrderService", `✅ Found profile for order ${order.id.substring(0, 8)}:`, {
             name: `${orderProfile.first_name} ${orderProfile.last_name}`,
             email: orderProfile.email,
             address: orderProfile.address,
@@ -123,7 +123,7 @@ export class OrderService {
       const ordersWithoutProfiles = processedOrders.filter(order => !order.profiles);
       
       DebugUtils.log("OrderService", "📊 Final processing summary:");
-      DebugUtils.log("OrderService", `   - Orders with real profiles: ${ordersWithProfiles.length}`);
+      DebugUtils.log("OrderService", `   - Orders with profiles: ${ordersWithProfiles.length}`);
       DebugUtils.log("OrderService", `   - Orders without profiles: ${ordersWithoutProfiles.length}`);
       DebugUtils.log("OrderService", `   - Total orders returned: ${processedOrders.length}`);
 
