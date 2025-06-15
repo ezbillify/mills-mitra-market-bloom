@@ -353,6 +353,7 @@ export type Database = {
           delivery_option_id: string | null
           delivery_price: number | null
           id: string
+          payment_type: string
           shipping_address: string
           status: Database["public"]["Enums"]["order_status"]
           total: number
@@ -365,6 +366,7 @@ export type Database = {
           delivery_option_id?: string | null
           delivery_price?: number | null
           id?: string
+          payment_type?: string
           shipping_address: string
           status?: Database["public"]["Enums"]["order_status"]
           total: number
@@ -377,6 +379,7 @@ export type Database = {
           delivery_option_id?: string | null
           delivery_price?: number | null
           id?: string
+          payment_type?: string
           shipping_address?: string
           status?: Database["public"]["Enums"]["order_status"]
           total?: number

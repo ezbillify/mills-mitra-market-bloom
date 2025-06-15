@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
   Dialog,
@@ -179,6 +178,7 @@ const OrderDetailsDialog = ({
             <InvoiceInfoCard 
               orderId={orderDetails.id} 
               createdAt={orderDetails.created_at} 
+              paymentType={orderDetails.payment_type} // Pass payment type to InvoiceInfoCard
             />
 
             {/* Shipping Address */}

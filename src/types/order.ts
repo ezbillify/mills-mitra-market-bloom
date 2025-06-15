@@ -1,4 +1,3 @@
-
 export interface OrderProfile {
   first_name: string | null;
   last_name: string | null;
@@ -28,6 +27,7 @@ export interface Order {
     price: number;
   } | null;
   profiles?: OrderProfile | null;
+  payment_type?: string; // <- new field ("cod" or "razorpay")
 }
 
 export type OrderStatus = 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -154,6 +153,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           shipping_address: shippingAddress,
           delivery_option_id: formData.shippingOptionId,
           delivery_price: shippingPrice,
+          payment_type: formData.paymentMethod,   // <--- Store payment type here!
         })
         .select()
         .single();

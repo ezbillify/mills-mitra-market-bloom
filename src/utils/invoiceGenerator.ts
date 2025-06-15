@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf';
 import { Order } from '@/types/order';
 import { TaxCalculator, TaxBreakdown } from './taxCalculator';
@@ -88,7 +87,6 @@ export class InvoiceGenerator {
     
     // Invoice details
     const invoiceDate = new Date(order.created_at).toLocaleDateString('en-IN');
-    
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Invoice Number:', pageWidth - 80, 55);
@@ -97,6 +95,19 @@ export class InvoiceGenerator {
     doc.setFont('helvetica', 'normal');
     doc.text(invoiceNumber, pageWidth - 80, 62);
     doc.text(invoiceDate, pageWidth - 80, 72);
+    
+    // Payment method
+    let paymentType = order.payment_type || "cod";
+    let paymentText = paymentType === "cod"
+      ? "Cash on Delivery"
+      : paymentType === "razorpay"
+      ? "Paid via Razorpay"
+      : paymentType.charAt(0).toUpperCase() + paymentType.slice(1);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Payment Method:', pageWidth - 80, 80);
+    doc.setFont('helvetica', 'normal');
+    doc.text(paymentText, pageWidth - 80, 87);
     
     // Customer Info
     const customerName = order.profiles 
