@@ -122,12 +122,17 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
               {orders.map((order, index) => {
                 DebugUtils.log("OrdersTable", `🎨 Rendering row ${index + 1} for order ${order.id.substring(0, 8)}`);
                 
-                const customerName = generateCustomerName({
+                // Create a simplified customer object for the generateCustomerName function
+                const customerData = {
                   id: order.user_id,
-                  first_name: order.profiles?.first_name,
-                  last_name: order.profiles?.last_name,
-                  email: order.profiles?.email
-                });
+                  first_name: order.profiles?.first_name || null,
+                  last_name: order.profiles?.last_name || null,
+                  email: order.profiles?.email || null
+                };
+                
+                DebugUtils.log("OrdersTable", `📋 Customer data for generateCustomerName:`, customerData);
+                
+                const customerName = generateCustomerName(customerData);
                 const customerEmail = order.profiles?.email || 'No email';
                 const shippingInfo = getShippingMethod(order);
                 

@@ -58,31 +58,56 @@ interface Customer {
   };
 }
 
+// Helper function to safely extract value from potentially wrapped objects
+const extractValue = (value: any): string | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  
+  // If it's a wrapped object with _type and value properties
+  if (typeof value === 'object' && value._type && value.value !== undefined) {
+    if (value._type === 'undefined' || value.value === 'undefined') {
+      return null;
+    }
+    return value.value;
+  }
+  
+  // If it's a plain string or null
+  return typeof value === 'string' ? value : null;
+};
+
 export const generateCustomerName = (customer: CustomerData | OrderProfile): string => {
   console.log(`🎯 generateCustomerName called with data:`, customer);
   
+  // Extract values safely, handling both wrapped and unwrapped formats
+  const firstName = extractValue(customer.first_name);
+  const lastName = extractValue(customer.last_name);
+  const email = extractValue(customer.email);
+  
+  console.log(`🔍 Extracted values - firstName: "${firstName}", lastName: "${lastName}", email: "${email}"`);
+  
   // If we have both first and last name, use them
-  if (customer.first_name && customer.last_name) {
-    const fullName = `${customer.first_name} ${customer.last_name}`;
+  if (firstName && lastName) {
+    const fullName = `${firstName} ${lastName}`;
     console.log(`✅ Using full name: "${fullName}"`);
     return fullName;
   }
   
   // If we have just first name, use it
-  if (customer.first_name) {
-    console.log(`✅ Using first name only: "${customer.first_name}"`);
-    return customer.first_name;
+  if (firstName) {
+    console.log(`✅ Using first name only: "${firstName}"`);
+    return firstName;
   }
   
   // If we have just last name, use it
-  if (customer.last_name) {
-    console.log(`✅ Using last name only: "${customer.last_name}"`);
-    return customer.last_name;
+  if (lastName) {
+    console.log(`✅ Using last name only: "${lastName}"`);
+    return lastName;
   }
   
   // If we have email, use the part before @
-  if (customer.email && customer.email !== 'No email provided') {
-    const emailName = customer.email.split('@')[0];
+  if (email && email !== 'No email provided' && !email.includes('unknown.com')) {
+    const emailName = email.split('@')[0];
     console.log(`✅ Using email-derived name: "${emailName}"`);
     return emailName;
   }
@@ -100,19 +125,25 @@ export const generateCustomerName = (customer: CustomerData | OrderProfile): str
 };
 
 export const getCustomerEmail = (customer: CustomerData | OrderProfile): string => {
-  return customer.email && customer.email !== 'No email provided' ? customer.email : 'No email';
+  const email = extractValue(customer.email);
+  return email && email !== 'No email provided' && !email.includes('unknown.com') ? email : 'No email';
 };
 
 export const getCustomerAddress = (customer: OrderProfile): string => {
-  if (!customer.address && !customer.city) {
+  const address = extractValue(customer.address);
+  const city = extractValue(customer.city);
+  const postalCode = extractValue(customer.postal_code);
+  const country = extractValue(customer.country);
+  
+  if (!address && !city) {
     return 'No address provided';
   }
   
   const addressParts = [];
-  if (customer.address) addressParts.push(customer.address);
-  if (customer.city) addressParts.push(customer.city);
-  if (customer.postal_code) addressParts.push(customer.postal_code);
-  if (customer.country) addressParts.push(customer.country);
+  if (address) addressParts.push(address);
+  if (city) addressParts.push(city);
+  if (postalCode) addressParts.push(postalCode);
+  if (country) addressParts.push(country);
   
   return addressParts.join(', ') || 'No address provided';
 };
