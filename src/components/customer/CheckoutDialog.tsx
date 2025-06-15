@@ -22,16 +22,14 @@ interface CartItem {
   };
 }
 
-interface ShippingOption {
+interface DeliveryOption {
   id: string;
   name: string;
   description: string | null;
   price: number;
-  delivery_days_min: number | null;
-  delivery_days_max: number | null;
+  estimated_days_min: number | null;
+  estimated_days_max: number | null;
   is_active: boolean;
-  min_order_value: number | null;
-  max_weight: number | null;
 }
 
 interface CheckoutDialogProps {
@@ -45,7 +43,7 @@ interface CheckoutDialogProps {
 const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete }: CheckoutDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
-  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
+  const [shippingOptions, setShippingOptions] = useState<DeliveryOption[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -71,8 +69,9 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
 
   const fetchShippingOptions = async () => {
     try {
+      console.log('Fetching shipping options...');
       const { data, error } = await supabase
-        .from('shipping_settings')
+        .from('delivery_options')
         .select('*')
         .eq('is_active', true)
         .order('price', { ascending: true });
@@ -82,16 +81,12 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         return;
       }
 
-      // Filter options based on minimum order value
-      const eligibleOptions = (data || []).filter(option => {
-        if (!option.min_order_value) return true;
-        return total >= option.min_order_value;
-      });
-
-      setShippingOptions(eligibleOptions);
-      // Set first eligible option as default
-      if (eligibleOptions && eligibleOptions.length > 0) {
-        setFormData(prev => ({ ...prev, shippingOptionId: eligibleOptions[0].id }));
+      console.log('Fetched shipping options:', data);
+      setShippingOptions(data || []);
+      
+      // Set first option as default
+      if (data && data.length > 0) {
+        setFormData(prev => ({ ...prev, shippingOptionId: data[0].id }));
       }
     } catch (error) {
       console.error('Error fetching shipping options:', error);
@@ -138,7 +133,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     try {
       const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} - ${formData.postalCode}`;
       
-      // Create order with shipping option reference
+      // Create order with delivery option reference
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -146,6 +141,8 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           total: finalTotal,
           status: 'pending',
           shipping_address: shippingAddress,
+          delivery_option_id: formData.shippingOptionId,
+          delivery_price: shippingPrice,
         })
         .select()
         .single();
@@ -251,7 +248,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             <CardContent>
               {shippingOptions.length === 0 ? (
                 <div className="text-center py-4 text-gray-500">
-                  No shipping options available for this order value.
+                  No shipping options available.
                 </div>
               ) : (
                 <RadioGroup 
@@ -268,17 +265,12 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                             {option.description && (
                               <div className="text-sm text-gray-600">{option.description}</div>
                             )}
-                            {option.delivery_days_min && option.delivery_days_max && (
+                            {option.estimated_days_min && option.estimated_days_max && (
                               <div className="text-xs text-gray-500">
-                                Delivery in {option.delivery_days_min === option.delivery_days_max 
-                                  ? `${option.delivery_days_min} day${option.delivery_days_min > 1 ? 's' : ''}`
-                                  : `${option.delivery_days_min}-${option.delivery_days_max} days`
+                                Delivery in {option.estimated_days_min === option.estimated_days_max 
+                                  ? `${option.estimated_days_min} day${option.estimated_days_min > 1 ? 's' : ''}`
+                                  : `${option.estimated_days_min}-${option.estimated_days_max} days`
                                 }
-                              </div>
-                            )}
-                            {option.min_order_value && (
-                              <div className="text-xs text-blue-600">
-                                Minimum order: ₹{option.min_order_value}
                               </div>
                             )}
                           </div>
