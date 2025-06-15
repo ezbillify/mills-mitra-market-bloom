@@ -17,6 +17,7 @@ export const getStatusBadgeConfig = (status: string) => {
 };
 
 export const getShippingMethodInfo = (order: Order) => {
+  // Handle case where shipping_settings might not be available due to removed relationship
   if (order.shipping_settings && order.shipping_settings.name) {
     return {
       name: order.shipping_settings.name,

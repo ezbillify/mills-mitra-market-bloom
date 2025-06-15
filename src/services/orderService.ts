@@ -8,6 +8,7 @@ export class OrderService {
       console.log("📦 Fetching orders for current user...");
 
       // Query that respects RLS - will only return user's own orders or all orders if admin
+      // Removed shipping_settings join since the table doesn't exist or has wrong relationship
       const { data: orders, error } = await supabase
         .from("orders")
         .select(`
@@ -21,12 +22,6 @@ export class OrderService {
             city,
             postal_code,
             country
-          ),
-          shipping_settings!orders_delivery_option_id_fkey(
-            id,
-            name,
-            description,
-            price
           )
         `)
         .order("created_at", { ascending: false });
@@ -73,6 +68,7 @@ export class OrderService {
       console.log(`🔍 Fetching order details for ${orderId.substring(0, 8)}`);
 
       // Query that respects RLS - will only return order if user owns it or is admin
+      // Removed shipping_settings join since the table doesn't exist or has wrong relationship
       const { data: order, error } = await supabase
         .from("orders")
         .select(`
@@ -86,12 +82,6 @@ export class OrderService {
             city,
             postal_code,
             country
-          ),
-          shipping_settings!orders_delivery_option_id_fkey(
-            id,
-            name,
-            description,
-            price
           )
         `)
         .eq("id", orderId)

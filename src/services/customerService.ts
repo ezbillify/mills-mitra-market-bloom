@@ -145,3 +145,6 @@ export class CustomerService {
     }
   }
 }
+
+// Export the function that useCustomers is looking for
+export const fetchCustomersData = CustomerService.fetchCustomers;

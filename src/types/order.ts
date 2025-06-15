@@ -16,6 +16,7 @@ export interface Order {
   total: number;
   status: OrderStatus;
   created_at: string;
+  updated_at?: string;
   shipping_address: string;
   tracking_number?: string | null;
   delivery_option_id?: string | null;
@@ -25,7 +26,7 @@ export interface Order {
     name: string;
     description?: string;
     price: number;
-  };
+  } | null;
   profiles?: OrderProfile | null;
 }
 
