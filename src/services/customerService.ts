@@ -1,7 +1,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { Customer } from "@/types/customer";
 
-export interface Customer {
+export interface CustomerProfile {
   id: string;
   first_name: string | null;
   last_name: string | null;
@@ -54,20 +55,53 @@ export class CustomerService {
               ? orderStats.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
               : null;
 
+            // Transform to match the Customer interface from types/customer.ts
+            const customerName = profile.first_name && profile.last_name 
+              ? `${profile.first_name} ${profile.last_name}`.trim()
+              : profile.first_name || profile.last_name || profile.email || `Customer ${profile.id.substring(0, 8)}`;
+
             return {
-              ...profile,
-              total_orders: totalOrders,
-              total_spent: totalSpent,
-              last_order_date: lastOrderDate,
-            };
+              id: profile.id,
+              name: customerName,
+              email: profile.email || 'No email',
+              phone: profile.phone || 'No phone',
+              totalOrders: totalOrders,
+              totalSpent: totalSpent,
+              status: totalOrders > 0 ? 'active' as const : 'inactive' as const,
+              joinDate: profile.created_at,
+              profile: {
+                first_name: profile.first_name,
+                last_name: profile.last_name,
+                address: profile.address,
+                city: profile.city,
+                postal_code: profile.postal_code,
+                country: profile.country,
+              }
+            } as Customer;
           } catch (error) {
             console.error(`Error fetching stats for customer ${profile.id}:`, error);
+            const customerName = profile.first_name && profile.last_name 
+              ? `${profile.first_name} ${profile.last_name}`.trim()
+              : profile.first_name || profile.last_name || profile.email || `Customer ${profile.id.substring(0, 8)}`;
+
             return {
-              ...profile,
-              total_orders: 0,
-              total_spent: 0,
-              last_order_date: null,
-            };
+              id: profile.id,
+              name: customerName,
+              email: profile.email || 'No email',
+              phone: profile.phone || 'No phone',
+              totalOrders: 0,
+              totalSpent: 0,
+              status: 'inactive' as const,
+              joinDate: profile.created_at,
+              profile: {
+                first_name: profile.first_name,
+                last_name: profile.last_name,
+                address: profile.address,
+                city: profile.city,
+                postal_code: profile.postal_code,
+                country: profile.country,
+              }
+            } as Customer;
           }
         })
       );
@@ -80,7 +114,7 @@ export class CustomerService {
     }
   }
 
-  static async getCurrentUserProfile(): Promise<Customer | null> {
+  static async getCurrentUserProfile(): Promise<CustomerProfile | null> {
     try {
       console.log("👤 Fetching current user profile...");
 
@@ -115,7 +149,7 @@ export class CustomerService {
     }
   }
 
-  static async updateCurrentUserProfile(updates: Partial<Customer>): Promise<void> {
+  static async updateCurrentUserProfile(updates: Partial<CustomerProfile>): Promise<void> {
     try {
       console.log("📝 Updating current user profile...");
 
