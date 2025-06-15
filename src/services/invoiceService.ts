@@ -3,10 +3,52 @@ import { supabase } from "@/integrations/supabase/client";
 import { InvoiceGenerator } from "@/utils/invoiceGenerator";
 import { Order } from "@/types/order";
 
+interface InvoiceSettings {
+  company_name: string;
+  company_address: string;
+  company_phone: string;
+  company_email: string;
+  gst_number: string;
+  fssai_number: string | null;
+  pan_number: string | null;
+  invoice_prefix: string;
+  invoice_counter: number;
+  terms_and_conditions: string | null;
+  bank_name: string | null;
+  account_number: string | null;
+  ifsc_code: string | null;
+}
+
 export class InvoiceService {
+  static async getInvoiceSettings(): Promise<InvoiceSettings | null> {
+    try {
+      const { data, error } = await supabase
+        .from("invoice_settings")
+        .select("*")
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching invoice settings:", error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Error getting invoice settings:", error);
+      return null;
+    }
+  }
+
   static async generateInvoiceForOrder(orderId: string): Promise<Blob | null> {
     try {
       console.log(`📄 Generating invoice for order ${orderId.substring(0, 8)}`);
+
+      // Fetch invoice settings
+      const invoiceSettings = await this.getInvoiceSettings();
+      if (!invoiceSettings) {
+        console.error("No invoice settings found");
+        return null;
+      }
 
       // Fetch order details
       const { data: order, error: orderError } = await supabase
@@ -49,16 +91,34 @@ export class InvoiceService {
         return null;
       }
 
+      // Generate invoice number and update counter
+      const invoiceNumber = `${invoiceSettings.invoice_prefix}-${String(invoiceSettings.invoice_counter).padStart(4, '0')}`;
+      
+      // Update the invoice counter for next invoice
+      await supabase
+        .from("invoice_settings")
+        .update({ invoice_counter: invoiceSettings.invoice_counter + 1 })
+        .eq("id", invoiceSettings.id);
+
       const invoiceData = {
         order,
         orderItems: orderItems || [],
         companyInfo: {
-          name: "Your Company Name",
-          address: "123 Business Street, City, State 12345",
-          phone: "+91 9876543210",
-          email: "info@yourcompany.com",
-          gst: "22AAAAA0000A1Z5"
-        }
+          name: invoiceSettings.company_name,
+          address: invoiceSettings.company_address,
+          phone: invoiceSettings.company_phone,
+          email: invoiceSettings.company_email,
+          gst: invoiceSettings.gst_number,
+          fssai: invoiceSettings.fssai_number,
+          pan: invoiceSettings.pan_number,
+        },
+        invoiceNumber,
+        termsAndConditions: invoiceSettings.terms_and_conditions,
+        bankDetails: invoiceSettings.bank_name ? {
+          bankName: invoiceSettings.bank_name,
+          accountNumber: invoiceSettings.account_number,
+          ifscCode: invoiceSettings.ifsc_code,
+        } : null
       };
 
       const pdfBlob = await InvoiceGenerator.generateInvoice(invoiceData);

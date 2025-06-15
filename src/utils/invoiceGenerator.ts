@@ -12,31 +12,34 @@ interface InvoiceItem {
   };
 }
 
+interface CompanyInfo {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  gst: string;
+  fssai?: string | null;
+  pan?: string | null;
+}
+
+interface BankDetails {
+  bankName: string;
+  accountNumber: string | null;
+  ifscCode: string | null;
+}
+
 interface InvoiceData {
   order: Order;
   orderItems: InvoiceItem[];
-  companyInfo: {
-    name: string;
-    address: string;
-    phone: string;
-    email: string;
-    gst: string;
-  };
+  companyInfo: CompanyInfo;
+  invoiceNumber: string;
+  termsAndConditions?: string | null;
+  bankDetails?: BankDetails | null;
 }
 
 export class InvoiceGenerator {
-  private static getCompanyInfo() {
-    return {
-      name: "Your Company Name",
-      address: "123 Business Street, City, State 12345",
-      phone: "+91 9876543210",
-      email: "info@yourcompany.com",
-      gst: "22AAAAA0000A1Z5"
-    };
-  }
-
   static async generateInvoice(invoiceData: InvoiceData): Promise<Blob> {
-    const { order, orderItems } = invoiceData;
+    const { order, orderItems, companyInfo, invoiceNumber, termsAndConditions, bankDetails } = invoiceData;
     const doc = new jsPDF();
     
     // Set up the document
@@ -61,17 +64,26 @@ export class InvoiceGenerator {
     doc.setTextColor(31, 41, 55);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(invoiceData.companyInfo.name, 20, 55);
+    doc.text(companyInfo.name, 20, 55);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(invoiceData.companyInfo.address, 20, 65);
-    doc.text(`Phone: ${invoiceData.companyInfo.phone}`, 20, 72);
-    doc.text(`Email: ${invoiceData.companyInfo.email}`, 20, 79);
-    doc.text(`GST: ${invoiceData.companyInfo.gst}`, 20, 86);
+    doc.text(companyInfo.address, 20, 65);
+    doc.text(`Phone: ${companyInfo.phone}`, 20, 72);
+    doc.text(`Email: ${companyInfo.email}`, 20, 79);
+    doc.text(`GST: ${companyInfo.gst}`, 20, 86);
+    
+    let currentY = 86;
+    if (companyInfo.fssai) {
+      currentY += 7;
+      doc.text(`FSSAI: ${companyInfo.fssai}`, 20, currentY);
+    }
+    if (companyInfo.pan) {
+      currentY += 7;
+      doc.text(`PAN: ${companyInfo.pan}`, 20, currentY);
+    }
     
     // Invoice details
-    const invoiceNumber = `INV-${order.id.substring(0, 8).toUpperCase()}`;
     const invoiceDate = new Date(order.created_at).toLocaleDateString('en-IN');
     
     doc.setFontSize(12);
@@ -90,34 +102,34 @@ export class InvoiceGenerator {
     
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Bill To:', 20, 105);
+    doc.text('Bill To:', 20, 115);
     
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text(customerName, 20, 115);
+    doc.text(customerName, 20, 125);
     if (order.profiles?.email) {
-      doc.text(order.profiles.email, 20, 122);
+      doc.text(order.profiles.email, 20, 132);
     }
     if (order.profiles?.phone) {
-      doc.text(order.profiles.phone, 20, 129);
+      doc.text(order.profiles.phone, 20, 139);
     }
     
     // Shipping Address
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Ship To:', 20, 145);
+    doc.text('Ship To:', 20, 155);
     
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     const shippingLines = order.shipping_address.split('\n');
-    let yPos = 155;
+    let yPos = 165;
     shippingLines.forEach((line) => {
       doc.text(line, 20, yPos);
       yPos += 7;
     });
     
     // Items table
-    const tableStartY = Math.max(yPos + 10, 180);
+    const tableStartY = Math.max(yPos + 10, 190);
     
     // Table header
     doc.setFillColor(248, 250, 252);
@@ -132,7 +144,7 @@ export class InvoiceGenerator {
     doc.text('Total', pageWidth - 40, tableStartY + 10);
     
     // Table rows
-    let currentY = tableStartY + 20;
+    let currentTableY = tableStartY + 20;
     let subtotal = 0;
     
     orderItems.forEach((item, index) => {
@@ -147,7 +159,7 @@ export class InvoiceGenerator {
       if (itemName.length > 30) {
         const words = itemName.split(' ');
         let line = '';
-        let lineY = currentY;
+        let lineY = currentTableY;
         
         words.forEach((word) => {
           if ((line + word).length > 30) {
@@ -159,48 +171,93 @@ export class InvoiceGenerator {
           }
         });
         doc.text(line, 25, lineY);
-        currentY = lineY + 7;
+        currentTableY = lineY + 7;
       } else {
-        doc.text(itemName, 25, currentY);
-        currentY += 12;
+        doc.text(itemName, 25, currentTableY);
+        currentTableY += 12;
       }
       
       // Quantity, price, total
-      doc.text(item.quantity.toString(), pageWidth - 120, currentY - 5);
-      doc.text(`₹${Number(item.price).toFixed(2)}`, pageWidth - 80, currentY - 5);
-      doc.text(`₹${itemTotal.toFixed(2)}`, pageWidth - 40, currentY - 5);
+      doc.text(item.quantity.toString(), pageWidth - 120, currentTableY - 5);
+      doc.text(`₹${Number(item.price).toFixed(2)}`, pageWidth - 80, currentTableY - 5);
+      doc.text(`₹${itemTotal.toFixed(2)}`, pageWidth - 40, currentTableY - 5);
       
       // Line separator
       if (index < orderItems.length - 1) {
         doc.setDrawColor(229, 231, 235);
-        doc.line(20, currentY + 2, pageWidth - 20, currentY + 2);
-        currentY += 10;
+        doc.line(20, currentTableY + 2, pageWidth - 20, currentTableY + 2);
+        currentTableY += 10;
       }
     });
     
     // Totals section
-    currentY += 20;
+    currentTableY += 20;
     const totalsX = pageWidth - 100;
     
     doc.setFont('helvetica', 'normal');
-    doc.text('Subtotal:', totalsX - 30, currentY);
-    doc.text(`₹${subtotal.toFixed(2)}`, totalsX + 10, currentY);
+    doc.text('Subtotal:', totalsX - 30, currentTableY);
+    doc.text(`₹${subtotal.toFixed(2)}`, totalsX + 10, currentTableY);
     
     if (order.delivery_price && order.delivery_price > 0) {
-      currentY += 10;
-      doc.text('Shipping:', totalsX - 30, currentY);
-      doc.text(`₹${Number(order.delivery_price).toFixed(2)}`, totalsX + 10, currentY);
+      currentTableY += 10;
+      doc.text('Shipping:', totalsX - 30, currentTableY);
+      doc.text(`₹${Number(order.delivery_price).toFixed(2)}`, totalsX + 10, currentTableY);
     }
     
     // Total line
-    currentY += 15;
+    currentTableY += 15;
     doc.setDrawColor(31, 41, 55);
-    doc.line(totalsX - 40, currentY - 5, pageWidth - 20, currentY - 5);
+    doc.line(totalsX - 40, currentTableY - 5, pageWidth - 20, currentTableY - 5);
     
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
-    doc.text('Total:', totalsX - 30, currentY);
-    doc.text(`₹${Number(order.total).toFixed(2)}`, totalsX + 10, currentY);
+    doc.text('Total:', totalsX - 30, currentTableY);
+    doc.text(`₹${Number(order.total).toFixed(2)}`, totalsX + 10, currentTableY);
+    
+    // Bank Details (if provided)
+    if (bankDetails && bankDetails.bankName) {
+      currentTableY += 25;
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Bank Details:', 20, currentTableY);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      currentTableY += 10;
+      doc.text(`Bank: ${bankDetails.bankName}`, 20, currentTableY);
+      
+      if (bankDetails.accountNumber) {
+        currentTableY += 7;
+        doc.text(`Account: ${bankDetails.accountNumber}`, 20, currentTableY);
+      }
+      
+      if (bankDetails.ifscCode) {
+        currentTableY += 7;
+        doc.text(`IFSC: ${bankDetails.ifscCode}`, 20, currentTableY);
+      }
+    }
+    
+    // Terms and Conditions
+    if (termsAndConditions) {
+      const termsStartY = Math.min(currentTableY + 20, pageHeight - 60);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Terms & Conditions:', 20, termsStartY);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      // Split terms into lines to fit the page width
+      const maxWidth = pageWidth - 40;
+      const termsLines = doc.splitTextToSize(termsAndConditions, maxWidth);
+      let termsY = termsStartY + 10;
+      
+      termsLines.forEach((line: string) => {
+        if (termsY < pageHeight - 20) {
+          doc.text(line, 20, termsY);
+          termsY += 7;
+        }
+      });
+    }
     
     // Footer
     const footerY = pageHeight - 30;

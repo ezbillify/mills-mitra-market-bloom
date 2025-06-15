@@ -212,6 +212,63 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_settings: {
+        Row: {
+          account_number: string | null
+          bank_name: string | null
+          company_address: string
+          company_email: string
+          company_name: string
+          company_phone: string
+          created_at: string
+          fssai_number: string | null
+          gst_number: string
+          id: string
+          ifsc_code: string | null
+          invoice_counter: number
+          invoice_prefix: string
+          pan_number: string | null
+          terms_and_conditions: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          bank_name?: string | null
+          company_address?: string
+          company_email?: string
+          company_name?: string
+          company_phone?: string
+          created_at?: string
+          fssai_number?: string | null
+          gst_number?: string
+          id?: string
+          ifsc_code?: string | null
+          invoice_counter?: number
+          invoice_prefix?: string
+          pan_number?: string | null
+          terms_and_conditions?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          bank_name?: string | null
+          company_address?: string
+          company_email?: string
+          company_name?: string
+          company_phone?: string
+          created_at?: string
+          fssai_number?: string | null
+          gst_number?: string
+          id?: string
+          ifsc_code?: string | null
+          invoice_counter?: number
+          invoice_prefix?: string
+          pan_number?: string | null
+          terms_and_conditions?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
