@@ -32,7 +32,6 @@ export class InvoiceService {
         console.warn("Error fetching invoice settings, using defaults:", error);
       }
 
-      // Always return settings, either from database or defaults
       return data || {
         id: "default",
         company_name: "Your Company Name",
@@ -51,7 +50,6 @@ export class InvoiceService {
       };
     } catch (error) {
       console.warn("Error getting invoice settings, using defaults:", error);
-      // Return default settings instead of null
       return {
         id: "default",
         company_name: "Your Company Name",
@@ -75,10 +73,11 @@ export class InvoiceService {
     try {
       console.log(`📄 Generating invoice for order ${orderId.substring(0, 8)}`);
 
-      // Fetch invoice settings - this will always return settings (either from DB or defaults)
+      // Fetch invoice settings with improved error handling
       const invoiceSettings = await this.getInvoiceSettings();
+      console.log(`⚙️ Using invoice settings: ${invoiceSettings.company_name}`);
 
-      // Fetch order details with proper error handling
+      // Fetch order details with better error handling for customer access
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .select(`
@@ -95,14 +94,21 @@ export class InvoiceService {
           )
         `)
         .eq("id", orderId)
-        .single();
+        .maybeSingle();
 
-      if (orderError || !order) {
+      if (orderError) {
         console.error("Error fetching order:", orderError);
-        throw new Error("Order not found or could not be fetched");
+        throw new Error(`Order not found: ${orderError.message}`);
       }
 
-      // Fetch order items with product details including HSN and GST
+      if (!order) {
+        console.error("Order not found for ID:", orderId);
+        throw new Error("Order not found or you don't have access to this order");
+      }
+
+      console.log(`📦 Order found: ${order.id.substring(0, 8)} with status ${order.status}`);
+
+      // Fetch order items with product details
       const { data: orderItems, error: itemsError } = await supabase
         .from("order_items")
         .select(`
@@ -118,22 +124,31 @@ export class InvoiceService {
 
       if (itemsError) {
         console.error("Error fetching order items:", itemsError);
-        throw new Error("Could not fetch order items");
+        throw new Error(`Could not fetch order items: ${itemsError.message}`);
       }
 
       if (!orderItems || orderItems.length === 0) {
+        console.error("No items found for order:", orderId);
         throw new Error("No items found for this order");
       }
 
-      // Generate invoice number and update counter (only if not using default settings)
+      console.log(`📋 Found ${orderItems.length} items for order`);
+
+      // Generate invoice number - for customers, use a simplified approach
       let invoiceNumber = `${invoiceSettings.invoice_prefix}-${String(invoiceSettings.invoice_counter).padStart(4, '0')}`;
       
       if (invoiceSettings.id !== "default") {
-        // Update the invoice counter for next invoice
-        await supabase
-          .from("invoice_settings")
-          .update({ invoice_counter: invoiceSettings.invoice_counter + 1 })
-          .eq("id", invoiceSettings.id);
+        // Only update counter for admin access, not customer access
+        try {
+          await supabase
+            .from("invoice_settings")
+            .update({ invoice_counter: invoiceSettings.invoice_counter + 1 })
+            .eq("id", invoiceSettings.id);
+        } catch (updateError) {
+          console.warn("Could not update invoice counter (customer access):", updateError);
+          // Use order-based invoice number for customers
+          invoiceNumber = `INV-${orderId.substring(0, 8)}`;
+        }
       } else {
         // Use order ID for default invoice number
         invoiceNumber = `INV-${orderId.substring(0, 8)}`;
@@ -160,24 +175,35 @@ export class InvoiceService {
         } : null
       };
 
+      console.log(`🧾 Generating PDF with invoice number: ${invoiceNumber}`);
       const pdfBlob = await InvoiceGenerator.generateInvoice(invoiceData);
       console.log(`✅ Invoice generated successfully for order ${orderId.substring(0, 8)}`);
       
       return pdfBlob;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating invoice:", error);
-      throw error; // Re-throw to let the calling code handle the error properly
+      // Re-throw with more context for customer-facing errors
+      if (error.message?.includes('JWT')) {
+        throw new Error("Authentication error. Please login and try again.");
+      } else if (error.message?.includes('permission')) {
+        throw new Error("You don't have permission to access this invoice.");
+      }
+      throw error;
     }
   }
 
   static async downloadInvoiceForOrder(orderId: string) {
     try {
+      console.log(`🔽 Starting invoice download for order ${orderId.substring(0, 8)}`);
       const pdfBlob = await this.generateInvoiceForOrder(orderId);
       if (pdfBlob) {
         const filename = `invoice-${orderId.substring(0, 8)}.pdf`;
+        console.log(`💾 Downloading invoice as: ${filename}`);
         InvoiceGenerator.downloadInvoice(pdfBlob, filename);
+      } else {
+        throw new Error("Failed to generate PDF invoice");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error downloading invoice:", error);
       throw error;
     }

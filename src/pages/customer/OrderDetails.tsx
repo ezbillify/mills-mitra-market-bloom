@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -104,8 +105,8 @@ const OrderDetails = () => {
     const orderTotals = PricingUtils.calculateOrderTotals(
       orderItems.map(item => ({
         product: {
-          price: item.price, // Use the stored price from order_items
-          discounted_price: null, // Order items already have the effective price
+          price: item.price,
+          discounted_price: null,
           gst_percentage: item.products?.gst_percentage || 18
         },
         quantity: item.quantity
@@ -127,16 +128,28 @@ const OrderDetails = () => {
     
     setDownloadingInvoice(true);
     try {
+      console.log(`🧾 Customer attempting to download invoice for order ${orderId.substring(0, 8)}`);
       await InvoiceService.downloadInvoiceForOrder(orderId);
       toast({
         title: "Success",
         description: "Invoice downloaded successfully",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error downloading invoice:", error);
+      let errorMessage = "Failed to download invoice. Please try again.";
+      
+      // Provide more specific error messages based on the error type
+      if (error.message?.includes('Order not found')) {
+        errorMessage = "Order not found. Please contact support.";
+      } else if (error.message?.includes('No items found')) {
+        errorMessage = "No items found for this order. Please contact support.";
+      } else if (error.message?.includes('Failed to fetch')) {
+        errorMessage = "Network error. Please check your connection and try again.";
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to download invoice. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -144,10 +157,14 @@ const OrderDetails = () => {
     }
   };
 
+  // Allow invoice download for more order statuses and improve conditions
   const canDownloadInvoice = order && (
+    order.status === 'processing' || 
     order.status === 'shipped' || 
     order.status === 'delivered' || 
-    order.status === 'completed'
+    order.status === 'completed' ||
+    order.status === 'accepted' ||
+    order.status === 'out_for_delivery'
   );
 
   if (loading) {
