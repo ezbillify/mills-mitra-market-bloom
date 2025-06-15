@@ -51,6 +51,15 @@ export const useOrderDetails = (orderId: string | null, open: boolean) => {
     try {
       console.log("Fetching order details for:", orderId);
 
+      // Get the current authenticated user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        console.error("❌ No authenticated user found:", userError);
+        throw new Error("Authentication required to fetch order details");
+      }
+
+      // Fetch order with explicit user filtering
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .select(`
@@ -67,6 +76,7 @@ export const useOrderDetails = (orderId: string | null, open: boolean) => {
           )
         `)
         .eq("id", orderId)
+        .eq("user_id", user.id) // Ensure user can only see their own orders
         .single();
 
       if (orderError) {
@@ -74,6 +84,7 @@ export const useOrderDetails = (orderId: string | null, open: boolean) => {
         throw new Error(`Failed to fetch order: ${orderError.message}`);
       }
 
+      // Fetch order items with additional security check
       const { data: items, error: itemsError } = await supabase
         .from("order_items")
         .select(`
@@ -91,6 +102,12 @@ export const useOrderDetails = (orderId: string | null, open: boolean) => {
         throw new Error(`Failed to fetch order items: ${itemsError.message}`);
       }
 
+      // Verify the order belongs to the current user
+      if (order.user_id !== user.id) {
+        console.error("❌ Order does not belong to current user");
+        throw new Error("You don't have permission to view this order");
+      }
+
       console.log("Order details fetched:", order);
       console.log("Order items fetched:", items);
 
@@ -103,6 +120,8 @@ export const useOrderDetails = (orderId: string | null, open: boolean) => {
         description: `Failed to fetch order details: ${error.message}`,
         variant: "destructive",
       });
+      setOrderDetails(null);
+      setOrderItems([]);
     } finally {
       setLoading(false);
     }
