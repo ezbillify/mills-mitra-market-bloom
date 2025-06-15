@@ -58,28 +58,15 @@ interface Customer {
   };
 }
 
-// Enhanced helper function for better customer-order data extraction
-const extractValue = (value: any): string | null => {
-  // Handle actual null/undefined first
-  if (value === null || value === undefined) {
-    return null;
-  }
-  
-  // Handle string representations of null/undefined
-  if (value === "null" || value === "undefined" || value === "") {
-    return null;
-  }
-  
-  // If it's a wrapped object with _type and value properties (from some frameworks)
-  if (typeof value === 'object' && value._type && value.value !== undefined) {
-    if (value._type === 'undefined' || value.value === 'undefined' || value.value === "null") {
-      return null;
-    }
-    return value.value;
-  }
-  
-  // For plain strings, return them if they have content, otherwise null
-  return typeof value === 'string' && value.length > 0 ? value : null;
+// Enhanced helper function for better value validation
+const isValidValue = (value: any): boolean => {
+  return value !== null && 
+         value !== undefined && 
+         value !== "" && 
+         value !== "null" && 
+         value !== "undefined" &&
+         typeof value === 'string' && 
+         value.trim().length > 0;
 };
 
 export const generateCustomerName = (customer: CustomerData | OrderProfile): string => {
@@ -92,41 +79,43 @@ export const generateCustomerName = (customer: CustomerData | OrderProfile): str
     raw_last_name: JSON.stringify(customer.last_name)
   });
   
-  // Extract values safely - DO NOT use extractValue here as it's converting valid strings to null
+  // Extract and validate values properly
   const firstName = customer.first_name;
   const lastName = customer.last_name;
   const email = customer.email;
   
-  console.log(`🔍 Direct values - firstName: ${firstName}, lastName: ${lastName}, email: ${email}`);
+  console.log(`🔍 Validating values - firstName: "${firstName}", lastName: "${lastName}", email: "${email}"`);
   
   // Priority 1: Full name (best customer identification)
-  if (firstName && lastName && firstName !== 'null' && lastName !== 'null') {
-    const fullName = `${firstName} ${lastName}`;
+  if (isValidValue(firstName) && isValidValue(lastName)) {
+    const fullName = `${firstName.trim()} ${lastName.trim()}`;
     console.log(`✅ Customer match: Full name "${fullName}"`);
     return fullName;
   }
   
   // Priority 2: First name only
-  if (firstName && firstName !== 'null') {
-    console.log(`✅ Customer match: First name "${firstName}"`);
-    return firstName;
+  if (isValidValue(firstName)) {
+    console.log(`✅ Customer match: First name "${firstName.trim()}"`);
+    return firstName.trim();
   }
   
   // Priority 3: Last name only
-  if (lastName && lastName !== 'null') {
-    console.log(`✅ Customer match: Last name "${lastName}"`);
-    return lastName;
+  if (isValidValue(lastName)) {
+    console.log(`✅ Customer match: Last name "${lastName.trim()}"`);
+    return lastName.trim();
   }
   
   // Priority 4: Email-based name (good fallback for customer identification)
-  if (email && email !== 'No email provided' && !email.includes('unknown.com') && email !== 'null') {
+  if (isValidValue(email) && email.includes('@') && !email.includes('unknown.com')) {
     const emailName = email.split('@')[0];
-    console.log(`✅ Customer match: Email-derived name "${emailName}"`);
-    return emailName;
+    if (emailName && emailName.length > 0) {
+      console.log(`✅ Customer match: Email-derived name "${emailName}"`);
+      return emailName;
+    }
   }
   
   // Priority 5: Fallback with customer ID (ensures order always shows a customer)
-  if ('id' in customer) {
+  if ('id' in customer && customer.id) {
     const fallbackName = `Customer ${customer.id.substring(0, 8)}`;
     console.log(`🔄 Customer fallback: "${fallbackName}"`);
     return fallbackName;
@@ -139,7 +128,7 @@ export const generateCustomerName = (customer: CustomerData | OrderProfile): str
 
 export const getCustomerEmail = (customer: CustomerData | OrderProfile): string => {
   const email = customer.email;
-  return email && email !== 'No email provided' && !email.includes('unknown.com') && email !== 'null' ? email : 'No email';
+  return isValidValue(email) && email.includes('@') && !email.includes('unknown.com') ? email : 'No email';
 };
 
 export const getCustomerAddress = (customer: OrderProfile): string => {
@@ -148,17 +137,13 @@ export const getCustomerAddress = (customer: OrderProfile): string => {
   const postalCode = customer.postal_code;
   const country = customer.country;
   
-  if (!address && !city) {
-    return 'No address provided';
-  }
-  
   const addressParts = [];
-  if (address && address !== 'null') addressParts.push(address);
-  if (city && city !== 'null') addressParts.push(city);
-  if (postalCode && postalCode !== 'null') addressParts.push(postalCode);
-  if (country && country !== 'null') addressParts.push(country);
+  if (isValidValue(address)) addressParts.push(address.trim());
+  if (isValidValue(city)) addressParts.push(city.trim());
+  if (isValidValue(postalCode)) addressParts.push(postalCode.trim());
+  if (isValidValue(country)) addressParts.push(country.trim());
   
-  return addressParts.join(', ') || 'No address provided';
+  return addressParts.length > 0 ? addressParts.join(', ') : 'No address provided';
 };
 
 // Enhanced customer data processing for better customer-order relationships

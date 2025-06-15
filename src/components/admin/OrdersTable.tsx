@@ -14,14 +14,34 @@ interface OrdersTableProps {
   onViewDetails: (orderId: string) => void;
 }
 
+// Helper function to validate if a value contains actual data
+const hasValidData = (value: any): boolean => {
+  return value !== null && 
+         value !== undefined && 
+         value !== "" && 
+         value !== "null" && 
+         value !== "undefined" &&
+         typeof value === 'string' && 
+         value.trim().length > 0;
+};
+
+// Helper function to check if profile has complete data
+const hasCompleteProfileData = (profiles: any): boolean => {
+  if (!profiles) return false;
+  
+  return hasValidData(profiles.first_name) || 
+         hasValidData(profiles.last_name) || 
+         (hasValidData(profiles.email) && profiles.email.includes('@') && !profiles.email.includes('unknown.com'));
+};
+
 const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps) => {
   DebugUtils.log("OrdersTable", `🔥 Enhanced customer-order display: Received ${orders.length} orders`);
   
-  // Enhanced customer-order analysis
-  const ordersWithProfiles = orders.filter(order => order.profiles && (order.profiles.first_name || order.profiles.last_name || order.profiles.email));
-  const ordersWithoutProfiles = orders.filter(order => !order.profiles);
+  // Enhanced customer-order analysis with better profile detection
+  const ordersWithProfiles = orders.filter(order => hasCompleteProfileData(order.profiles));
+  const ordersWithoutProfiles = orders.filter(order => !hasCompleteProfileData(order.profiles));
   
-  DebugUtils.log("OrdersTable", `📊 Customer-order breakdown: ${ordersWithProfiles.length} with profiles, ${ordersWithoutProfiles.length} without profiles`);
+  DebugUtils.log("OrdersTable", `📊 Customer-order breakdown: ${ordersWithProfiles.length} with valid profiles, ${ordersWithoutProfiles.length} without valid profiles`);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", className: string }> = {
@@ -65,13 +85,16 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     return { name: "Standard Shipping", price: 0 };
   };
 
-  // Enhanced customer info extraction with better debugging
+  // Enhanced customer info extraction with proper validation
   const getCustomerInfo = (order: Order) => {
     console.log(`🔍 Getting customer info for order ${order.id.substring(0, 8)}:`, {
       profiles: order.profiles,
-      user_id: order.user_id.substring(0, 8)
+      user_id: order.user_id.substring(0, 8),
+      hasProfiles: !!order.profiles,
+      profilesKeys: order.profiles ? Object.keys(order.profiles) : []
     });
     
+    // Create customer data object for generateCustomerName
     const customerData = {
       id: order.user_id,
       first_name: order.profiles?.first_name || null,
@@ -79,16 +102,34 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
       email: order.profiles?.email || null
     };
     
-    console.log(`📋 Customer data being passed to generateCustomerName:`, customerData);
+    console.log(`📋 Customer data being passed to generateCustomerName:`, {
+      ...customerData,
+      first_name_valid: hasValidData(customerData.first_name),
+      last_name_valid: hasValidData(customerData.last_name),
+      email_valid: hasValidData(customerData.email)
+    });
     
     const customerName = generateCustomerName(customerData);
-    const customerEmail = order.profiles?.email || 'No email';
-    const hasCompleteProfile = !!(order.profiles?.first_name || order.profiles?.last_name);
+    
+    // Enhanced email validation
+    const customerEmail = hasValidData(order.profiles?.email) && 
+                         order.profiles.email.includes('@') && 
+                         !order.profiles.email.includes('unknown.com') 
+                         ? order.profiles.email 
+                         : 'No email';
+    
+    // Better profile completeness check
+    const hasCompleteProfile = hasCompleteProfileData(order.profiles);
     
     console.log(`✅ Generated customer info:`, {
       customerName,
       customerEmail,
-      hasCompleteProfile
+      hasCompleteProfile,
+      profileData: {
+        first_name: order.profiles?.first_name,
+        last_name: order.profiles?.last_name,
+        email: order.profiles?.email
+      }
     });
     
     return { customerName, customerEmail, hasCompleteProfile };
@@ -122,9 +163,9 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
           Recent Orders ({orders.length})
           <div className="flex items-center gap-2 text-sm font-normal">
             <UserCheck className="h-4 w-4 text-green-600" />
-            <span className="text-green-600">{ordersWithProfiles.length} with profiles</span>
+            <span className="text-green-600">{ordersWithProfiles.length} with complete profiles</span>
             <User className="h-4 w-4 text-orange-600" />
-            <span className="text-orange-600">{ordersWithoutProfiles.length} without profiles</span>
+            <span className="text-orange-600">{ordersWithoutProfiles.length} incomplete profiles</span>
           </div>
           {DebugUtils.isDebugEnabled() && (
             <Bug className="h-4 w-4 text-red-500" />
@@ -158,15 +199,21 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                   customerName,
                   customerEmail,
                   hasCompleteProfile,
-                  shippingMethod: shippingInfo.name
+                  shippingMethod: shippingInfo.name,
+                  profileDataAvailable: !!order.profiles,
+                  profileDataValid: hasCompleteProfileData(order.profiles)
                 });
                 
                 return (
                   <TableRow key={order.id} className="border-gray-200 hover:bg-gray-50 transition-colors">
                     <TableCell className="font-mono text-sm text-royal-green bg-gray-50 rounded-md m-1 px-3 py-2">
                       #{order.id.slice(0, 8)}
-                      {DebugUtils.isDebugEnabled() && !order.profiles && (
-                        <div className="text-xs text-red-500 mt-1">NO PROFILE</div>
+                      {DebugUtils.isDebugEnabled() && (
+                        <div className="text-xs mt-1">
+                          {!order.profiles && <span className="text-red-500">NO PROFILE</span>}
+                          {order.profiles && !hasCompleteProfile && <span className="text-orange-500">INCOMPLETE</span>}
+                          {order.profiles && hasCompleteProfile && <span className="text-green-500">COMPLETE</span>}
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>
@@ -183,7 +230,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                               User: {order.user_id.substring(0, 8)} | Profile: {hasCompleteProfile ? 'Complete' : 'Incomplete'}
                               {order.profiles && (
                                 <div className="text-xs text-blue-600">
-                                  First: {order.profiles.first_name || 'null'} | Last: {order.profiles.last_name || 'null'}
+                                  F: "{order.profiles.first_name || 'null'}" | L: "{order.profiles.last_name || 'null'}" | E: "{order.profiles.email || 'null'}"
                                 </div>
                               )}
                             </div>
