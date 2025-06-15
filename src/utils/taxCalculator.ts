@@ -1,47 +1,95 @@
 
 export interface TaxBreakdown {
-  isKarnataka: boolean;
-  sgst?: number;
-  cgst?: number;
-  igst?: number;
-  totalTax: number;
   taxableAmount: number;
+  totalTax: number;
+  cgst?: number;
+  sgst?: number;
+  igst?: number;
 }
 
 export class TaxCalculator {
-  static calculateTaxBreakdown(amount: number, gstPercentage: number, shippingAddress: string): TaxBreakdown {
-    // Check if address is in Karnataka by looking for 'karnataka', 'bengaluru', 'bangalore', 'mysore', etc.
-    const karnatakaKeywords = [
-      'karnataka', 'bengaluru', 'bangalore', 'mysore', 'mangalore', 'hubli', 'dharwad',
-      'belgaum', 'gulbarga', 'davangere', 'bellary', 'bijapur', 'shimoga', 'tumkur',
-      'raichur', 'bidar', 'hospet', 'gadag', 'mandya', 'hassan', 'udupi', 'chikmagalur'
-    ];
+  /**
+   * Calculate comprehensive tax breakdown based on GST percentage and shipping address
+   */
+  static calculateTaxBreakdown(
+    amount: number,
+    gstPercentage: number = 18,
+    shippingAddress: string = ""
+  ): TaxBreakdown {
+    const taxRate = gstPercentage / 100;
     
-    const addressLower = shippingAddress.toLowerCase();
-    const isKarnataka = karnatakaKeywords.some(keyword => addressLower.includes(keyword));
+    // For now, assume the amount is tax-inclusive
+    // Calculate taxable amount and tax amount from inclusive amount
+    const taxableAmount = amount / (1 + taxRate);
+    const totalTax = amount - taxableAmount;
     
-    const totalTax = (amount * gstPercentage) / 100;
+    // Determine if the address is in Karnataka
+    const isKarnataka = shippingAddress.toLowerCase().includes('karnataka') || 
+                       shippingAddress.toLowerCase().includes('bengaluru') ||
+                       shippingAddress.toLowerCase().includes('bangalore');
     
     if (isKarnataka) {
-      // For Karnataka: SGST + CGST (each is half of total GST)
-      const sgst = totalTax / 2;
+      // Intra-state: CGST + SGST
       const cgst = totalTax / 2;
+      const sgst = totalTax / 2;
       
       return {
-        isKarnataka: true,
-        sgst,
-        cgst,
+        taxableAmount,
         totalTax,
-        taxableAmount: amount
+        cgst,
+        sgst
       };
     } else {
-      // For outside Karnataka: IGST (full GST amount)
+      // Inter-state: IGST
       return {
-        isKarnataka: false,
-        igst: totalTax,
+        taxableAmount,
         totalTax,
-        taxableAmount: amount
+        igst: totalTax
       };
     }
+  }
+
+  /**
+   * Calculate tax on an exclusive amount (tax to be added)
+   */
+  static calculateTaxOnExclusiveAmount(
+    exclusiveAmount: number,
+    gstPercentage: number = 18,
+    shippingAddress: string = ""
+  ): TaxBreakdown {
+    const taxRate = gstPercentage / 100;
+    const totalTax = exclusiveAmount * taxRate;
+    
+    // Determine if the address is in Karnataka
+    const isKarnataka = shippingAddress.toLowerCase().includes('karnataka') || 
+                       shippingAddress.toLowerCase().includes('bengaluru') ||
+                       shippingAddress.toLowerCase().includes('bangalore');
+    
+    if (isKarnataka) {
+      // Intra-state: CGST + SGST
+      const cgst = totalTax / 2;
+      const sgst = totalTax / 2;
+      
+      return {
+        taxableAmount: exclusiveAmount,
+        totalTax,
+        cgst,
+        sgst
+      };
+    } else {
+      // Inter-state: IGST
+      return {
+        taxableAmount: exclusiveAmount,
+        totalTax,
+        igst: totalTax
+      };
+    }
+  }
+
+  /**
+   * Format tax amount for display
+   */
+  static formatTaxAmount(amount: number): string {
+    return `₹${amount.toFixed(2)}`;
   }
 }

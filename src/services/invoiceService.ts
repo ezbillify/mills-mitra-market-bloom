@@ -30,7 +30,23 @@ export class InvoiceService {
 
       if (error) {
         console.error("Error fetching invoice settings:", error);
-        return null;
+        // Return default settings if none exist
+        return {
+          id: "default",
+          company_name: "Your Company Name",
+          company_address: "Your Company Address",
+          company_phone: "Your Phone Number",
+          company_email: "your@email.com",
+          gst_number: "Your GST Number",
+          fssai_number: null,
+          pan_number: null,
+          invoice_prefix: "INV",
+          invoice_counter: 1,
+          terms_and_conditions: "Thank you for your business!",
+          bank_name: null,
+          account_number: null,
+          ifsc_code: null
+        };
       }
 
       return data;
@@ -44,14 +60,14 @@ export class InvoiceService {
     try {
       console.log(`📄 Generating invoice for order ${orderId.substring(0, 8)}`);
 
-      // Fetch invoice settings
+      // Fetch invoice settings with fallback
       const invoiceSettings = await this.getInvoiceSettings();
       if (!invoiceSettings) {
-        console.error("No invoice settings found");
-        return null;
+        console.error("No invoice settings found and fallback failed");
+        throw new Error("Invoice settings not configured. Please contact administrator.");
       }
 
-      // Fetch order details
+      // Fetch order details with proper error handling
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .select(`
@@ -72,7 +88,7 @@ export class InvoiceService {
 
       if (orderError || !order) {
         console.error("Error fetching order:", orderError);
-        return null;
+        throw new Error("Order not found or could not be fetched");
       }
 
       // Fetch order items with product details including HSN and GST
@@ -91,17 +107,26 @@ export class InvoiceService {
 
       if (itemsError) {
         console.error("Error fetching order items:", itemsError);
-        return null;
+        throw new Error("Could not fetch order items");
       }
 
-      // Generate invoice number and update counter
-      const invoiceNumber = `${invoiceSettings.invoice_prefix}-${String(invoiceSettings.invoice_counter).padStart(4, '0')}`;
+      if (!orderItems || orderItems.length === 0) {
+        throw new Error("No items found for this order");
+      }
+
+      // Generate invoice number and update counter (only if not using default settings)
+      let invoiceNumber = `${invoiceSettings.invoice_prefix}-${String(invoiceSettings.invoice_counter).padStart(4, '0')}`;
       
-      // Update the invoice counter for next invoice
-      await supabase
-        .from("invoice_settings")
-        .update({ invoice_counter: invoiceSettings.invoice_counter + 1 })
-        .eq("id", invoiceSettings.id);
+      if (invoiceSettings.id !== "default") {
+        // Update the invoice counter for next invoice
+        await supabase
+          .from("invoice_settings")
+          .update({ invoice_counter: invoiceSettings.invoice_counter + 1 })
+          .eq("id", invoiceSettings.id);
+      } else {
+        // Use order ID for default invoice number
+        invoiceNumber = `INV-${orderId.substring(0, 8)}`;
+      }
 
       const invoiceData = {
         order,
@@ -130,15 +155,20 @@ export class InvoiceService {
       return pdfBlob;
     } catch (error) {
       console.error("Error generating invoice:", error);
-      return null;
+      throw error; // Re-throw to let the calling code handle the error properly
     }
   }
 
   static async downloadInvoiceForOrder(orderId: string) {
-    const pdfBlob = await this.generateInvoiceForOrder(orderId);
-    if (pdfBlob) {
-      const filename = `invoice-${orderId.substring(0, 8)}.pdf`;
-      InvoiceGenerator.downloadInvoice(pdfBlob, filename);
+    try {
+      const pdfBlob = await this.generateInvoiceForOrder(orderId);
+      if (pdfBlob) {
+        const filename = `invoice-${orderId.substring(0, 8)}.pdf`;
+        InvoiceGenerator.downloadInvoice(pdfBlob, filename);
+      }
+    } catch (error) {
+      console.error("Error downloading invoice:", error);
+      throw error;
     }
   }
 }

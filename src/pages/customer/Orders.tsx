@@ -53,9 +53,10 @@ const Orders = () => {
       });
     } catch (error) {
       console.error("Error downloading invoice:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to download invoice. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to download invoice. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

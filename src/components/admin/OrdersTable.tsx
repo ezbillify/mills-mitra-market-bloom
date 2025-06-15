@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { Order } from "@/types/order";
 import { generateCustomerName } from "@/utils/customerUtils";
 import { DebugUtils } from "@/utils/debugUtils";
 import { PricingUtils } from "@/utils/pricingUtils";
+import { TaxCalculator } from "@/utils/taxCalculator";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -136,24 +136,39 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     return { customerName, customerEmail, hasCompleteProfile };
   };
 
-  // Enhanced pricing calculation for admin view
+  // Enhanced pricing calculation for admin view with proper tax breakdown
   const getOrderPricing = (order: Order) => {
-    // For now, we'll use the stored total from the order
-    // In a future enhancement, we could fetch order items and recalculate
     const orderTotal = Number(order.total) || 0;
     const shippingCost = Number(order.delivery_price || 0);
     
-    // Calculate approximate breakdown
-    const totalWithoutShipping = orderTotal - shippingCost;
-    const approximateTaxRate = 0.18; // 18% GST as default
-    const approximateSubtotal = totalWithoutShipping / (1 + approximateTaxRate);
-    const approximateTax = totalWithoutShipping - approximateSubtotal;
+    // Calculate the subtotal (total excluding shipping)
+    const totalWithoutShipping = Math.max(0, orderTotal - shippingCost);
+    
+    // Use a standard GST rate for estimation if we don't have detailed breakdown
+    const standardGstRate = 18; // 18% as default
+    
+    // Calculate tax breakdown using the tax calculator
+    const taxBreakdown = TaxCalculator.calculateTaxBreakdown(
+      totalWithoutShipping,
+      standardGstRate,
+      order.shipping_address || ""
+    );
+    
+    // If the calculated total doesn't match the order total, 
+    // adjust the breakdown proportionally
+    const calculatedTotal = taxBreakdown.taxableAmount + taxBreakdown.totalTax;
+    const adjustmentRatio = calculatedTotal > 0 ? totalWithoutShipping / calculatedTotal : 1;
     
     return {
-      subtotal: approximateSubtotal,
-      tax: approximateTax,
+      subtotal: taxBreakdown.taxableAmount * adjustmentRatio,
+      tax: taxBreakdown.totalTax * adjustmentRatio,
       shipping: shippingCost,
-      total: orderTotal
+      total: orderTotal,
+      taxBreakdown: {
+        cgst: (taxBreakdown.cgst || 0) * adjustmentRatio,
+        sgst: (taxBreakdown.sgst || 0) * adjustmentRatio,
+        igst: (taxBreakdown.igst || 0) * adjustmentRatio
+      }
     };
   };
 
@@ -271,7 +286,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                           {shippingInfo.price > 0 && (
                             <div className="text-xs text-gray-500 flex items-center gap-1">
                               <IndianRupee className="h-3 w-3" />
-                              {PricingUtils.formatPrice(shippingInfo.price)}
+                              {shippingInfo.price.toFixed(2)}
                             </div>
                           )}
                           {shippingInfo.price === 0 && shippingInfo.name.includes("Free") && (
@@ -286,21 +301,21 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                       <div className="space-y-1">
                         <div className="font-bold text-royal-green text-lg flex items-center gap-1">
                           <IndianRupee className="h-4 w-4" />
-                          {PricingUtils.formatPrice(pricing.total)}
+                          {pricing.total.toFixed(2)}
                         </div>
                         <div className="text-xs text-gray-500 space-y-1">
                           <div className="flex justify-between items-center gap-2">
                             <span>Subtotal:</span>
                             <span className="flex items-center gap-1">
                               <IndianRupee className="h-3 w-3" />
-                              {PricingUtils.formatPrice(pricing.subtotal)}
+                              {pricing.subtotal.toFixed(2)}
                             </span>
                           </div>
                           <div className="flex justify-between items-center gap-2">
-                            <span>Tax (~18%):</span>
+                            <span>GST:</span>
                             <span className="flex items-center gap-1">
                               <IndianRupee className="h-3 w-3" />
-                              {PricingUtils.formatPrice(pricing.tax)}
+                              {pricing.tax.toFixed(2)}
                             </span>
                           </div>
                           {pricing.shipping > 0 && (
@@ -308,8 +323,21 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                               <span>Shipping:</span>
                               <span className="flex items-center gap-1">
                                 <IndianRupee className="h-3 w-3" />
-                                {PricingUtils.formatPrice(pricing.shipping)}
+                                {pricing.shipping.toFixed(2)}
                               </span>
+                            </div>
+                          )}
+                          {DebugUtils.isDebugEnabled() && (
+                            <div className="text-xs text-blue-600 mt-1">
+                              {pricing.taxBreakdown.cgst > 0 && (
+                                <div>CGST: ₹{pricing.taxBreakdown.cgst.toFixed(2)}</div>
+                              )}
+                              {pricing.taxBreakdown.sgst > 0 && (
+                                <div>SGST: ₹{pricing.taxBreakdown.sgst.toFixed(2)}</div>
+                              )}
+                              {pricing.taxBreakdown.igst > 0 && (
+                                <div>IGST: ₹{pricing.taxBreakdown.igst.toFixed(2)}</div>
+                              )}
                             </div>
                           )}
                         </div>
