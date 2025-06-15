@@ -64,16 +64,21 @@ const extractValue = (value: any): string | null => {
     return null;
   }
   
+  // Handle string "null" as actual null
+  if (value === "null" || value === "undefined") {
+    return null;
+  }
+  
   // If it's a wrapped object with _type and value properties
   if (typeof value === 'object' && value._type && value.value !== undefined) {
-    if (value._type === 'undefined' || value.value === 'undefined') {
+    if (value._type === 'undefined' || value.value === 'undefined' || value.value === "null") {
       return null;
     }
     return value.value;
   }
   
   // If it's a plain string or null
-  return typeof value === 'string' ? value : null;
+  return typeof value === 'string' && value.length > 0 ? value : null;
 };
 
 export const generateCustomerName = (customer: CustomerData | OrderProfile): string => {
