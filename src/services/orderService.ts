@@ -5,11 +5,31 @@ import { InvoiceService } from "@/services/invoiceService";
 
 export class OrderService {
   static async fetchOrders(): Promise<Order[]> {
-    DebugUtils.log("OrderService", "🔍 fetchOrders() called - Enhanced customer-order matching");
+    DebugUtils.log("OrderService", "🔍 fetchOrders() called - Enhanced customer-order matching with improved profile fetching");
 
     try {
-      // Fetch orders with enhanced profile joins and better error handling
-      DebugUtils.log("OrderService", "📥 Fetching orders with comprehensive profile data...");
+      // First, fetch all profiles separately to ensure we have the complete customer data
+      DebugUtils.log("OrderService", "📥 Step 1: Fetching ALL profiles from database...");
+      const { data: allProfiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*");
+
+      if (profilesError) {
+        DebugUtils.error("OrderService", "Failed to fetch profiles", profilesError);
+        // Continue without profiles instead of throwing error
+      }
+
+      DebugUtils.log("OrderService", `✅ Fetched ${allProfiles?.length || 0} profiles from database`);
+
+      // Create a map of profiles by user ID for quick lookup
+      const profileMap = new Map();
+      allProfiles?.forEach(profile => {
+        profileMap.set(profile.id, profile);
+        DebugUtils.log("OrderService", `📋 Mapped profile: ${profile.id.substring(0, 8)} - ${profile.first_name || 'No name'} ${profile.last_name || ''} (${profile.email || 'No email'})`);
+      });
+
+      // Now fetch orders with delivery options
+      DebugUtils.log("OrderService", "📦 Step 2: Fetching orders with delivery options...");
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(`
@@ -27,17 +47,6 @@ export class OrderService {
             name,
             description,
             price
-          ),
-          profiles!user_id (
-            id,
-            first_name,
-            last_name,
-            email,
-            phone,
-            address,
-            city,
-            postal_code,
-            country
           )
         `)
         .order("created_at", { ascending: false });
@@ -47,41 +56,43 @@ export class OrderService {
         throw new Error(`Failed to fetch orders: ${ordersError.message}`);
       }
 
-      DebugUtils.log("OrderService", `✅ Fetched ${ordersData?.length || 0} orders with joined data`);
+      DebugUtils.log("OrderService", `✅ Fetched ${ordersData?.length || 0} orders with delivery data`);
       
       if (!ordersData || ordersData.length === 0) {
         DebugUtils.log("OrderService", "📭 No orders found in database");
         return [];
       }
 
-      // Enhanced processing with better customer-order matching
+      // Enhanced processing with manual profile matching
       const processedOrders = ordersData.map((order: any, index: number) => {
         DebugUtils.log("OrderService", `🔄 Processing order ${index + 1}/${ordersData.length} (ID: ${order.id.substring(0, 8)})`);
         
         let orderProfile: OrderProfile | null = null;
 
-        // Enhanced profile processing with better null handling
-        if (order.profiles) {
+        // Manual profile lookup using our profile map
+        const customerProfile = profileMap.get(order.user_id);
+        if (customerProfile) {
           orderProfile = {
-            first_name: order.profiles.first_name,
-            last_name: order.profiles.last_name,
-            email: order.profiles.email,
-            phone: order.profiles.phone,
-            address: order.profiles.address,
-            city: order.profiles.city,
-            postal_code: order.profiles.postal_code,
-            country: order.profiles.country
+            first_name: customerProfile.first_name,
+            last_name: customerProfile.last_name,
+            email: customerProfile.email,
+            phone: customerProfile.phone,
+            address: customerProfile.address,
+            city: customerProfile.city,
+            postal_code: customerProfile.postal_code,
+            country: customerProfile.country
           };
           
-          DebugUtils.log("OrderService", `✅ Profile matched for order ${order.id.substring(0, 8)}:`, {
+          DebugUtils.log("OrderService", `✅ Profile manually matched for order ${order.id.substring(0, 8)}:`, {
             customer_id: order.user_id.substring(0, 8),
             name: `${orderProfile.first_name || ''} ${orderProfile.last_name || ''}`.trim() || 'No name',
             email: orderProfile.email || 'No email',
+            phone: orderProfile.phone || 'No phone',
             has_address: !!(orderProfile.address || orderProfile.city)
           });
         } else {
           DebugUtils.log("OrderService", `⚠️ No profile found for order ${order.id.substring(0, 8)} (user_id: ${order.user_id.substring(0, 8)})`);
-          DebugUtils.log("OrderService", "This customer may not have completed their profile setup");
+          DebugUtils.log("OrderService", "This customer may not have completed their profile setup or profile fetch failed");
         }
 
         const processedOrder: Order = {
@@ -113,6 +124,7 @@ export class OrderService {
       DebugUtils.log("OrderService", `   - Orders with incomplete profiles: ${ordersWithIncompleteProfiles.length}`);
       DebugUtils.log("OrderService", `   - Orders without customer profiles: ${ordersWithoutProfiles.length}`);
       DebugUtils.log("OrderService", `   - Total orders processed: ${processedOrders.length}`);
+      DebugUtils.log("OrderService", `   - Total profiles available: ${allProfiles?.length || 0}`);
 
       // Log sample of customer-order matches for debugging
       if (ordersWithProfiles.length > 0) {
@@ -123,6 +135,18 @@ export class OrderService {
           order_total: order.total,
           has_shipping_address: !!order.shipping_address
         })));
+      }
+
+      // Special check for the problematic customer
+      const problemCustomerId = "a48bc14d-3872-427a-8d28-1ef0889834f3";
+      const problemCustomerOrders = processedOrders.filter(order => order.user_id === problemCustomerId);
+      const problemCustomerProfile = profileMap.get(problemCustomerId);
+      
+      DebugUtils.log("OrderService", `🎯 Special check for customer ${problemCustomerId.substring(0, 8)}:`);
+      DebugUtils.log("OrderService", `   - Orders found: ${problemCustomerOrders.length}`);
+      DebugUtils.log("OrderService", `   - Profile available: ${!!problemCustomerProfile}`);
+      if (problemCustomerProfile) {
+        DebugUtils.log("OrderService", `   - Profile data: ${problemCustomerProfile.first_name || 'No first name'} ${problemCustomerProfile.last_name || 'No last name'} (${problemCustomerProfile.email || 'No email'})`);
       }
 
       return processedOrders;
