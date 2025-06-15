@@ -1,6 +1,6 @@
-
 import jsPDF from 'jspdf';
 import { Order } from '@/types/order';
+import { TaxCalculator, TaxBreakdown } from './taxCalculator';
 
 interface InvoiceItem {
   id: string;
@@ -52,13 +52,13 @@ export class InvoiceGenerator {
     const accentColor = '#3b82f6';
     
     // Header
-    doc.setFillColor(59, 130, 246); // Blue background
+    doc.setFillColor(59, 130, 246);
     doc.rect(0, 0, pageWidth, 40, 'F');
     
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
-    doc.text('INVOICE', 20, 25);
+    doc.text('TAX INVOICE', 20, 25);
     
     // Company Info
     doc.setTextColor(31, 41, 55);
@@ -139,13 +139,14 @@ export class InvoiceGenerator {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text('Item', 25, tableStartY + 10);
-    doc.text('Qty', pageWidth - 120, tableStartY + 10);
-    doc.text('Price', pageWidth - 80, tableStartY + 10);
-    doc.text('Total', pageWidth - 40, tableStartY + 10);
+    doc.text('Qty', pageWidth - 140, tableStartY + 10);
+    doc.text('Rate', pageWidth - 100, tableStartY + 10);
+    doc.text('Amount', pageWidth - 40, tableStartY + 10);
     
     // Table rows
     let currentTableY = tableStartY + 20;
     let subtotal = 0;
+    const gstPercentage = 18; // Default GST percentage
     
     orderItems.forEach((item, index) => {
       const itemTotal = item.quantity * Number(item.price);
@@ -156,13 +157,13 @@ export class InvoiceGenerator {
       
       // Item name (wrap if too long)
       const itemName = item.products.name;
-      if (itemName.length > 30) {
+      if (itemName.length > 25) {
         const words = itemName.split(' ');
         let line = '';
         let lineY = currentTableY;
         
         words.forEach((word) => {
-          if ((line + word).length > 30) {
+          if ((line + word).length > 25) {
             doc.text(line, 25, lineY);
             line = word + ' ';
             lineY += 7;
@@ -178,8 +179,8 @@ export class InvoiceGenerator {
       }
       
       // Quantity, price, total
-      doc.text(item.quantity.toString(), pageWidth - 120, currentTableY - 5);
-      doc.text(`₹${Number(item.price).toFixed(2)}`, pageWidth - 80, currentTableY - 5);
+      doc.text(item.quantity.toString(), pageWidth - 140, currentTableY - 5);
+      doc.text(`₹${Number(item.price).toFixed(2)}`, pageWidth - 100, currentTableY - 5);
       doc.text(`₹${itemTotal.toFixed(2)}`, pageWidth - 40, currentTableY - 5);
       
       // Line separator
@@ -190,29 +191,69 @@ export class InvoiceGenerator {
       }
     });
     
-    // Totals section
+    // Calculate tax breakdown
+    const taxBreakdown = TaxCalculator.calculateTaxBreakdown(subtotal, gstPercentage, order.shipping_address);
+    
+    // Totals section with tax breakdown
     currentTableY += 20;
-    const totalsX = pageWidth - 100;
+    const totalsX = pageWidth - 120;
     
     doc.setFont('helvetica', 'normal');
-    doc.text('Subtotal:', totalsX - 30, currentTableY);
+    doc.setFontSize(10);
+    
+    // Taxable Amount
+    doc.text('Taxable Amount:', totalsX - 50, currentTableY);
     doc.text(`₹${subtotal.toFixed(2)}`, totalsX + 10, currentTableY);
     
+    // Tax breakdown
+    currentTableY += 10;
+    if (taxBreakdown.isKarnataka) {
+      // Show SGST + CGST for Karnataka
+      doc.text(`SGST (${gstPercentage/2}%):`, totalsX - 50, currentTableY);
+      doc.text(`₹${taxBreakdown.sgst!.toFixed(2)}`, totalsX + 10, currentTableY);
+      
+      currentTableY += 7;
+      doc.text(`CGST (${gstPercentage/2}%):`, totalsX - 50, currentTableY);
+      doc.text(`₹${taxBreakdown.cgst!.toFixed(2)}`, totalsX + 10, currentTableY);
+    } else {
+      // Show IGST for outside Karnataka
+      doc.text(`IGST (${gstPercentage}%):`, totalsX - 50, currentTableY);
+      doc.text(`₹${taxBreakdown.igst!.toFixed(2)}`, totalsX + 10, currentTableY);
+    }
+    
+    // Shipping charges
     if (order.delivery_price && order.delivery_price > 0) {
       currentTableY += 10;
-      doc.text('Shipping:', totalsX - 30, currentTableY);
+      doc.text('Shipping Charges:', totalsX - 50, currentTableY);
       doc.text(`₹${Number(order.delivery_price).toFixed(2)}`, totalsX + 10, currentTableY);
     }
     
     // Total line
     currentTableY += 15;
     doc.setDrawColor(31, 41, 55);
-    doc.line(totalsX - 40, currentTableY - 5, pageWidth - 20, currentTableY - 5);
+    doc.line(totalsX - 60, currentTableY - 5, pageWidth - 20, currentTableY - 5);
     
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
-    doc.text('Total:', totalsX - 30, currentTableY);
+    doc.text('Total Amount:', totalsX - 50, currentTableY);
     doc.text(`₹${Number(order.total).toFixed(2)}`, totalsX + 10, currentTableY);
+    
+    // Tax summary box
+    currentTableY += 20;
+    doc.setFillColor(248, 250, 252);
+    doc.rect(20, currentTableY, pageWidth - 40, 25, 'F');
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Tax Summary:', 25, currentTableY + 10);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    if (taxBreakdown.isKarnataka) {
+      doc.text(`Karnataka Address - SGST: ₹${taxBreakdown.sgst!.toFixed(2)} + CGST: ₹${taxBreakdown.cgst!.toFixed(2)}`, 25, currentTableY + 17);
+    } else {
+      doc.text(`Outside Karnataka - IGST: ₹${taxBreakdown.igst!.toFixed(2)}`, 25, currentTableY + 17);
+    }
     
     // Bank Details (if provided)
     if (bankDetails && bankDetails.bankName) {

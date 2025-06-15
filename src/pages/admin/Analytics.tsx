@@ -1,180 +1,206 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart3, TrendingUp, Users, ShoppingCart, Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Download, FileSpreadsheet, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import AnalyticsChart from "@/components/admin/AnalyticsChart";
+import { SalesExporter } from "@/utils/salesExporter";
 
-const AdminAnalytics = () => {
-  const [timeRange, setTimeRange] = useState("7d");
+const Analytics = () => {
   const [salesData, setSalesData] = useState([]);
-  const [analyticsData, setAnalyticsData] = useState([]);
-  const [visitsData, setVisitsData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [revenueData, setRevenueData] = useState([]);
+  const [customerData, setCustomerData] = useState([]);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    fetchAnalyticsData();
-  }, [timeRange]);
+    fetchAnalytics();
+  }, []);
 
-  const fetchAnalyticsData = async () => {
+  const fetchAnalytics = async () => {
     try {
       // Fetch sales metrics
-      const { data: sales, error: salesError } = await supabase
-        .from('sales_metrics')
-        .select('*')
-        .order('date', { ascending: false })
-        .limit(30);
+      const { data: sales } = await supabase
+        .from("sales_metrics")
+        .select("*")
+        .order("date", { ascending: true });
 
-      if (salesError) throw salesError;
+      if (sales) {
+        setSalesData(sales.map(item => ({
+          name: new Date(item.date).toLocaleDateString(),
+          orders: item.orders_count,
+          revenue: Number(item.total_revenue),
+          customers: item.unique_customers,
+          avgOrder: Number(item.avg_order_value)
+        })));
+      }
 
-      // Transform sales data for charts
-      const formattedSales = (sales || []).map(item => ({
-        date: new Date(item.date || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        revenue: Number(item.total_revenue || 0),
-        orders: item.orders_count || 0,
-        customers: item.unique_customers || 0
-      })).reverse();
+      // Fetch order status distribution
+      const { data: orders } = await supabase
+        .from("orders")
+        .select("status");
 
-      setSalesData(formattedSales);
+      if (orders) {
+        const statusCounts = orders.reduce((acc: any, order) => {
+          acc[order.status] = (acc[order.status] || 0) + 1;
+          return acc;
+        }, {});
 
-      // Fetch analytics events
-      const { data: analytics, error: analyticsError } = await supabase
-        .from('analytics')
-        .select('event_type, created_at')
-        .order('created_at', { ascending: false })
-        .limit(1000);
+        setRevenueData(Object.entries(statusCounts).map(([status, count]) => ({
+          name: status,
+          value: count
+        })));
+      }
 
-      if (analyticsError) throw analyticsError;
+      // Fetch customer registration data
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("created_at")
+        .order("created_at", { ascending: true });
 
-      // Process analytics data
-      const eventCounts = (analytics || []).reduce((acc: any, event) => {
-        acc[event.event_type] = (acc[event.event_type] || 0) + 1;
-        return acc;
-      }, {});
+      if (profiles) {
+        const customersByMonth = profiles.reduce((acc: any, profile) => {
+          const month = new Date(profile.created_at).toLocaleDateString('default', { month: 'short', year: 'numeric' });
+          acc[month] = (acc[month] || 0) + 1;
+          return acc;
+        }, {});
 
-      const analyticsFormatted = Object.entries(eventCounts).map(([name, count]) => ({
-        name: name.replace('_', ' '),
-        value: count
-      }));
-
-      setAnalyticsData(analyticsFormatted);
-
-      // Fetch website visits
-      const { data: visits, error: visitsError } = await supabase
-        .from('website_visits')
-        .select('page_url, created_at')
-        .order('created_at', { ascending: false })
-        .limit(1000);
-
-      if (visitsError) throw visitsError;
-
-      // Process visits data
-      const pageCounts = (visits || []).reduce((acc: any, visit) => {
-        const page = visit.page_url === '/' ? 'Home' : visit.page_url.replace('/', '');
-        acc[page] = (acc[page] || 0) + 1;
-        return acc;
-      }, {});
-
-      const visitsFormatted = Object.entries(pageCounts).map(([name, count]) => ({
-        name,
-        visits: count
-      }));
-
-      setVisitsData(visitsFormatted);
-
+        setCustomerData(Object.entries(customersByMonth).map(([month, count]) => ({
+          name: month,
+          customers: count
+        })));
+      }
     } catch (error) {
-      console.error('Error fetching analytics:', error);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching analytics:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch analytics data",
+        variant: "destructive",
+      });
     }
   };
 
-  const stats = [
-    {
-      title: "Total Revenue",
-      value: `₹${salesData.reduce((sum: number, item: any) => sum + item.revenue, 0).toLocaleString()}`,
-      change: "+12.5%",
-      icon: TrendingUp,
-      color: "text-green-600"
-    },
-    {
-      title: "Total Orders",
-      value: salesData.reduce((sum: number, item: any) => sum + item.orders, 0).toString(),
-      change: "+8.2%",
-      icon: ShoppingCart,
-      color: "text-blue-600"
-    },
-    {
-      title: "Unique Customers",
-      value: Math.max(...salesData.map((item: any) => item.customers), 0).toString(),
-      change: "+15.3%",
-      icon: Users,
-      color: "text-purple-600"
-    },
-    {
-      title: "Page Views",
-      value: visitsData.reduce((sum: number, item: any) => sum + item.visits, 0).toString(),
-      change: "+18.7%",
-      icon: Eye,
-      color: "text-orange-600"
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    try {
+      const data = await SalesExporter.fetchSalesData(startDate, endDate);
+      const filename = `sales-data-${startDate || 'all'}-to-${endDate || 'now'}.csv`;
+      SalesExporter.exportToCSV(data, filename);
+      
+      toast({
+        title: "Export Successful",
+        description: `Sales data exported to ${filename}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Export Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
     }
-  ];
+  };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      const data = await SalesExporter.fetchSalesData(startDate, endDate);
+      const filename = `sales-data-${startDate || 'all'}-to-${endDate || 'now'}.xlsx`;
+      SalesExporter.exportToExcel(data, filename);
+      
+      toast({
+        title: "Export Successful",
+        description: `Sales data exported to ${filename}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Export Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
-          <p className="text-gray-600 mt-2">Track your business performance and insights</p>
-        </div>
-        
-        <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7d">Last 7 days</SelectItem>
-            <SelectItem value="30d">Last 30 days</SelectItem>
-            <SelectItem value="90d">Last 90 days</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Analytics</h1>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className={`text-xs ${stat.color}`}>
-                {stat.change} from last period
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Export Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Download className="h-5 w-5" />
+            Export Sales Data
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="start-date">Start Date (Optional)</Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="end-date">End Date (Optional)</Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <div className="flex gap-3">
+            <Button
+              onClick={handleExportCSV}
+              disabled={isExporting}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              {isExporting ? "Exporting..." : "Export as CSV"}
+            </Button>
+            
+            <Button
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              {isExporting ? "Exporting..." : "Export as Excel"}
+            </Button>
+          </div>
+          
+          <p className="text-sm text-gray-600">
+            Export includes: Order ID, Date, Customer details, Items, Tax breakdown, Total amount, Status, and Shipping address
+          </p>
+        </CardContent>
+      </Card>
 
-      {/* Charts */}
+      {/* Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <AnalyticsChart
           data={salesData}
           type="line"
-          title="Revenue Trend"
+          title="Revenue Over Time"
           dataKey="revenue"
-          xAxisKey="date"
+          xAxisKey="name"
           color="#2563eb"
         />
         
@@ -183,28 +209,79 @@ const AdminAnalytics = () => {
           type="bar"
           title="Orders Over Time"
           dataKey="orders"
-          xAxisKey="date"
-          color="#60a5fa"
+          xAxisKey="name"
+          color="#10b981"
         />
-        
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <AnalyticsChart
-          data={analyticsData}
+          data={revenueData}
           type="pie"
-          title="Event Distribution"
+          title="Order Status Distribution"
           dataKey="value"
         />
         
         <AnalyticsChart
-          data={visitsData}
+          data={customerData}
           type="bar"
-          title="Page Visits"
-          dataKey="visits"
+          title="Customer Registrations"
+          dataKey="customers"
           xAxisKey="name"
-          color="#34d399"
+          color="#f59e0b"
         />
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ₹{salesData.reduce((acc: number, item: any) => acc + (item.revenue || 0), 0).toFixed(2)}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {salesData.reduce((acc: number, item: any) => acc + (item.orders || 0), 0)}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {customerData.reduce((acc: number, item: any) => acc + (item.customers || 0), 0)}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ₹{salesData.length > 0 
+                ? (salesData.reduce((acc: number, item: any) => acc + (item.avgOrder || 0), 0) / salesData.length).toFixed(2)
+                : '0.00'}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 };
 
-export default AdminAnalytics;
+export default Analytics;
