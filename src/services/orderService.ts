@@ -15,6 +15,9 @@ export class OrderService {
         throw new Error("Authentication required to fetch orders");
       }
 
+      const isActualAdmin = user.email === 'admin@ezbillify.com' || user.email === 'admin@millsmitra.com';
+      console.log(`👤 User ${user.email} is admin: ${isActualAdmin}`);
+
       let query = supabase
         .from("orders")
         .select(`
@@ -32,8 +35,8 @@ export class OrderService {
         `)
         .order("created_at", { ascending: false });
 
-      // If not admin view, filter by user_id for customer isolation
-      if (!isAdminView) {
+      // Only allow admin view if user is actually an admin
+      if (!isAdminView || !isActualAdmin) {
         console.log("👤 Customer view - filtering orders for user:", user.id);
         query = query.eq("user_id", user.id);
       } else {
@@ -65,6 +68,12 @@ export class OrderService {
       if (userError || !user) {
         console.error("❌ No authenticated user found:", userError);
         throw new Error("Authentication required to update orders");
+      }
+
+      // Only admins can update order status
+      const isAdmin = user.email === 'admin@ezbillify.com' || user.email === 'admin@millsmitra.com';
+      if (!isAdmin) {
+        throw new Error("Only administrators can update order status");
       }
 
       const { error } = await supabase
@@ -99,8 +108,9 @@ export class OrderService {
         throw new Error("Authentication required to fetch order details");
       }
 
-      // Query order with explicit user filtering for customers
-      const { data: order, error } = await supabase
+      const isAdmin = user.email === 'admin@ezbillify.com' || user.email === 'admin@millsmitra.com';
+
+      let query = supabase
         .from("orders")
         .select(`
           *,
@@ -115,9 +125,14 @@ export class OrderService {
             country
           )
         `)
-        .eq("id", orderId)
-        .eq("user_id", user.id) // Customers can only see their own orders
-        .maybeSingle();
+        .eq("id", orderId);
+
+      // For non-admin users, filter by user_id
+      if (!isAdmin) {
+        query = query.eq("user_id", user.id);
+      }
+
+      const { data: order, error } = await query.maybeSingle();
 
       if (error) {
         console.error("❌ Error fetching order:", error);
