@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +18,13 @@ import Register from "@/pages/customer/Register";
 import Account from "@/pages/customer/Account";
 import Orders from "@/pages/customer/Orders";
 import OrderDetails from "@/pages/customer/OrderDetails";
+import AboutUs from "@/pages/customer/AboutUs";
+import TermsAndConditions from "@/pages/customer/TermsAndConditions";
+import PrivacyPolicy from "@/pages/customer/PrivacyPolicy";
+import ContactUs from "@/pages/customer/ContactUs";
+import ReturnPolicy from "@/pages/customer/ReturnPolicy";
+import ShippingPolicy from "@/pages/customer/ShippingPolicy";
+import FAQ from "@/pages/customer/FAQ";
 
 // Admin Pages
 import Dashboard from "@/pages/admin/Dashboard";
@@ -54,6 +60,13 @@ const App = () => {
                 <Route path="/account" element={<Account />} />
                 <Route path="/orders" element={<Orders />} />
                 <Route path="/orders/:orderId" element={<OrderDetails />} />
+                <Route path="/about-us" element={<AboutUs />} />
+                <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/contact-us" element={<ContactUs />} />
+                <Route path="/return-policy" element={<ReturnPolicy />} />
+                <Route path="/shipping-policy" element={<ShippingPolicy />} />
+                <Route path="/faq" element={<FAQ />} />
               </Route>
 
               {/* Admin Routes */}

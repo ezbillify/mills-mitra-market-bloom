@@ -28,10 +28,13 @@ const CustomerFooter = () => {
           <div>
             <h4 className="font-semibold mb-4">Customer Service</h4>
             <ul className="space-y-2 text-gray-300">
-              <li>Contact Us</li>
-              <li>Return Policy</li>
-              <li>Shipping Info</li>
-              <li>FAQ</li>
+              <li><Link to="/about-us" className="hover:text-white transition-colors">About Us</Link></li>
+              <li><Link to="/terms-and-conditions" className="hover:text-white transition-colors">Terms and Conditions</Link></li>
+              <li><Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/contact-us" className="hover:text-white transition-colors">Contact Us</Link></li>
+              <li><Link to="/return-policy" className="hover:text-white transition-colors">Return Policy</Link></li>
+              <li><Link to="/shipping-policy" className="hover:text-white transition-colors">Shipping Policy</Link></li>
+              <li><Link to="/faq" className="hover:text-white transition-colors">FAQ</Link></li>
             </ul>
           </div>
           
