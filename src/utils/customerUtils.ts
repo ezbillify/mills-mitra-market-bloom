@@ -60,6 +60,7 @@ interface Customer {
 
 // Helper function to safely extract value from potentially wrapped objects
 const extractValue = (value: any): string | null => {
+  // Handle actual null/undefined first
   if (value === null || value === undefined) {
     return null;
   }
@@ -89,7 +90,7 @@ export const generateCustomerName = (customer: CustomerData | OrderProfile): str
   const lastName = extractValue(customer.last_name);
   const email = extractValue(customer.email);
   
-  console.log(`🔍 Extracted values - firstName: "${firstName}", lastName: "${lastName}", email: "${email}"`);
+  console.log(`🔍 Extracted values - firstName: ${firstName === null ? 'null' : `"${firstName}"`}, lastName: ${lastName === null ? 'null' : `"${lastName}"`}, email: ${email === null ? 'null' : `"${email}"`}`);
   
   // If we have both first and last name, use them
   if (firstName && lastName) {
