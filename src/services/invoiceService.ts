@@ -77,7 +77,7 @@ export class InvoiceService {
       const invoiceSettings = await this.getInvoiceSettings();
       console.log(`⚙️ Using invoice settings: ${invoiceSettings.company_name}`);
 
-      // Fetch order details with better error handling for customer access
+      // Fetch order details with consistent query for both admin and customer
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .select(`
@@ -108,7 +108,7 @@ export class InvoiceService {
 
       console.log(`📦 Order found: ${order.id.substring(0, 8)} with status ${order.status}`);
 
-      // Fetch order items with product details
+      // Fetch order items with product details using consistent query
       const { data: orderItems, error: itemsError } = await supabase
         .from("order_items")
         .select(`
@@ -134,25 +134,8 @@ export class InvoiceService {
 
       console.log(`📋 Found ${orderItems.length} items for order`);
 
-      // Generate invoice number - for customers, use a simplified approach
-      let invoiceNumber = `${invoiceSettings.invoice_prefix}-${String(invoiceSettings.invoice_counter).padStart(4, '0')}`;
-      
-      if (invoiceSettings.id !== "default") {
-        // Only update counter for admin access, not customer access
-        try {
-          await supabase
-            .from("invoice_settings")
-            .update({ invoice_counter: invoiceSettings.invoice_counter + 1 })
-            .eq("id", invoiceSettings.id);
-        } catch (updateError) {
-          console.warn("Could not update invoice counter (customer access):", updateError);
-          // Use order-based invoice number for customers
-          invoiceNumber = `INV-${orderId.substring(0, 8)}`;
-        }
-      } else {
-        // Use order ID for default invoice number
-        invoiceNumber = `INV-${orderId.substring(0, 8)}`;
-      }
+      // Generate consistent invoice number for both customer and admin
+      const invoiceNumber = `${invoiceSettings.invoice_prefix}-${orderId.substring(0, 8)}`;
 
       const invoiceData = {
         order,

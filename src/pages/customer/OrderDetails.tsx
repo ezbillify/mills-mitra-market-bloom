@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +47,7 @@ const OrderDetails = () => {
     const fetchOrder = async () => {
       setLoading(true);
       
+      // Use consistent query that respects RLS policies
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select(`
@@ -65,10 +65,16 @@ const OrderDetails = () => {
 
       if (orderError) {
         console.error("Error fetching order:", orderError);
+        toast({
+          title: "Error",
+          description: "Order not found or you don't have access to it.",
+          variant: "destructive",
+        });
         setLoading(false);
         return;
       }
 
+      // Use consistent query for order items
       const { data: itemsData, error: itemsError } = await supabase
         .from("order_items")
         .select(`
@@ -87,6 +93,11 @@ const OrderDetails = () => {
 
       if (itemsError) {
         console.error("Error fetching order items:", itemsError);
+        toast({
+          title: "Error",
+          description: "Could not load order items.",
+          variant: "destructive",
+        });
       }
 
       setOrder(orderData || null);
@@ -94,7 +105,7 @@ const OrderDetails = () => {
       setLoading(false);
     };
     fetchOrder();
-  }, [orderId]);
+  }, [orderId, toast]);
 
   const calculateOrderTotals = () => {
     if (!orderItems.length) return { subtotal: 0, totalTax: 0, grandTotal: 0, shippingCost: 0 };
@@ -128,7 +139,7 @@ const OrderDetails = () => {
     
     setDownloadingInvoice(true);
     try {
-      console.log(`🧾 Customer attempting to download invoice for order ${orderId.substring(0, 8)}`);
+      console.log(`🧾 Customer downloading invoice for order ${orderId.substring(0, 8)}`);
       await InvoiceService.downloadInvoiceForOrder(orderId);
       toast({
         title: "Success",
@@ -140,11 +151,13 @@ const OrderDetails = () => {
       
       // Provide more specific error messages based on the error type
       if (error.message?.includes('Order not found')) {
-        errorMessage = "Order not found. Please contact support.";
+        errorMessage = "Order not found or you don't have access to it.";
       } else if (error.message?.includes('No items found')) {
         errorMessage = "No items found for this order. Please contact support.";
-      } else if (error.message?.includes('Failed to fetch')) {
-        errorMessage = "Network error. Please check your connection and try again.";
+      } else if (error.message?.includes('Authentication error')) {
+        errorMessage = "Please login and try again.";
+      } else if (error.message?.includes('permission')) {
+        errorMessage = "You don't have permission to access this invoice.";
       }
       
       toast({
