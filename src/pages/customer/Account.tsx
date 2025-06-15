@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -34,7 +35,7 @@ const profileFormSchema = z.object({
 });
 
 const Account = () => {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser } = useAuth(); // updateUser is now in the context
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -93,7 +94,7 @@ const Account = () => {
   };
 
   if (!user) {
-    return null; // Or a loading spinner, or redirect
+    return null;
   }
 
   return (
@@ -105,6 +106,7 @@ const Account = () => {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* First Name */}
               <FormField
                 control={form.control}
                 name="firstName"
@@ -118,6 +120,7 @@ const Account = () => {
                   </FormItem>
                 )}
               />
+              {/* Last Name */}
               <FormField
                 control={form.control}
                 name="lastName"
@@ -131,6 +134,7 @@ const Account = () => {
                   </FormItem>
                 )}
               />
+              {/* Email */}
               <FormField
                 control={form.control}
                 name="email"
@@ -144,6 +148,7 @@ const Account = () => {
                   </FormItem>
                 )}
               />
+              {/* Phone */}
               <FormField
                 control={form.control}
                 name="phone"
@@ -157,6 +162,7 @@ const Account = () => {
                   </FormItem>
                 )}
               />
+              {/* Address */}
               <FormField
                 control={form.control}
                 name="address"
