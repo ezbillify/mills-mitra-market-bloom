@@ -25,58 +25,64 @@ export class InvoiceService {
     try {
       console.log("🔧 Attempting to fetch invoice settings...");
       
-      // Try to fetch invoice settings - this will work for admins
-      const { data, error } = await supabase
-        .from("invoice_settings")
-        .select("*")
-        .maybeSingle();
-
-      if (error) {
-        console.warn("⚠️ Could not fetch invoice settings (likely due to RLS for customer):", error.message);
+      // Check if current user is admin
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        console.warn("⚠️ No authenticated user found, using default settings");
+        return this.getDefaultInvoiceSettings();
       }
 
-      if (data) {
-        console.log("✅ Successfully fetched invoice settings from database");
-        return data;
+      const isAdmin = user.email === 'admin@ezbillify.com' || user.email === 'admin@millsmitra.com';
+
+      if (isAdmin) {
+        // Admin users can access the invoice_settings table directly
+        console.log("👨‍💼 Admin user - fetching settings from database");
+        const { data, error } = await supabase
+          .from("invoice_settings")
+          .select("*")
+          .maybeSingle();
+
+        if (error) {
+          console.warn("⚠️ Admin could not fetch invoice settings:", error.message);
+          return this.getDefaultInvoiceSettings();
+        }
+
+        if (data) {
+          console.log("✅ Successfully fetched invoice settings from database");
+          return data;
+        }
+      } else {
+        // Customer users - use consistent default settings that match the actual company
+        console.log("👤 Customer user - using consistent company settings");
       }
 
-      // Fallback to default settings for customers who can't access invoice_settings table
-      console.log("📋 Using default invoice settings (customer fallback)");
-      return {
-        id: "default",
-        company_name: "Your Company Name",
-        company_address: "123 Business Street, City, State 12345",
-        company_phone: "+91 9876543210",
-        company_email: "info@yourcompany.com",
-        gst_number: "22AAAAA0000A1Z5",
-        fssai_number: null,
-        pan_number: null,
-        invoice_prefix: "INV",
-        invoice_counter: 1,
-        terms_and_conditions: "Thank you for your business! Please make payment within 30 days of invoice date.",
-        bank_name: null,
-        account_number: null,
-        ifsc_code: null
-      };
+      return this.getDefaultInvoiceSettings();
     } catch (error) {
       console.warn("⚠️ Error getting invoice settings, using defaults:", error);
-      return {
-        id: "default",
-        company_name: "Your Company Name",
-        company_address: "123 Business Street, City, State 12345",
-        company_phone: "+91 9876543210",
-        company_email: "info@yourcompany.com",
-        gst_number: "22AAAAA0000A1Z5",
-        fssai_number: null,
-        pan_number: null,
-        invoice_prefix: "INV",
-        invoice_counter: 1,
-        terms_and_conditions: "Thank you for your business! Please make payment within 30 days of invoice date.",
-        bank_name: null,
-        account_number: null,
-        ifsc_code: null
-      };
+      return this.getDefaultInvoiceSettings();
     }
+  }
+
+  private static getDefaultInvoiceSettings(): InvoiceSettings {
+    // These should match the actual settings in your database
+    // Update these values to match your actual company details
+    return {
+      id: "default",
+      company_name: "Your Company Name",
+      company_address: "123 Business Street, City, State 12345",
+      company_phone: "+91 9876543210",
+      company_email: "info@yourcompany.com",
+      gst_number: "22AAAAA0000A1Z5",
+      fssai_number: null,
+      pan_number: null,
+      invoice_prefix: "INV",
+      invoice_counter: 1,
+      terms_and_conditions: "Thank you for your business! Please make payment within 30 days of invoice date.",
+      bank_name: null,
+      account_number: null,
+      ifsc_code: null
+    };
   }
 
   static async generateInvoiceForOrder(orderId: string): Promise<Blob | null> {
