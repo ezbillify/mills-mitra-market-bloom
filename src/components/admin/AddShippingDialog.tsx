@@ -29,10 +29,8 @@ const AddShippingDialog = ({ onShippingAdded }: AddShippingDialogProps) => {
     name: "",
     description: "",
     price: "",
-    minOrderValue: "",
-    maxWeight: "",
-    deliveryDaysMin: "",
-    deliveryDaysMax: "",
+    estimatedDaysMin: "",
+    estimatedDaysMax: "",
     isActive: true,
   });
 
@@ -42,15 +40,13 @@ const AddShippingDialog = ({ onShippingAdded }: AddShippingDialogProps) => {
 
     try {
       const { error } = await supabase
-        .from('shipping_settings')
+        .from('delivery_options')
         .insert({
           name: formData.name,
           description: formData.description || null,
           price: parseFloat(formData.price) || 0,
-          min_order_value: formData.minOrderValue ? parseFloat(formData.minOrderValue) : null,
-          max_weight: formData.maxWeight ? parseFloat(formData.maxWeight) : null,
-          delivery_days_min: formData.deliveryDaysMin ? parseInt(formData.deliveryDaysMin) : 1,
-          delivery_days_max: formData.deliveryDaysMax ? parseInt(formData.deliveryDaysMax) : 7,
+          estimated_days_min: formData.estimatedDaysMin ? parseInt(formData.estimatedDaysMin) : 1,
+          estimated_days_max: formData.estimatedDaysMax ? parseInt(formData.estimatedDaysMax) : 7,
           is_active: formData.isActive,
         });
 
@@ -69,10 +65,8 @@ const AddShippingDialog = ({ onShippingAdded }: AddShippingDialogProps) => {
         name: "",
         description: "",
         price: "",
-        minOrderValue: "",
-        maxWeight: "",
-        deliveryDaysMin: "",
-        deliveryDaysMax: "",
+        estimatedDaysMin: "",
+        estimatedDaysMax: "",
         isActive: true,
       });
     } catch (error) {
@@ -126,76 +120,46 @@ const AddShippingDialog = ({ onShippingAdded }: AddShippingDialogProps) => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="price" className="text-warm-brown">Price (₹)</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.price}
-                onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                required
-                className="border-warm-beige/30 focus:border-golden-millet focus:ring-golden-millet/20"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="minOrderValue" className="text-warm-brown">Min Order Value (₹)</Label>
-              <Input
-                id="minOrderValue"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.minOrderValue}
-                onChange={(e) => setFormData(prev => ({ ...prev, minOrderValue: e.target.value }))}
-                placeholder="Optional"
-                className="border-warm-beige/30 focus:border-golden-millet focus:ring-golden-millet/20"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="price" className="text-warm-brown">Price (₹)</Label>
+            <Input
+              id="price"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.price}
+              onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+              required
+              className="border-warm-beige/30 focus:border-golden-millet focus:ring-golden-millet/20"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="deliveryDaysMin" className="text-warm-brown">Min Delivery Days</Label>
+              <Label htmlFor="estimatedDaysMin" className="text-warm-brown">Min Delivery Days</Label>
               <Input
-                id="deliveryDaysMin"
+                id="estimatedDaysMin"
                 type="number"
                 min="1"
-                value={formData.deliveryDaysMin}
-                onChange={(e) => setFormData(prev => ({ ...prev, deliveryDaysMin: e.target.value }))}
+                value={formData.estimatedDaysMin}
+                onChange={(e) => setFormData(prev => ({ ...prev, estimatedDaysMin: e.target.value }))}
                 placeholder="1"
                 className="border-warm-beige/30 focus:border-golden-millet focus:ring-golden-millet/20"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="deliveryDaysMax" className="text-warm-brown">Max Delivery Days</Label>
+              <Label htmlFor="estimatedDaysMax" className="text-warm-brown">Max Delivery Days</Label>
               <Input
-                id="deliveryDaysMax"
+                id="estimatedDaysMax"
                 type="number"
                 min="1"
-                value={formData.deliveryDaysMax}
-                onChange={(e) => setFormData(prev => ({ ...prev, deliveryDaysMax: e.target.value }))}
+                value={formData.estimatedDaysMax}
+                onChange={(e) => setFormData(prev => ({ ...prev, estimatedDaysMax: e.target.value }))}
                 placeholder="7"
                 className="border-warm-beige/30 focus:border-golden-millet focus:ring-golden-millet/20"
               />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="maxWeight" className="text-warm-brown">Max Weight (kg)</Label>
-            <Input
-              id="maxWeight"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.maxWeight}
-              onChange={(e) => setFormData(prev => ({ ...prev, maxWeight: e.target.value }))}
-              placeholder="Optional"
-              className="border-warm-beige/30 focus:border-golden-millet focus:ring-golden-millet/20"
-            />
           </div>
 
           <div className="flex items-center space-x-2">

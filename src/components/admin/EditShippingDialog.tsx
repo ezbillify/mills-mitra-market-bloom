@@ -21,10 +21,9 @@ interface ShippingOption {
   description: string | null;
   price: number;
   is_active: boolean;
-  min_order_value: number | null;
-  max_weight: number | null;
-  delivery_days_min: number | null;
-  delivery_days_max: number | null;
+  estimated_days_min: number | null;
+  estimated_days_max: number | null;
+  created_at: string;
 }
 
 interface EditShippingDialogProps {
@@ -42,10 +41,8 @@ const EditShippingDialog = ({ option, open, onOpenChange, onShippingUpdated }: E
     name: "",
     description: "",
     price: "",
-    minOrderValue: "",
-    maxWeight: "",
-    deliveryDaysMin: "",
-    deliveryDaysMax: "",
+    estimatedDaysMin: "",
+    estimatedDaysMax: "",
     isActive: true,
   });
 
@@ -55,10 +52,8 @@ const EditShippingDialog = ({ option, open, onOpenChange, onShippingUpdated }: E
         name: option.name,
         description: option.description || "",
         price: option.price.toString(),
-        minOrderValue: option.min_order_value?.toString() || "",
-        maxWeight: option.max_weight?.toString() || "",
-        deliveryDaysMin: (option.delivery_days_min || 1).toString(),
-        deliveryDaysMax: (option.delivery_days_max || 7).toString(),
+        estimatedDaysMin: (option.estimated_days_min || 1).toString(),
+        estimatedDaysMax: (option.estimated_days_max || 7).toString(),
         isActive: option.is_active,
       });
     }
@@ -70,15 +65,13 @@ const EditShippingDialog = ({ option, open, onOpenChange, onShippingUpdated }: E
 
     try {
       const { error } = await supabase
-        .from('shipping_settings')
+        .from('delivery_options')
         .update({
           name: formData.name,
           description: formData.description || null,
           price: parseFloat(formData.price) || 0,
-          min_order_value: formData.minOrderValue ? parseFloat(formData.minOrderValue) : null,
-          max_weight: formData.maxWeight ? parseFloat(formData.maxWeight) : null,
-          delivery_days_min: formData.deliveryDaysMin ? parseInt(formData.deliveryDaysMin) : 1,
-          delivery_days_max: formData.deliveryDaysMax ? parseInt(formData.deliveryDaysMax) : 7,
+          estimated_days_min: formData.estimatedDaysMin ? parseInt(formData.estimatedDaysMin) : 1,
+          estimated_days_max: formData.estimatedDaysMax ? parseInt(formData.estimatedDaysMax) : 7,
           is_active: formData.isActive,
         })
         .eq('id', option.id);
@@ -135,71 +128,43 @@ const EditShippingDialog = ({ option, open, onOpenChange, onShippingUpdated }: E
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-price">Price (₹)</Label>
-              <Input
-                id="edit-price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.price}
-                onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-minOrderValue">Min Order Value (₹)</Label>
-              <Input
-                id="edit-minOrderValue"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.minOrderValue}
-                onChange={(e) => setFormData(prev => ({ ...prev, minOrderValue: e.target.value }))}
-                placeholder="Optional"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-price">Price (₹)</Label>
+            <Input
+              id="edit-price"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.price}
+              onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+              required
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-deliveryDaysMin">Min Delivery Days</Label>
+              <Label htmlFor="edit-estimatedDaysMin">Min Delivery Days</Label>
               <Input
-                id="edit-deliveryDaysMin"
+                id="edit-estimatedDaysMin"
                 type="number"
                 min="1"
-                value={formData.deliveryDaysMin}
-                onChange={(e) => setFormData(prev => ({ ...prev, deliveryDaysMin: e.target.value }))}
+                value={formData.estimatedDaysMin}
+                onChange={(e) => setFormData(prev => ({ ...prev, estimatedDaysMin: e.target.value }))}
                 placeholder="1"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-deliveryDaysMax">Max Delivery Days</Label>
+              <Label htmlFor="edit-estimatedDaysMax">Max Delivery Days</Label>
               <Input
-                id="edit-deliveryDaysMax"
+                id="edit-estimatedDaysMax"
                 type="number"
                 min="1"
-                value={formData.deliveryDaysMax}
-                onChange={(e) => setFormData(prev => ({ ...prev, deliveryDaysMax: e.target.value }))}
+                value={formData.estimatedDaysMax}
+                onChange={(e) => setFormData(prev => ({ ...prev, estimatedDaysMax: e.target.value }))}
                 placeholder="7"
               />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit-maxWeight">Max Weight (kg)</Label>
-            <Input
-              id="edit-maxWeight"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.maxWeight}
-              onChange={(e) => setFormData(prev => ({ ...prev, maxWeight: e.target.value }))}
-              placeholder="Optional"
-            />
           </div>
 
           <div className="flex items-center space-x-2">
