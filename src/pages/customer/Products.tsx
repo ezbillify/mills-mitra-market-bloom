@@ -3,21 +3,10 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Product } from "@/types/product";
-import { ProductCard } from "@/components/customer/ProductCard";
+import ProductCard from "@/components/customer/ProductCard";
 import { Search } from "lucide-react";
 
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  discounted_price: number | null;
-  gst_percentage: number | null;
-  selling_price_with_tax: number | null;
-  image: string | null;
-  category: string;
-  stock: number;
-  featured: boolean;
-}
+// Removed local interface Product as it is now imported from '@/types/product'
 
 const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
