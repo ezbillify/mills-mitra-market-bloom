@@ -66,7 +66,7 @@ const extractValue = (value: any): string | null => {
   }
   
   // Handle string representations of null/undefined
-  if (value === "null" || value === "undefined") {
+  if (value === "null" || value === "undefined" || value === "") {
     return null;
   }
   
@@ -83,85 +83,94 @@ const extractValue = (value: any): string | null => {
 };
 
 export const generateCustomerName = (customer: CustomerData | OrderProfile): string => {
-  console.log(`🎯 generateCustomerName called for customer-order matching:`, {
+  console.log(`🎯 generateCustomerName called for customer:`, {
     id: 'id' in customer ? customer.id?.substring(0, 8) : 'N/A',
     first_name: customer.first_name,
     last_name: customer.last_name,
-    email: customer.email
+    email: customer.email,
+    raw_first_name: JSON.stringify(customer.first_name),
+    raw_last_name: JSON.stringify(customer.last_name)
   });
   
-  // Extract values safely for better customer-order matching
-  const firstName = extractValue(customer.first_name);
-  const lastName = extractValue(customer.last_name);
-  const email = extractValue(customer.email);
+  // Extract values safely - DO NOT use extractValue here as it's converting valid strings to null
+  const firstName = customer.first_name;
+  const lastName = customer.last_name;
+  const email = customer.email;
   
-  console.log(`🔍 Enhanced extraction - firstName: ${firstName === null ? 'null' : `"${firstName}"`}, lastName: ${lastName === null ? 'null' : `"${lastName}"`}, email: ${email === null ? 'null' : `"${email}"`}`);
+  console.log(`🔍 Direct values - firstName: ${firstName}, lastName: ${lastName}, email: ${email}`);
   
   // Priority 1: Full name (best customer identification)
-  if (firstName && lastName) {
+  if (firstName && lastName && firstName !== 'null' && lastName !== 'null') {
     const fullName = `${firstName} ${lastName}`;
-    console.log(`✅ Customer-order match: Full name "${fullName}"`);
+    console.log(`✅ Customer match: Full name "${fullName}"`);
     return fullName;
   }
   
   // Priority 2: First name only
-  if (firstName) {
-    console.log(`✅ Customer-order match: First name "${firstName}"`);
+  if (firstName && firstName !== 'null') {
+    console.log(`✅ Customer match: First name "${firstName}"`);
     return firstName;
   }
   
   // Priority 3: Last name only
-  if (lastName) {
-    console.log(`✅ Customer-order match: Last name "${lastName}"`);
+  if (lastName && lastName !== 'null') {
+    console.log(`✅ Customer match: Last name "${lastName}"`);
     return lastName;
   }
   
   // Priority 4: Email-based name (good fallback for customer identification)
-  if (email && email !== 'No email provided' && !email.includes('unknown.com')) {
+  if (email && email !== 'No email provided' && !email.includes('unknown.com') && email !== 'null') {
     const emailName = email.split('@')[0];
-    console.log(`✅ Customer-order match: Email-derived name "${emailName}"`);
+    console.log(`✅ Customer match: Email-derived name "${emailName}"`);
     return emailName;
   }
   
   // Priority 5: Fallback with customer ID (ensures order always shows a customer)
   if ('id' in customer) {
     const fallbackName = `Customer ${customer.id.substring(0, 8)}`;
-    console.log(`🔄 Customer-order fallback: "${fallbackName}"`);
+    console.log(`🔄 Customer fallback: "${fallbackName}"`);
     return fallbackName;
   } else {
     const fallbackName = 'Unknown Customer';
-    console.log(`🔄 Customer-order generic fallback: "${fallbackName}"`);
+    console.log(`🔄 Customer generic fallback: "${fallbackName}"`);
     return fallbackName;
   }
 };
 
 export const getCustomerEmail = (customer: CustomerData | OrderProfile): string => {
-  const email = extractValue(customer.email);
-  return email && email !== 'No email provided' && !email.includes('unknown.com') ? email : 'No email';
+  const email = customer.email;
+  return email && email !== 'No email provided' && !email.includes('unknown.com') && email !== 'null' ? email : 'No email';
 };
 
 export const getCustomerAddress = (customer: OrderProfile): string => {
-  const address = extractValue(customer.address);
-  const city = extractValue(customer.city);
-  const postalCode = extractValue(customer.postal_code);
-  const country = extractValue(customer.country);
+  const address = customer.address;
+  const city = customer.city;
+  const postalCode = customer.postal_code;
+  const country = customer.country;
   
   if (!address && !city) {
     return 'No address provided';
   }
   
   const addressParts = [];
-  if (address) addressParts.push(address);
-  if (city) addressParts.push(city);
-  if (postalCode) addressParts.push(postalCode);
-  if (country) addressParts.push(country);
+  if (address && address !== 'null') addressParts.push(address);
+  if (city && city !== 'null') addressParts.push(city);
+  if (postalCode && postalCode !== 'null') addressParts.push(postalCode);
+  if (country && country !== 'null') addressParts.push(country);
   
   return addressParts.join(', ') || 'No address provided';
 };
 
 // Enhanced customer data processing for better customer-order relationships
 export const processCustomerData = (userData: UserData): Customer => {
-  console.log(`🔄 Processing customer data for enhanced customer-order matching: ${userData.profile.id.substring(0, 8)}`);
+  console.log(`🔄 Processing customer data: ${userData.profile.id.substring(0, 8)}`);
+  console.log('📋 Raw profile data:', {
+    first_name: userData.profile.first_name,
+    last_name: userData.profile.last_name,
+    email: userData.profile.email,
+    hasProfile: userData.hasProfile,
+    source: userData.source
+  });
   
   const customerData: CustomerData = {
     id: userData.profile.id,
@@ -206,14 +215,16 @@ export const processCustomerData = (userData: UserData): Customer => {
     }
   };
 
-  console.log(`✅ Enhanced customer-order processing completed:`, {
+  console.log(`✅ Customer processing completed:`, {
     id: customer.id.substring(0, 8),
     name: customer.name,
     email: customer.email,
     totalOrders: customer.totalOrders,
     totalSpent: customer.totalSpent,
     status: customer.status,
-    hasCompleteProfile: !!(customer.profile?.first_name || customer.profile?.last_name)
+    hasCompleteProfile: !!(customer.profile?.first_name || customer.profile?.last_name),
+    profile_first_name: customer.profile?.first_name,
+    profile_last_name: customer.profile?.last_name
   });
 
   return customer;

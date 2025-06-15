@@ -65,8 +65,13 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     return { name: "Standard Shipping", price: 0 };
   };
 
-  // Enhanced customer info extraction
+  // Enhanced customer info extraction with better debugging
   const getCustomerInfo = (order: Order) => {
+    console.log(`🔍 Getting customer info for order ${order.id.substring(0, 8)}:`, {
+      profiles: order.profiles,
+      user_id: order.user_id.substring(0, 8)
+    });
+    
     const customerData = {
       id: order.user_id,
       first_name: order.profiles?.first_name || null,
@@ -74,9 +79,17 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
       email: order.profiles?.email || null
     };
     
+    console.log(`📋 Customer data being passed to generateCustomerName:`, customerData);
+    
     const customerName = generateCustomerName(customerData);
     const customerEmail = order.profiles?.email || 'No email';
     const hasCompleteProfile = !!(order.profiles?.first_name || order.profiles?.last_name);
+    
+    console.log(`✅ Generated customer info:`, {
+      customerName,
+      customerEmail,
+      hasCompleteProfile
+    });
     
     return { customerName, customerEmail, hasCompleteProfile };
   };
@@ -168,6 +181,11 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                           {DebugUtils.isDebugEnabled() && (
                             <div className="text-xs text-gray-500">
                               User: {order.user_id.substring(0, 8)} | Profile: {hasCompleteProfile ? 'Complete' : 'Incomplete'}
+                              {order.profiles && (
+                                <div className="text-xs text-blue-600">
+                                  First: {order.profiles.first_name || 'null'} | Last: {order.profiles.last_name || 'null'}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
