@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useOrders } from "@/hooks/useOrders";
@@ -188,11 +189,6 @@ const Orders = () => {
                     <h4 className="font-medium mb-2">Invoice Information</h4>
                     <div className="text-sm text-gray-600 space-y-1">
                       <p>Invoice #: INV-{order.id.substring(0, 8)}</p>
-                      <p>Company: Your Company Name</p>
-                      <p>GST: Your GST Number</p>
-                      <p className="text-xs text-orange-600">
-                        * Complete invoice details available after download
-                      </p>
                     </div>
                   </div>
                 </div>
