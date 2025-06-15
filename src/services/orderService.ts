@@ -6,7 +6,7 @@ export class OrderService {
   static async fetchOrders(): Promise<Order[]> {
     console.log("🔍 OrderService.fetchOrders() called");
 
-    // Use a single query with JOIN to get orders, profiles, and shipping settings together
+    // Use a single query with JOIN to get orders, profiles, and delivery options together
     const { data: ordersData, error: ordersError } = await supabase
       .from("orders")
       .select(`
@@ -25,7 +25,7 @@ export class OrderService {
           email,
           phone
         ),
-        shipping_settings!orders_delivery_option_id_fkey (
+        delivery_options!orders_delivery_option_id_fkey (
           id,
           name,
           description,
@@ -52,7 +52,7 @@ export class OrderService {
       console.log(`🔄 Processing order ${index + 1}/${ordersData.length}`);
       console.log(`📋 Order ID: ${order.id.substring(0, 8)}, User ID: ${order.user_id.substring(0, 8)}`);
       console.log(`📝 Raw profiles data from DB:`, order.profiles);
-      console.log(`🚚 Raw shipping settings data:`, order.shipping_settings);
+      console.log(`🚚 Raw delivery options data:`, order.delivery_options);
       
       let orderProfile: OrderProfile | null = null;
 
@@ -87,7 +87,7 @@ export class OrderService {
         tracking_number: order.tracking_number,
         delivery_option_id: order.delivery_option_id,
         delivery_price: order.delivery_price,
-        shipping_settings: order.shipping_settings,
+        shipping_settings: order.delivery_options, // Map delivery_options to shipping_settings for compatibility
         profiles: orderProfile
       };
 
@@ -96,7 +96,7 @@ export class OrderService {
         user_id: processedOrder.user_id.substring(0, 8),
         has_profiles: !!processedOrder.profiles,
         has_shipping_settings: !!processedOrder.shipping_settings,
-        shipping_name: processedOrder.shipping_settings?.name || 'No shipping method',
+        shipping_name: processedOrder.shipping_settings?.name || 'No delivery method',
         profiles_data: processedOrder.profiles
       });
 
@@ -110,7 +110,7 @@ export class OrderService {
     console.log(`📊 Final summary:`);
     console.log(`   - Orders with profiles: ${ordersWithProfiles.length}`);
     console.log(`   - Orders without profiles: ${ordersWithoutProfiles.length}`);
-    console.log(`   - Orders with shipping info: ${ordersWithShipping.length}`);
+    console.log(`   - Orders with delivery info: ${ordersWithShipping.length}`);
     console.log(`   - Total orders returned: ${processedOrders.length}`);
 
     return processedOrders;
