@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -13,24 +14,59 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { signIn, signInWithGoogle, user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   // Redirect if already logged in
   if (user) {
-    return <Navigate to="/account" replace />;
+    // Check if user is admin and redirect accordingly
+    const adminEmails = ['admin@ezbillify.com', 'admin@millsmitra.com'];
+    const isAdmin = adminEmails.includes(user.email || '');
+    
+    if (isAdmin) {
+      return <Navigate to="/admin" replace />;
+    } else {
+      return <Navigate to="/account" replace />;
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Error",
+        description: "Please enter both email and password",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
     
     try {
+      console.log('🔑 Attempting login for:', email);
       const { error } = await signIn(email, password);
       
       if (!error) {
-        navigate("/account");
+        // Check if user is admin for redirect
+        const adminEmails = ['admin@ezbillify.com', 'admin@millsmitra.com'];
+        const isAdmin = adminEmails.includes(email);
+        
+        console.log('✅ Login successful, redirecting...', isAdmin ? 'to admin' : 'to account');
+        
+        if (isAdmin) {
+          navigate("/admin");
+        } else {
+          navigate("/account");
+        }
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
+      toast({
+        title: "Login failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
     }
     
     setLoading(false);
@@ -39,9 +75,15 @@ const Login = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
+      console.log('🔍 Attempting Google sign in...');
       await signInWithGoogle();
     } catch (error) {
-      console.error('Google sign in error:', error);
+      console.error('❌ Google sign in error:', error);
+      toast({
+        title: "Google sign in failed",
+        description: "Please try again or use email/password login.",
+        variant: "destructive",
+      });
     }
     setLoading(false);
   };
@@ -62,8 +104,10 @@ const Login = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
                 required
                 disabled={loading}
+                autoComplete="email"
               />
             </div>
             
@@ -74,8 +118,10 @@ const Login = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
                 required
                 disabled={loading}
+                autoComplete="current-password"
               />
             </div>
             
@@ -101,6 +147,13 @@ const Login = () => {
                 Sign up
               </Link>
             </p>
+            
+            {/* Admin login hint */}
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-700">
+                <strong>Admin Login:</strong> Use admin@ezbillify.com or admin@millsmitra.com
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
