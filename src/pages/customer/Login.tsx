@@ -147,13 +147,6 @@ const Login = () => {
                 Sign up
               </Link>
             </p>
-            
-            {/* Admin login hint */}
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-700">
-                <strong>Admin Login:</strong> Use admin@ezbillify.com or admin@millsmitra.com
-              </p>
-            </div>
           </div>
         </CardContent>
       </Card>
