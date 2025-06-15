@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Order, OrderStatus } from "@/types/order";
+import { StockService } from "./stockService";
 
 export class OrderService {
   static async fetchOrders(isAdminView: boolean = false): Promise<Order[]> {
@@ -76,6 +77,66 @@ export class OrderService {
         throw new Error("Only administrators can update order status");
       }
 
+      // Get current order status and items before updating
+      const { data: currentOrder, error: orderFetchError } = await supabase
+        .from("orders")
+        .select("status")
+        .eq("id", orderId)
+        .single();
+
+      if (orderFetchError) {
+        console.error("❌ Error fetching current order:", orderFetchError);
+        throw new Error(`Failed to fetch current order: ${orderFetchError.message}`);
+      }
+
+      const currentStatus = currentOrder.status;
+
+      // Handle stock management based on status changes
+      if (newStatus === 'accepted' && currentStatus === 'pending') {
+        console.log("📦 Order accepted - decreasing stock for items");
+        
+        // Fetch order items to decrease stock
+        const { data: orderItems, error: itemsError } = await supabase
+          .from("order_items")
+          .select("product_id, quantity")
+          .eq("order_id", orderId);
+
+        if (itemsError) {
+          console.error("❌ Error fetching order items:", itemsError);
+          throw new Error(`Failed to fetch order items: ${itemsError.message}`);
+        }
+
+        if (orderItems && orderItems.length > 0) {
+          try {
+            await StockService.decreaseStockForOrder(orderItems);
+          } catch (stockError) {
+            console.error("❌ Stock decrease failed:", stockError);
+            throw new Error(`Cannot accept order: ${stockError instanceof Error ? stockError.message : 'Stock update failed'}`);
+          }
+        }
+      } else if (newStatus === 'cancelled' && (currentStatus === 'accepted' || currentStatus === 'processing')) {
+        console.log("🔄 Order cancelled - restoring stock for items");
+        
+        // Fetch order items to restore stock
+        const { data: orderItems, error: itemsError } = await supabase
+          .from("order_items")
+          .select("product_id, quantity")
+          .eq("order_id", orderId);
+
+        if (itemsError) {
+          console.error("❌ Error fetching order items for cancellation:", itemsError);
+          // Don't throw error for stock restoration failure on cancellation
+        } else if (orderItems && orderItems.length > 0) {
+          try {
+            await StockService.increaseStockForOrder(orderItems);
+          } catch (stockError) {
+            console.warn("⚠️ Stock restoration failed on cancellation:", stockError);
+            // Don't throw error, just log warning
+          }
+        }
+      }
+
+      // Update order status
       const { error } = await supabase
         .from("orders")
         .update({ 

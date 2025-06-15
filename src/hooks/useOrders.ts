@@ -64,15 +64,35 @@ export const useOrders = ({ isAdminView = false }: UseOrdersProps = {}) => {
 
       await OrderService.updateOrderStatus(orderId, newStatus);
       await fetchOrders();
+      
+      let successMessage = "Order status updated successfully";
+      if (newStatus === 'accepted') {
+        successMessage = "Order accepted and stock updated successfully";
+      } else if (newStatus === 'cancelled') {
+        successMessage = "Order cancelled and stock restored successfully";
+      }
+      
       toast({
         title: "Success",
-        description: "Order status updated successfully",
+        description: successMessage,
       });
     } catch (error) {
       console.error("Unexpected error updating order:", error);
+      
+      let errorMessage = "An unexpected error occurred while updating the order";
+      if (error instanceof Error) {
+        if (error.message.includes('Insufficient stock')) {
+          errorMessage = `Cannot accept order: ${error.message}`;
+        } else if (error.message.includes('Stock update failed')) {
+          errorMessage = error.message;
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred while updating the order",
+        description: errorMessage,
         variant: "destructive",
       });
     }

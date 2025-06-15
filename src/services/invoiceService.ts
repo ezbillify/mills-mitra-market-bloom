@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { InvoiceGenerator } from "@/utils/invoiceGenerator";
 import { Order } from "@/types/order";
@@ -65,15 +64,14 @@ export class InvoiceService {
   }
 
   private static getDefaultInvoiceSettings(): InvoiceSettings {
-    // These should match the actual settings in your database
-    // Update these values to match your actual company details
+    // Updated to match the actual Mills Mitra company details
     return {
       id: "default",
-      company_name: "Your Company Name",
-      company_address: "123 Business Street, City, State 12345",
-      company_phone: "+91 9876543210",
-      company_email: "info@yourcompany.com",
-      gst_number: "22AAAAA0000A1Z5",
+      company_name: "Mills Mitra",
+      company_address: "Bangalore",
+      company_phone: "+91 9019790466",
+      company_email: "help@millsmitra.com",
+      gst_number: "29AAOFW1876C1Z8",
       fssai_number: null,
       pan_number: null,
       invoice_prefix: "INV",
