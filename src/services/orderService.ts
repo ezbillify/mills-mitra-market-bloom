@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Order, OrderProfile, OrderStatus } from "@/types/order";
 import { DebugUtils } from "@/utils/debugUtils";
+import { InvoiceService } from "@/services/invoiceService";
 
 export class OrderService {
   static async fetchOrders(): Promise<Order[]> {
@@ -146,6 +147,22 @@ export class OrderService {
     }
 
     DebugUtils.log("OrderService", `✅ Successfully updated order status`);
+
+    // Auto-generate PDF invoice when status changes to processing
+    if (newStatus === "processing") {
+      try {
+        DebugUtils.log("OrderService", `📄 Auto-generating PDF invoice for order ${orderId.substring(0, 8)}`);
+        const pdfBlob = await InvoiceService.generateInvoiceForOrder(orderId);
+        if (pdfBlob) {
+          DebugUtils.log("OrderService", `✅ PDF invoice auto-generated successfully`);
+          // Note: For auto-download, you could trigger the download here
+          // InvoiceService.downloadInvoiceForOrder(orderId);
+        }
+      } catch (error) {
+        DebugUtils.error("OrderService", "Failed to auto-generate invoice", error);
+        // Don't throw error here as the status update was successful
+      }
+    }
   }
 
   static async updateTrackingNumber(orderId: string, trackingNumber: string): Promise<void> {

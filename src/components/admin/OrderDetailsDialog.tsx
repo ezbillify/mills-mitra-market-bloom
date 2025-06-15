@@ -36,10 +36,12 @@ import {
   FileText,
   Save,
   ExternalLink,
+  Download,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { OrderStatus } from "@/types/order";
+import { InvoiceService } from "@/services/invoiceService";
 
 interface OrderDetailsProfile {
   first_name: string | null;
@@ -95,6 +97,7 @@ const OrderDetailsDialog = ({
   const [invoiceNinjaUrl, setInvoiceNinjaUrl] = useState("");
   const [isUpdatingTracking, setIsUpdatingTracking] = useState(false);
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -208,6 +211,28 @@ const OrderDetailsDialog = ({
       });
     } finally {
       setIsUpdatingTracking(false);
+    }
+  };
+
+  const generatePDFInvoice = async () => {
+    if (!orderDetails) return;
+
+    setIsGeneratingPDF(true);
+    try {
+      await InvoiceService.downloadInvoiceForOrder(orderDetails.id);
+      toast({
+        title: "Success",
+        description: "PDF invoice generated and downloaded successfully",
+      });
+    } catch (error: any) {
+      console.error("Error generating PDF invoice:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF invoice",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPDF(false);
     }
   };
 
@@ -586,12 +611,35 @@ const OrderDetailsDialog = ({
               </CardContent>
             </Card>
 
+            {/* PDF Invoice Generation */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="h-5 w-5" />
+                  PDF Invoice
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Generate and download a professional A4 PDF invoice for this order.
+                </p>
+                <Button
+                  onClick={generatePDFInvoice}
+                  disabled={isGeneratingPDF}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  {isGeneratingPDF ? "Generating PDF..." : "Download PDF Invoice"}
+                </Button>
+              </CardContent>
+            </Card>
+
             {/* Invoice Generation */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Invoice Generation
+                  Invoice Ninja Integration
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
