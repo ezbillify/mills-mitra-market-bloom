@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface GSTR1Invoice {
@@ -39,6 +38,8 @@ export interface GSTR1Summary {
   total_invoice_value: number;
   period_from: string;
   period_to: string;
+  invoiceCount?: number; // For backward compatibility
+  totalInvoiceValue?: number; // For backward compatibility
 }
 
 export class GSTR1Exporter {
@@ -192,7 +193,10 @@ export class GSTR1Exporter {
         total_tax: Number((totalCGST + totalSGST + totalIGST + totalCess).toFixed(2)),
         total_invoice_value: Number((totalTaxableValue + totalCGST + totalSGST + totalIGST + totalCess).toFixed(2)),
         period_from: fromDate,
-        period_to: toDate
+        period_to: toDate,
+        // Add backward compatibility fields
+        invoiceCount: invoices.length,
+        totalInvoiceValue: Number((totalTaxableValue + totalCGST + totalSGST + totalIGST + totalCess).toFixed(2))
       };
 
       // Store the export data in the database
@@ -215,6 +219,28 @@ export class GSTR1Exporter {
 
     } catch (error) {
       console.error('Error exporting GSTR-1 data:', error);
+      throw error;
+    }
+  }
+
+  static async exportGSTR1CSV(fromDate: string, toDate: string, filename: string): Promise<GSTR1Summary> {
+    try {
+      const { invoices, summary } = await this.exportGSTR1Data(fromDate, toDate);
+      this.downloadCSV(invoices, filename);
+      return summary;
+    } catch (error) {
+      console.error('Error exporting GSTR-1 CSV:', error);
+      throw error;
+    }
+  }
+
+  static async exportGSTR1Excel(fromDate: string, toDate: string, filename: string): Promise<GSTR1Summary> {
+    try {
+      const { invoices, summary } = await this.exportGSTR1Data(fromDate, toDate);
+      this.downloadExcel(invoices, filename);
+      return summary;
+    } catch (error) {
+      console.error('Error exporting GSTR-1 Excel:', error);
       throw error;
     }
   }
@@ -271,5 +297,56 @@ export class GSTR1Exporter {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  static downloadExcel(invoices: GSTR1Invoice[], filename: string) {
+    const headers = [
+      'Invoice Number', 'Invoice Date', 'Customer Name', 'Customer GSTIN', 'Place of Supply',
+      'Reverse Charge', 'Invoice Type', 'E-commerce GSTIN', 'HSN Code', 'Description',
+      'Quantity', 'Unit', 'Unit Price', 'Discount', 'Taxable Value',
+      'CGST Rate (%)', 'SGST Rate (%)', 'IGST Rate (%)', 'CGST Amount', 'SGST Amount', 'IGST Amount',
+      'Cess Amount', 'Total Amount'
+    ];
+
+    const excelContent = [
+      headers.join('\t'),
+      ...invoices.map(invoice => [
+        invoice.invoice_number,
+        invoice.invoice_date,
+        invoice.customer_name,
+        invoice.customer_gstin || '',
+        invoice.place_of_supply,
+        invoice.reverse_charge,
+        invoice.invoice_type,
+        invoice.ecommerce_gstin || '',
+        invoice.hsn_code,
+        invoice.description.replace(/"/g, '""'),
+        invoice.quantity,
+        invoice.unit,
+        invoice.unit_price.toFixed(2),
+        invoice.discount.toFixed(2),
+        invoice.taxable_value.toFixed(2),
+        invoice.cgst_rate.toFixed(2),
+        invoice.sgst_rate.toFixed(2),
+        invoice.igst_rate.toFixed(2),
+        invoice.cgst_amount.toFixed(2),
+        invoice.sgst_amount.toFixed(2),
+        invoice.igst_amount.toFixed(2),
+        invoice.cess_amount.toFixed(2),
+        invoice.total_amount.toFixed(2)
+      ].join('\t'))
+    ].join('\n');
+
+    const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename.replace('.xlsx', '.xls'));
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 }
