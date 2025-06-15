@@ -37,38 +37,34 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     );
   };
 
-  const getCustomerName = (order: Order) => {
-    console.log(`🎯 getCustomerName called for order ${order.id.substring(0, 8)}`);
-    console.log(`📊 Raw order.profiles data:`, order.profiles);
+  const getShippingMethod = (order: Order) => {
+    console.log(`🚚 Getting shipping method for order ${order.id.substring(0, 8)}`);
+    console.log(`📦 Order shipping_settings:`, order.shipping_settings);
+    console.log(`💰 Order delivery_price:`, order.delivery_price);
     
-    if (!order.profiles) {
-      console.log(`❌ No profiles data for order ${order.id.substring(0, 8)}`);
-      const fallbackName = `Customer ${order.user_id?.substring(0, 8) || 'Unknown'}`;
-      console.log(`🔄 Using fallback name: "${fallbackName}"`);
-      return fallbackName;
+    // Check if we have shipping_settings data
+    if (order.shipping_settings && order.shipping_settings.name) {
+      console.log(`✅ Found shipping method: ${order.shipping_settings.name}`);
+      return {
+        name: order.shipping_settings.name,
+        price: order.delivery_price || order.shipping_settings.price
+      };
     }
     
-    console.log(`✅ Profiles data exists:`, {
-      first_name: order.profiles.first_name,
-      last_name: order.profiles.last_name,
-      email: order.profiles.email
-    });
+    // Fallback based on delivery price
+    if (order.delivery_price !== null && order.delivery_price !== undefined) {
+      if (order.delivery_price === 0) {
+        console.log(`📦 Detected free shipping based on price`);
+        return { name: "Free Shipping", price: 0 };
+      } else {
+        console.log(`💸 Detected paid shipping: ₹${order.delivery_price}`);
+        return { name: "Paid Shipping", price: order.delivery_price };
+      }
+    }
     
-    const customerName = generateCustomerName({
-      id: order.user_id,
-      first_name: order.profiles.first_name,
-      last_name: order.profiles.last_name,
-      email: order.profiles.email
-    });
-    
-    console.log(`🎉 Generated customer name: "${customerName}"`);
-    return customerName;
-  };
-
-  const getCustomerEmail = (order: Order) => {
-    const email = order.profiles?.email || 'No email';
-    console.log(`📧 Email for order ${order.id.substring(0, 8)}: "${email}"`);
-    return email;
+    // Final fallback
+    console.log(`⚠️ No shipping info found, using default`);
+    return { name: "Standard Shipping", price: 0 };
   };
 
   if (orders.length === 0) {
@@ -91,20 +87,6 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   }
 
   console.log(`📋 OrdersTable rendering table with ${orders.length} orders`);
-  
-  // Detailed logging for each order's data structure
-  orders.forEach((order, index) => {
-    console.log(`🔢 Order ${index + 1}:`, {
-      id: order.id.substring(0, 8),
-      user_id: order.user_id.substring(0, 8),
-      profiles_exists: !!order.profiles,
-      profiles_data: order.profiles,
-      shipping_exists: !!order.shipping_settings,
-      shipping_name: order.shipping_settings?.name,
-      total: order.total,
-      status: order.status
-    });
-  });
 
   return (
     <Card className="border-0 shadow-lg">
@@ -137,9 +119,9 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                   email: order.profiles?.email
                 });
                 const customerEmail = order.profiles?.email || 'No email';
-                const shippingMethod = order.shipping_settings?.name || 'Standard Shipping';
+                const shippingInfo = getShippingMethod(order);
                 
-                console.log(`✨ Final display values for row ${index + 1} - Name: "${customerName}", Email: "${customerEmail}", Shipping: "${shippingMethod}"`);
+                console.log(`✨ Final display values for row ${index + 1} - Name: "${customerName}", Email: "${customerEmail}", Shipping: "${shippingInfo.name}" (₹${shippingInfo.price})`);
                 
                 return (
                   <TableRow key={order.id} className="border-gray-200 hover:bg-gray-50 transition-colors">
@@ -154,10 +136,15 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                       <div className="flex items-center gap-2">
                         <Truck className="h-4 w-4 text-gray-500" />
                         <div>
-                          <div className="font-medium text-gray-900">{shippingMethod}</div>
-                          {order.delivery_price !== null && order.delivery_price !== undefined && (
+                          <div className="font-medium text-gray-900">{shippingInfo.name}</div>
+                          {shippingInfo.price > 0 && (
                             <div className="text-xs text-gray-500">
-                              ₹{Number(order.delivery_price).toFixed(2)}
+                              ₹{Number(shippingInfo.price).toFixed(2)}
+                            </div>
+                          )}
+                          {shippingInfo.price === 0 && shippingInfo.name.includes("Free") && (
+                            <div className="text-xs text-green-600 font-medium">
+                              Free
                             </div>
                           )}
                         </div>
