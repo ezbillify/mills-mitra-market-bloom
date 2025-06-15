@@ -99,7 +99,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
         <CardTitle className="text-royal-green flex items-center gap-2">
           Recent Orders ({orders.length})
           {DebugUtils.isDebugEnabled() && (
-            <Bug className="h-4 w-4 text-red-500" title="Debug mode active" />
+            <Bug className="h-4 w-4 text-red-500" />
           )}
         </CardTitle>
       </CardHeader>

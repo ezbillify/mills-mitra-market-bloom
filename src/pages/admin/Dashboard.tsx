@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, ShoppingCart, Package, DollarSign, TrendingUp, TrendingDown, Clock, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AnalyticsChart from "@/components/admin/AnalyticsChart";
+
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
     totalRevenue: 0,
@@ -14,6 +16,7 @@ const AdminDashboard = () => {
     pendingOrders: 0
   });
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     fetchDashboardData();
 
@@ -25,46 +28,42 @@ const AdminDashboard = () => {
     }, () => {
       fetchDashboardData();
     }).subscribe();
+
     return () => {
       supabase.removeChannel(ordersChannel);
     };
   }, []);
+
   const fetchDashboardData = async () => {
     try {
       // Fetch orders data
-      const {
-        data: orders,
-        error: ordersError
-      } = await supabase.from('orders').select('*');
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select('*');
+      
       if (ordersError) throw ordersError;
 
       // Fetch products count
-      const {
-        count: productsCount,
-        error: productsError
-      } = await supabase.from('products').select('*', {
-        count: 'exact',
-        head: true
-      });
+      const { count: productsCount, error: productsError } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true });
+      
       if (productsError) throw productsError;
 
       // Fetch customers count
-      const {
-        count: customersCount,
-        error: customersError
-      } = await supabase.from('profiles').select('*', {
-        count: 'exact',
-        head: true
-      });
+      const { count: customersCount, error: customersError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      
       if (customersError) throw customersError;
 
       // Fetch sales metrics
-      const {
-        data: salesMetrics,
-        error: salesError
-      } = await supabase.from('sales_metrics').select('*').order('date', {
-        ascending: false
-      }).limit(7);
+      const { data: salesMetrics, error: salesError } = await supabase
+        .from('sales_metrics')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(7);
+      
       if (salesError) throw salesError;
 
       // Calculate stats
@@ -81,6 +80,7 @@ const AdminDashboard = () => {
         revenue: Number(item.total_revenue || 0),
         orders: item.orders_count || 0
       })).reverse();
+
       setStats({
         totalRevenue,
         totalOrders: orders?.length || 0,
@@ -96,49 +96,60 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
-  const dashboardStats = [{
-    title: "Total Revenue",
-    value: `₹${stats.totalRevenue.toLocaleString()}`,
-    change: "+12.5%",
-    trend: "up",
-    icon: DollarSign,
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-50",
-    iconColor: "text-emerald-600"
-  }, {
-    title: "Orders",
-    value: stats.totalOrders.toString(),
-    change: "+8.2%",
-    trend: "up",
-    icon: ShoppingCart,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-    iconColor: "text-blue-600"
-  }, {
-    title: "Customers",
-    value: stats.totalCustomers.toString(),
-    change: "+15.3%",
-    trend: "up",
-    icon: Users,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
-    iconColor: "text-purple-600"
-  }, {
-    title: "Products",
-    value: stats.totalProducts.toString(),
-    change: "-2.4%",
-    trend: "down",
-    icon: Package,
-    color: "text-orange-600",
-    bgColor: "bg-orange-50",
-    iconColor: "text-orange-600"
-  }];
+
+  const dashboardStats = [
+    {
+      title: "Total Revenue",
+      value: `₹${stats.totalRevenue.toLocaleString()}`,
+      change: "+12.5%",
+      trend: "up",
+      icon: DollarSign,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-50",
+      iconColor: "text-emerald-600"
+    },
+    {
+      title: "Orders",
+      value: stats.totalOrders.toString(),
+      change: "+8.2%",
+      trend: "up",
+      icon: ShoppingCart,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      iconColor: "text-blue-600"
+    },
+    {
+      title: "Customers",
+      value: stats.totalCustomers.toString(),
+      change: "+15.3%",
+      trend: "up",
+      icon: Users,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+      iconColor: "text-purple-600"
+    },
+    {
+      title: "Products",
+      value: stats.totalProducts.toString(),
+      change: "-2.4%",
+      trend: "down",
+      icon: Package,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      iconColor: "text-orange-600"
+    }
+  ];
+
   if (loading) {
-    return <div className="flex items-center justify-center h-64">
+    return (
+      <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-golden-millet border-t-transparent"></div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="space-y-8">
+
+  return (
+    <div className="space-y-8">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-golden-millet to-olive-leaf rounded-2xl p-8 text-white shadow-xl">
         <h2 className="text-4xl font-bold mb-2 text-green-950">Welcome back! 👋</h2>
@@ -149,7 +160,8 @@ const AdminDashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {dashboardStats.map((stat, index) => <Card key={index} className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        {dashboardStats.map((stat, index) => (
+          <Card key={index} className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
             <div className={`absolute top-0 right-0 w-20 h-20 ${stat.bgColor} rounded-bl-full opacity-10`}></div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-earth-brown">
@@ -162,14 +174,19 @@ const AdminDashboard = () => {
             <CardContent>
               <div className="text-3xl font-bold text-warm-brown mb-1">{stat.value}</div>
               <div className="flex items-center text-sm">
-                {stat.trend === "up" ? <TrendingUp className="h-4 w-4 mr-1 text-emerald-600" /> : <TrendingDown className="h-4 w-4 mr-1 text-red-600" />}
+                {stat.trend === "up" ? (
+                  <TrendingUp className="h-4 w-4 mr-1 text-emerald-600" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 mr-1 text-red-600" />
+                )}
                 <span className={stat.trend === "up" ? "text-emerald-600" : "text-red-600"}>
                   {stat.change}
                 </span>
                 <span className="ml-1 text-earth-brown/70">from last month</span>
               </div>
             </CardContent>
-          </Card>)}
+          </Card>
+        ))}
       </div>
 
       {/* Charts */}
@@ -182,7 +199,16 @@ const AdminDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <AnalyticsChart data={stats.salesData} type="line" title="" dataKey="revenue" xAxisKey="date" color="#2563eb" />
+            <div className="h-[300px] w-full">
+              <AnalyticsChart 
+                data={stats.salesData} 
+                type="line" 
+                title="" 
+                dataKey="revenue" 
+                xAxisKey="date" 
+                color="#2563eb" 
+              />
+            </div>
           </CardContent>
         </Card>
         
@@ -194,7 +220,16 @@ const AdminDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <AnalyticsChart data={stats.salesData} type="bar" title="" dataKey="orders" xAxisKey="date" color="#60a5fa" />
+            <div className="h-[300px] w-full">
+              <AnalyticsChart 
+                data={stats.salesData} 
+                type="bar" 
+                title="" 
+                dataKey="orders" 
+                xAxisKey="date" 
+                color="#60a5fa" 
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -237,7 +272,9 @@ const AdminDashboard = () => {
               <div className="flex justify-between items-center p-4 bg-warm-beige/20 rounded-lg">
                 <span className="font-medium text-earth-brown">Orders Today</span>
                 <span className="font-bold text-olive-leaf text-lg">
-                  {stats.recentOrders.filter((order: any) => new Date(order.created_at).toDateString() === new Date().toDateString()).length}
+                  {stats.recentOrders.filter((order: any) => 
+                    new Date(order.created_at).toDateString() === new Date().toDateString()
+                  ).length}
                 </span>
               </div>
               <div className="flex justify-between items-center p-4 bg-warm-beige/20 rounded-lg">
@@ -248,6 +285,8 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default AdminDashboard;

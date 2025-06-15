@@ -1,3 +1,4 @@
+
 interface CustomerData {
   id: string;
   first_name?: string | null;
@@ -10,6 +11,10 @@ interface OrderProfile {
   last_name: string | null;
   email: string | null;
   phone?: string | null;
+  address?: string | null;
+  city?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
 }
 
 interface UserData {
@@ -88,7 +93,7 @@ export const generateCustomerName = (customer: CustomerData | OrderProfile): str
     console.log(`🔄 Using fallback name: "${fallbackName}"`);
     return fallbackName;
   } else {
-    const fallbackName = 'Customer';
+    const fallbackName = 'Unknown Customer';
     console.log(`🔄 Using generic fallback name: "${fallbackName}"`);
     return fallbackName;
   }
@@ -96,6 +101,20 @@ export const generateCustomerName = (customer: CustomerData | OrderProfile): str
 
 export const getCustomerEmail = (customer: CustomerData | OrderProfile): string => {
   return customer.email && customer.email !== 'No email provided' ? customer.email : 'No email';
+};
+
+export const getCustomerAddress = (customer: OrderProfile): string => {
+  if (!customer.address && !customer.city) {
+    return 'No address provided';
+  }
+  
+  const addressParts = [];
+  if (customer.address) addressParts.push(customer.address);
+  if (customer.city) addressParts.push(customer.city);
+  if (customer.postal_code) addressParts.push(customer.postal_code);
+  if (customer.country) addressParts.push(customer.country);
+  
+  return addressParts.join(', ') || 'No address provided';
 };
 
 export const processCustomerData = (userData: UserData): Customer => {
@@ -150,7 +169,8 @@ export const processCustomerData = (userData: UserData): Customer => {
     email: customer.email,
     totalOrders: customer.totalOrders,
     totalSpent: customer.totalSpent,
-    status: customer.status
+    status: customer.status,
+    hasAddress: !!(customer.profile?.address || customer.profile?.city)
   });
 
   return customer;
