@@ -6,7 +6,7 @@ export class OrderService {
   static async fetchOrders(): Promise<Order[]> {
     console.log("🔍 OrderService.fetchOrders() called");
 
-    // Use a single query with JOIN to get orders, profiles, and delivery options together
+    // First, get the orders
     const { data: ordersData, error: ordersError } = await supabase
       .from("orders")
       .select(`
@@ -19,12 +19,6 @@ export class OrderService {
         tracking_number,
         delivery_option_id,
         delivery_price,
-        profiles!orders_user_id_profiles_fkey (
-          first_name,
-          last_name,
-          email,
-          phone
-        ),
         delivery_options!orders_delivery_option_id_fkey (
           id,
           name,
@@ -35,11 +29,11 @@ export class OrderService {
       .order("created_at", { ascending: false });
 
     if (ordersError) {
-      console.error("❌ Error fetching orders with profiles:", ordersError);
+      console.error("❌ Error fetching orders:", ordersError);
       throw new Error(`Failed to fetch orders: ${ordersError.message}`);
     }
 
-    console.log(`✅ Raw data from Supabase:`, ordersData);
+    console.log(`✅ Raw orders data from Supabase:`, ordersData);
     console.log(`📊 Fetched ${ordersData?.length || 0} orders`);
     
     if (!ordersData || ordersData.length === 0) {
@@ -47,25 +41,48 @@ export class OrderService {
       return [];
     }
 
-    // Process orders and ensure profile data is properly structured
+    // Get unique user IDs from orders
+    const userIds = [...new Set(ordersData.map(order => order.user_id))];
+    console.log(`👥 Fetching profiles for ${userIds.length} unique users:`, userIds.map(id => id.substring(0, 8)));
+
+    // Fetch profiles for all users at once
+    const { data: profilesData, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name, email, phone")
+      .in("id", userIds);
+
+    if (profilesError) {
+      console.error("❌ Error fetching profiles:", profilesError);
+      // Continue without throwing error, we'll use fallback data
+    }
+
+    console.log(`✅ Fetched ${profilesData?.length || 0} profiles:`, profilesData);
+
+    // Create a map of user_id to profile for quick lookup
+    const profilesMap = new Map();
+    profilesData?.forEach(profile => {
+      profilesMap.set(profile.id, profile);
+      console.log(`📝 Mapped profile: ${profile.id.substring(0, 8)} -> ${profile.first_name} ${profile.last_name} (${profile.email})`);
+    });
+
+    // Process orders and attach profile data
     const processedOrders = ordersData.map((order: any, index: number) => {
       console.log(`🔄 Processing order ${index + 1}/${ordersData.length}`);
       console.log(`📋 Order ID: ${order.id.substring(0, 8)}, User ID: ${order.user_id.substring(0, 8)}`);
-      console.log(`📝 Raw profiles data from DB:`, order.profiles);
-      console.log(`🚚 Raw delivery options data:`, order.delivery_options);
       
+      const profileData = profilesMap.get(order.user_id);
+      console.log(`👤 Profile lookup for user ${order.user_id.substring(0, 8)}:`, profileData);
+
       let orderProfile: OrderProfile | null = null;
 
-      // Handle the profile data - it might be an object or null
-      if (order.profiles && typeof order.profiles === 'object') {
-        // Ensure we have proper fallback values for missing profile data
+      if (profileData) {
         orderProfile = {
-          first_name: order.profiles.first_name || 'Customer',
-          last_name: order.profiles.last_name || `ID-${order.user_id.substring(0, 8)}`,
-          email: order.profiles.email || 'No email provided',
-          phone: order.profiles.phone || null
+          first_name: profileData.first_name || null,
+          last_name: profileData.last_name || null,
+          email: profileData.email || null,
+          phone: profileData.phone || null
         };
-        console.log(`✅ Processed profile for order ${order.id.substring(0, 8)}:`, orderProfile);
+        console.log(`✅ Using real profile for order ${order.id.substring(0, 8)}:`, orderProfile);
       } else {
         // Create a fallback profile when no profile exists
         orderProfile = {
@@ -97,19 +114,20 @@ export class OrderService {
         has_profiles: !!processedOrder.profiles,
         has_shipping_settings: !!processedOrder.shipping_settings,
         shipping_name: processedOrder.shipping_settings?.name || 'No delivery method',
-        profiles_data: processedOrder.profiles
+        customer_name: processedOrder.profiles ? `${processedOrder.profiles.first_name} ${processedOrder.profiles.last_name}` : 'Unknown',
+        customer_email: processedOrder.profiles?.email || 'No email'
       });
 
       return processedOrder;
     });
 
     // Final summary
-    const ordersWithProfiles = processedOrders.filter(order => order.profiles);
-    const ordersWithoutProfiles = processedOrders.filter(order => !order.profiles);
+    const ordersWithProfiles = processedOrders.filter(order => order.profiles && order.profiles.first_name);
+    const ordersWithoutProfiles = processedOrders.filter(order => !order.profiles || !order.profiles.first_name);
     const ordersWithShipping = processedOrders.filter(order => order.shipping_settings);
     console.log(`📊 Final summary:`);
-    console.log(`   - Orders with profiles: ${ordersWithProfiles.length}`);
-    console.log(`   - Orders without profiles: ${ordersWithoutProfiles.length}`);
+    console.log(`   - Orders with real profiles: ${ordersWithProfiles.length}`);
+    console.log(`   - Orders with fallback profiles: ${ordersWithoutProfiles.length}`);
     console.log(`   - Orders with delivery info: ${ordersWithShipping.length}`);
     console.log(`   - Total orders returned: ${processedOrders.length}`);
 
