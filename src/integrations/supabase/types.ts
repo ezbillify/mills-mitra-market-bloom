@@ -501,7 +501,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       order_status:
