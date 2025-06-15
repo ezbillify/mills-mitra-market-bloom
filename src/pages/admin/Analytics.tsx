@@ -1,14 +1,14 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, FileSpreadsheet, Calendar } from "lucide-react";
+import { Download, FileSpreadsheet, Calendar, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AnalyticsChart from "@/components/admin/AnalyticsChart";
 import { SalesExporter } from "@/utils/salesExporter";
+import { GSTR1Exporter } from "@/utils/gstr1Exporter";
 
 const Analytics = () => {
   const [salesData, setSalesData] = useState([]);
@@ -130,6 +130,66 @@ const Analytics = () => {
     }
   };
 
+  const handleExportGSTR1CSV = async () => {
+    if (!startDate || !endDate) {
+      toast({
+        title: "Date Range Required",
+        description: "Please select both start and end dates for GSTR-1 export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const filename = `gstr1-${startDate}-to-${endDate}.csv`;
+      const summary = await GSTR1Exporter.exportGSTR1CSV(startDate, endDate, filename);
+      
+      toast({
+        title: "GSTR-1 Export Successful",
+        description: `GSTR-1 data exported: ${summary.invoiceCount} invoices, ₹${summary.totalInvoiceValue.toFixed(2)} total value`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "GSTR-1 Export Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportGSTR1Excel = async () => {
+    if (!startDate || !endDate) {
+      toast({
+        title: "Date Range Required",
+        description: "Please select both start and end dates for GSTR-1 export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const filename = `gstr1-${startDate}-to-${endDate}.xlsx`;
+      const summary = await GSTR1Exporter.exportGSTR1Excel(startDate, endDate, filename);
+      
+      toast({
+        title: "GSTR-1 Export Successful",
+        description: `GSTR-1 data exported: ${summary.invoiceCount} invoices, ₹${summary.totalInvoiceValue.toFixed(2)} total value`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "GSTR-1 Export Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -137,61 +197,122 @@ const Analytics = () => {
       </div>
 
       {/* Export Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            Export Sales Data
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="start-date">Start Date (Optional)</Label>
-              <Input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Sales Data Export */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Download className="h-5 w-5" />
+              Export Sales Data
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start-date">Start Date (Optional)</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end-date">End Date (Optional)</Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="end-date">End Date (Optional)</Label>
-              <Input
-                id="end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-          </div>
-          
-          <div className="flex gap-3">
-            <Button
-              onClick={handleExportCSV}
-              disabled={isExporting}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              {isExporting ? "Exporting..." : "Export as CSV"}
-            </Button>
             
-            <Button
-              onClick={handleExportExcel}
-              disabled={isExporting}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              {isExporting ? "Exporting..." : "Export as Excel"}
-            </Button>
-          </div>
-          
-          <p className="text-sm text-gray-600">
-            Export includes: Order ID, Date, Customer details, Items, Tax breakdown, Total amount, Status, and Shipping address
-          </p>
-        </CardContent>
-      </Card>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleExportCSV}
+                disabled={isExporting}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                {isExporting ? "Exporting..." : "Export as CSV"}
+              </Button>
+              
+              <Button
+                onClick={handleExportExcel}
+                disabled={isExporting}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                {isExporting ? "Exporting..." : "Export as Excel"}
+              </Button>
+            </div>
+            
+            <p className="text-sm text-gray-600">
+              Export includes: Order ID, Date, Customer details, Items, HSN codes, Tax breakdown, Total amount, Status, and Shipping address
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* GSTR-1 Export */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              GSTR-1 Export
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="gstr1-start-date">Start Date (Required)</Label>
+                <Input
+                  id="gstr1-start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gstr1-end-date">End Date (Required)</Label>
+                <Input
+                  id="gstr1-end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button
+                onClick={handleExportGSTR1CSV}
+                disabled={isExporting || !startDate || !endDate}
+                className="flex items-center gap-2"
+                variant="secondary"
+              >
+                <FileText className="h-4 w-4" />
+                {isExporting ? "Exporting..." : "GSTR-1 CSV"}
+              </Button>
+              
+              <Button
+                onClick={handleExportGSTR1Excel}
+                disabled={isExporting || !startDate || !endDate}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                {isExporting ? "Exporting..." : "GSTR-1 Excel"}
+              </Button>
+            </div>
+            
+            <p className="text-sm text-gray-600">
+              GSTR-1 format includes: HSN codes, GST breakdowns (CGST/SGST/IGST), taxable values, and place of supply
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

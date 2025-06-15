@@ -212,6 +212,42 @@ export type Database = {
         }
         Relationships: []
       }
+      gstr1_exports: {
+        Row: {
+          created_at: string
+          export_data: Json
+          export_date: string
+          id: string
+          period_from: string
+          period_to: string
+          total_invoice_value: number
+          total_tax_amount: number
+          total_taxable_value: number
+        }
+        Insert: {
+          created_at?: string
+          export_data: Json
+          export_date: string
+          id?: string
+          period_from: string
+          period_to: string
+          total_invoice_value?: number
+          total_tax_amount?: number
+          total_taxable_value?: number
+        }
+        Update: {
+          created_at?: string
+          export_data?: Json
+          export_date?: string
+          id?: string
+          period_from?: string
+          period_to?: string
+          total_invoice_value?: number
+          total_tax_amount?: number
+          total_taxable_value?: number
+        }
+        Relationships: []
+      }
       invoice_settings: {
         Row: {
           account_number: string | null
@@ -374,11 +410,13 @@ export type Database = {
           discounted_price: number | null
           featured: boolean | null
           gst_percentage: number | null
+          hsn_code: string | null
           id: string
           image: string | null
           name: string
           price: number
           price_includes_tax: boolean | null
+          product_type: string | null
           selling_price_with_tax: number | null
           stock: number
           updated_at: string
@@ -391,11 +429,13 @@ export type Database = {
           discounted_price?: number | null
           featured?: boolean | null
           gst_percentage?: number | null
+          hsn_code?: string | null
           id?: string
           image?: string | null
           name: string
           price: number
           price_includes_tax?: boolean | null
+          product_type?: string | null
           selling_price_with_tax?: number | null
           stock?: number
           updated_at?: string
@@ -408,11 +448,13 @@ export type Database = {
           discounted_price?: number | null
           featured?: boolean | null
           gst_percentage?: number | null
+          hsn_code?: string | null
           id?: string
           image?: string | null
           name?: string
           price?: number
           price_includes_tax?: boolean | null
+          product_type?: string | null
           selling_price_with_tax?: number | null
           stock?: number
           updated_at?: string

@@ -75,14 +75,16 @@ export class InvoiceService {
         return null;
       }
 
-      // Fetch order items
+      // Fetch order items with product details including HSN and GST
       const { data: orderItems, error: itemsError } = await supabase
         .from("order_items")
         .select(`
           *,
           products (
             name,
-            description
+            description,
+            hsn_code,
+            gst_percentage
           )
         `)
         .eq("order_id", orderId);

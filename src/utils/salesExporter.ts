@@ -7,12 +7,14 @@ export interface SalesData {
   customerName: string;
   customerEmail: string;
   items: string;
+  hsnCodes: string;
   quantity: number;
   amount: number;
   tax: number;
   total: number;
   status: string;
   shippingAddress: string;
+  gstBreakdown: string;
 }
 
 export class SalesExporter {
@@ -33,7 +35,11 @@ export class SalesExporter {
         order_items (
           quantity,
           price,
-          products (name)
+          products (
+            name,
+            hsn_code,
+            gst_percentage
+          )
         )
       `)
       .order("created_at", { ascending: false });
@@ -57,11 +63,28 @@ export class SalesExporter {
         : 'N/A';
       
       const items = order.order_items?.map((item: any) => item.products?.name).join(', ') || 'N/A';
+      const hsnCodes = order.order_items?.map((item: any) => item.products?.hsn_code || 'N/A').join(', ') || 'N/A';
       const totalQuantity = order.order_items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
       
-      // Calculate tax (assuming 18% GST)
-      const taxableAmount = Number(order.total) / 1.18;
-      const tax = Number(order.total) - taxableAmount;
+      // Calculate tax breakdown based on individual items
+      let totalTax = 0;
+      let totalTaxableAmount = 0;
+      const gstBreakdownParts: string[] = [];
+      
+      order.order_items?.forEach((item: any) => {
+        const itemTotal = Number(item.price) * item.quantity;
+        const gstRate = item.products?.gst_percentage || 18;
+        const itemTax = (itemTotal * gstRate) / (100 + gstRate); // If price includes tax
+        
+        totalTax += itemTax;
+        totalTaxableAmount += itemTotal - itemTax;
+        
+        if (gstRate > 0) {
+          gstBreakdownParts.push(`${item.products?.name}: ${gstRate}% GST`);
+        }
+      });
+
+      const gstBreakdown = gstBreakdownParts.join('; ') || 'No GST';
 
       return {
         orderId: order.id.substring(0, 8),
@@ -69,12 +92,14 @@ export class SalesExporter {
         customerName,
         customerEmail: order.profiles?.email || 'N/A',
         items,
+        hsnCodes,
         quantity: totalQuantity,
-        amount: taxableAmount,
-        tax,
+        amount: totalTaxableAmount,
+        tax: totalTax,
         total: Number(order.total),
         status: order.status,
-        shippingAddress: order.shipping_address.replace(/\n/g, ' ')
+        shippingAddress: order.shipping_address.replace(/\n/g, ' '),
+        gstBreakdown
       };
     });
   }
@@ -86,12 +111,14 @@ export class SalesExporter {
       'Customer Name',
       'Customer Email',
       'Items',
+      'HSN Codes',
       'Quantity',
       'Taxable Amount',
       'Tax Amount',
       'Total Amount',
       'Status',
-      'Shipping Address'
+      'Shipping Address',
+      'GST Breakdown'
     ];
 
     const csvContent = [
@@ -102,12 +129,14 @@ export class SalesExporter {
         `"${row.customerName}"`,
         row.customerEmail,
         `"${row.items}"`,
+        `"${row.hsnCodes}"`,
         row.quantity,
         row.amount.toFixed(2),
         row.tax.toFixed(2),
         row.total.toFixed(2),
         row.status,
-        `"${row.shippingAddress}"`
+        `"${row.shippingAddress}"`,
+        `"${row.gstBreakdown}"`
       ].join(','))
     ].join('\n');
 
@@ -124,35 +153,38 @@ export class SalesExporter {
   }
 
   static exportToExcel(salesData: SalesData[], filename: string = 'sales-data.xlsx') {
-    // For Excel export, we'll create a more detailed CSV that Excel can handle
     const headers = [
       'Order ID',
       'Order Date',
       'Customer Name',
       'Customer Email',
       'Items Purchased',
+      'HSN Codes',
       'Total Quantity',
       'Taxable Amount (₹)',
       'Tax Amount (₹)',
       'Total Amount (₹)',
       'Order Status',
-      'Shipping Address'
+      'Shipping Address',
+      'GST Breakdown'
     ];
 
     const csvContent = [
-      headers.join('\t'), // Use tab separator for better Excel compatibility
+      headers.join('\t'),
       ...salesData.map(row => [
         row.orderId,
         row.orderDate,
         row.customerName,
         row.customerEmail,
-        row.items.replace(/"/g, '""'), // Escape quotes for Excel
+        row.items.replace(/"/g, '""'),
+        row.hsnCodes.replace(/"/g, '""'),
         row.quantity,
         row.amount.toFixed(2),
         row.tax.toFixed(2),
         row.total.toFixed(2),
         row.status,
-        row.shippingAddress.replace(/"/g, '""')
+        row.shippingAddress.replace(/"/g, '""'),
+        row.gstBreakdown.replace(/"/g, '""')
       ].join('\t'))
     ].join('\n');
 
