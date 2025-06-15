@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -112,7 +111,7 @@ const OrderDetailsDialog = ({
     try {
       console.log("Fetching order details for:", orderId);
 
-      // Fetch order with profile data using a join
+      // Fetch order with profile data using a simple join
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .select(`
@@ -155,7 +154,6 @@ const OrderDetailsDialog = ({
       }
 
       console.log("Order details fetched:", order);
-      console.log("Profile data from join:", order?.profiles);
       console.log("Order items fetched:", items);
 
       setOrderDetails(order);
@@ -249,31 +247,27 @@ const OrderDetailsDialog = ({
     );
   };
 
+  // Simplified customer info function
   const getCustomerInfo = () => {
     if (!orderDetails) return { 
       name: "Unknown", 
       email: "Unknown", 
       phone: "Unknown", 
-      address: "Unknown",
-      hasProfile: false 
+      address: "Unknown"
     };
-    
-    console.log("Processing customer info for profiles:", orderDetails.profiles);
     
     if (orderDetails.profiles) {
       const { first_name, last_name, email, phone, address, city, postal_code, country } = orderDetails.profiles;
       
-      // Generate customer name
       let name = "Customer";
       if (first_name || last_name) {
         name = `${first_name || ''} ${last_name || ''}`.trim();
-      } else if (email) {
+      } else if (email && email.includes('@')) {
         name = email;
       } else {
         name = `Customer ${orderDetails.user_id?.substring(0, 8)}`;
       }
       
-      // Generate full address
       let fullAddress = "No address provided";
       if (address) {
         const addressParts = [address];
@@ -283,15 +277,11 @@ const OrderDetailsDialog = ({
         fullAddress = addressParts.join(", ");
       }
       
-      const hasCompleteProfile = !!(first_name || last_name) && !!email && !!address;
-      
       return {
         name,
         email: email || "No email provided",
         phone: phone || "No phone provided",
-        address: fullAddress,
-        hasProfile: true,
-        hasCompleteProfile
+        address: fullAddress
       };
     }
     
@@ -299,9 +289,7 @@ const OrderDetailsDialog = ({
       name: `Customer ${orderDetails.user_id?.substring(0, 8)}`,
       email: "Profile not completed",
       phone: "Profile not completed",
-      address: "Profile not completed",
-      hasProfile: false,
-      hasCompleteProfile: false
+      address: "Profile not completed"
     };
   };
 
@@ -436,22 +424,12 @@ const OrderDetailsDialog = ({
               </Card>
             </div>
 
-            {/* Customer Information - Enhanced */}
+            {/* Customer Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
                   Customer Information
-                  {customerInfo.hasProfile && !customerInfo.hasCompleteProfile && (
-                    <Badge variant="outline" className="text-orange-600 border-orange-600">
-                      Profile Incomplete
-                    </Badge>
-                  )}
-                  {customerInfo.hasProfile && customerInfo.hasCompleteProfile && (
-                    <Badge variant="outline" className="text-green-600 border-green-600">
-                      Profile Complete
-                    </Badge>
-                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -478,18 +456,13 @@ const OrderDetailsDialog = ({
                         <p className="text-gray-900">{customerInfo.phone}</p>
                       </div>
                     </div>
-                    <div className="text-xs text-gray-500">
-                      Customer ID: {orderDetails.user_id.substring(0, 8)}...
-                    </div>
                   </div>
                   <div className="space-y-3">
                     <div className="flex items-start gap-2">
                       <MapPin className="h-4 w-4 text-gray-500 mt-1" />
                       <div>
-                        <span className="text-sm font-medium">Profile Address:</span>
-                        <p className="text-sm text-gray-900 mt-1">
-                          {customerInfo.address}
-                        </p>
+                        <span className="text-sm font-medium">Address:</span>
+                        <p className="text-sm text-gray-900 mt-1">{customerInfo.address}</p>
                       </div>
                     </div>
                   </div>
@@ -655,7 +628,7 @@ const OrderDetailsDialog = ({
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-gray-600">
-                  Generate and download a professional A4 PDF invoice for this order with complete customer and company information.
+                  Generate and download a professional PDF invoice for this order.
                 </p>
                 <Button
                   onClick={generatePDFInvoice}

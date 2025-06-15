@@ -1,13 +1,10 @@
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, Truck, Bug, User, UserCheck, IndianRupee } from "lucide-react";
+import { Eye, Truck, User, UserCheck, IndianRupee } from "lucide-react";
 import { Order } from "@/types/order";
-import { generateCustomerName } from "@/utils/customerUtils";
-import { DebugUtils } from "@/utils/debugUtils";
-import { PricingUtils } from "@/utils/pricingUtils";
-import { TaxCalculator } from "@/utils/taxCalculator";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -15,34 +12,8 @@ interface OrdersTableProps {
   onViewDetails: (orderId: string) => void;
 }
 
-// Helper function to validate if a value contains actual data
-const hasValidData = (value: any): boolean => {
-  return value !== null && 
-         value !== undefined && 
-         value !== "" && 
-         value !== "null" && 
-         value !== "undefined" &&
-         typeof value === 'string' && 
-         value.trim().length > 0;
-};
-
-// Helper function to check if profile has complete data
-const hasCompleteProfileData = (profiles: any): boolean => {
-  if (!profiles) return false;
-  
-  return hasValidData(profiles.first_name) || 
-         hasValidData(profiles.last_name) || 
-         (hasValidData(profiles.email) && profiles.email.includes('@') && !profiles.email.includes('unknown.com'));
-};
-
 const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps) => {
-  DebugUtils.log("OrdersTable", `🔥 Enhanced customer-order display: Received ${orders.length} orders`);
-  
-  // Enhanced customer-order analysis with better profile detection
-  const ordersWithProfiles = orders.filter(order => hasCompleteProfileData(order.profiles));
-  const ordersWithoutProfiles = orders.filter(order => !hasCompleteProfileData(order.profiles));
-  
-  DebugUtils.log("OrdersTable", `📊 Customer-order breakdown: ${ordersWithProfiles.length} with valid profiles, ${ordersWithoutProfiles.length} without valid profiles`);
+  console.log(`OrdersTable: Rendering ${orders.length} orders`);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", className: string }> = {
@@ -66,8 +37,6 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   };
 
   const getShippingMethod = (order: Order) => {
-    DebugUtils.log("OrdersTable", `🚚 Getting shipping method for order ${order.id.substring(0, 8)}`);
-    
     if (order.shipping_settings && order.shipping_settings.name) {
       return {
         name: order.shipping_settings.name,
@@ -86,89 +55,31 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     return { name: "Standard Shipping", price: 0 };
   };
 
-  // Enhanced customer info extraction with proper validation
+  // Simplified customer info extraction
   const getCustomerInfo = (order: Order) => {
-    console.log(`🔍 Getting customer info for order ${order.id.substring(0, 8)}:`, {
-      profiles: order.profiles,
-      user_id: order.user_id.substring(0, 8),
-      hasProfiles: !!order.profiles,
-      profilesKeys: order.profiles ? Object.keys(order.profiles) : []
-    });
-    
-    // Create customer data object for generateCustomerName
-    const customerData = {
-      id: order.user_id,
-      first_name: order.profiles?.first_name || null,
-      last_name: order.profiles?.last_name || null,
-      email: order.profiles?.email || null
-    };
-    
-    console.log(`📋 Customer data being passed to generateCustomerName:`, {
-      ...customerData,
-      first_name_valid: hasValidData(customerData.first_name),
-      last_name_valid: hasValidData(customerData.last_name),
-      email_valid: hasValidData(customerData.email)
-    });
-    
-    const customerName = generateCustomerName(customerData);
-    
-    // Enhanced email validation
-    const customerEmail = hasValidData(order.profiles?.email) && 
-                         order.profiles.email.includes('@') && 
-                         !order.profiles.email.includes('unknown.com') 
-                         ? order.profiles.email 
-                         : 'No email';
-    
-    // Better profile completeness check
-    const hasCompleteProfile = hasCompleteProfileData(order.profiles);
-    
-    console.log(`✅ Generated customer info:`, {
-      customerName,
-      customerEmail,
-      hasCompleteProfile,
-      profileData: {
-        first_name: order.profiles?.first_name,
-        last_name: order.profiles?.last_name,
-        email: order.profiles?.email
-      }
-    });
-    
-    return { customerName, customerEmail, hasCompleteProfile };
-  };
+    if (!order.profiles) {
+      return {
+        name: `Customer ${order.user_id.substring(0, 8)}`,
+        email: "No email",
+        hasProfile: false
+      };
+    }
 
-  // Enhanced pricing calculation for admin view with proper tax breakdown
-  const getOrderPricing = (order: Order) => {
-    const orderTotal = Number(order.total) || 0;
-    const shippingCost = Number(order.delivery_price || 0);
+    const { first_name, last_name, email } = order.profiles;
     
-    // Calculate the subtotal (total excluding shipping)
-    const totalWithoutShipping = Math.max(0, orderTotal - shippingCost);
-    
-    // Use a standard GST rate for estimation if we don't have detailed breakdown
-    const standardGstRate = 18; // 18% as default
-    
-    // Calculate tax breakdown using the tax calculator
-    const taxBreakdown = TaxCalculator.calculateTaxBreakdown(
-      totalWithoutShipping,
-      standardGstRate,
-      order.shipping_address || ""
-    );
-    
-    // If the calculated total doesn't match the order total, 
-    // adjust the breakdown proportionally
-    const calculatedTotal = taxBreakdown.taxableAmount + taxBreakdown.totalTax;
-    const adjustmentRatio = calculatedTotal > 0 ? totalWithoutShipping / calculatedTotal : 1;
+    let name = "Customer";
+    if (first_name || last_name) {
+      name = `${first_name || ''} ${last_name || ''}`.trim();
+    } else if (email && email.includes('@')) {
+      name = email;
+    } else {
+      name = `Customer ${order.user_id.substring(0, 8)}`;
+    }
     
     return {
-      subtotal: taxBreakdown.taxableAmount * adjustmentRatio,
-      tax: taxBreakdown.totalTax * adjustmentRatio,
-      shipping: shippingCost,
-      total: orderTotal,
-      taxBreakdown: {
-        cgst: (taxBreakdown.cgst || 0) * adjustmentRatio,
-        sgst: (taxBreakdown.sgst || 0) * adjustmentRatio,
-        igst: (taxBreakdown.igst || 0) * adjustmentRatio
-      }
+      name,
+      email: email && email.includes('@') ? email : 'No email',
+      hasProfile: !!(first_name || last_name || (email && email.includes('@')))
     };
   };
 
@@ -191,7 +102,8 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     );
   }
 
-  DebugUtils.log("OrdersTable", `📋 Rendering enhanced customer-order table with ${orders.length} orders`);
+  const ordersWithProfiles = orders.filter(order => getCustomerInfo(order).hasProfile);
+  const ordersWithoutProfiles = orders.filter(order => !getCustomerInfo(order).hasProfile);
 
   return (
     <Card className="border-0 shadow-lg">
@@ -200,13 +112,10 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
           Recent Orders ({orders.length})
           <div className="flex items-center gap-2 text-sm font-normal">
             <UserCheck className="h-4 w-4 text-green-600" />
-            <span className="text-green-600">{ordersWithProfiles.length} with complete profiles</span>
+            <span className="text-green-600">{ordersWithProfiles.length} with profiles</span>
             <User className="h-4 w-4 text-orange-600" />
-            <span className="text-orange-600">{ordersWithoutProfiles.length} incomplete profiles</span>
+            <span className="text-orange-600">{ordersWithoutProfiles.length} without profiles</span>
           </div>
-          {DebugUtils.isDebugEnabled() && (
-            <Bug className="h-4 w-4 text-red-500" />
-          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -215,69 +124,36 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
             <TableHeader>
               <TableRow className="border-gray-200 bg-gray-50">
                 <TableHead className="text-gray-700 font-semibold">Order ID</TableHead>
-                <TableHead className="text-gray-700 font-semibold">Customer Info</TableHead>
+                <TableHead className="text-gray-700 font-semibold">Customer</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Email</TableHead>
-                <TableHead className="text-gray-700 font-semibold">Shipping Method</TableHead>
-                <TableHead className="text-gray-700 font-semibold">Order Value</TableHead>
+                <TableHead className="text-gray-700 font-semibold">Shipping</TableHead>
+                <TableHead className="text-gray-700 font-semibold">Total</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Status</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Date</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orders.map((order, index) => {
-                DebugUtils.log("OrdersTable", `🎨 Rendering customer-order row ${index + 1} for order ${order.id.substring(0, 8)}`);
-                
-                const { customerName, customerEmail, hasCompleteProfile } = getCustomerInfo(order);
+              {orders.map((order) => {
+                const customerInfo = getCustomerInfo(order);
                 const shippingInfo = getShippingMethod(order);
-                const pricing = getOrderPricing(order);
-                
-                DebugUtils.log("OrdersTable", `✨ Customer-order display data for row ${index + 1}:`, {
-                  orderID: order.id.substring(0, 8),
-                  customerName,
-                  customerEmail,
-                  hasCompleteProfile,
-                  shippingMethod: shippingInfo.name,
-                  profileDataAvailable: !!order.profiles,
-                  profileDataValid: hasCompleteProfileData(order.profiles),
-                  pricing
-                });
                 
                 return (
                   <TableRow key={order.id} className="border-gray-200 hover:bg-gray-50 transition-colors">
                     <TableCell className="font-mono text-sm text-royal-green bg-gray-50 rounded-md m-1 px-3 py-2">
                       #{order.id.slice(0, 8)}
-                      {DebugUtils.isDebugEnabled() && (
-                        <div className="text-xs mt-1">
-                          {!order.profiles && <span className="text-red-500">NO PROFILE</span>}
-                          {order.profiles && !hasCompleteProfile && <span className="text-orange-500">INCOMPLETE</span>}
-                          {order.profiles && hasCompleteProfile && <span className="text-green-500">COMPLETE</span>}
-                        </div>
-                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {hasCompleteProfile ? (
+                        {customerInfo.hasProfile ? (
                           <UserCheck className="h-4 w-4 text-green-600" />
                         ) : (
                           <User className="h-4 w-4 text-orange-600" />
                         )}
-                        <div>
-                          <div className="font-medium text-gray-900">{customerName}</div>
-                          {DebugUtils.isDebugEnabled() && (
-                            <div className="text-xs text-gray-500">
-                              User: {order.user_id.substring(0, 8)} | Profile: {hasCompleteProfile ? 'Complete' : 'Incomplete'}
-                              {order.profiles && (
-                                <div className="text-xs text-blue-600">
-                                  F: "{order.profiles.first_name || 'null'}" | L: "{order.profiles.last_name || 'null'}" | E: "{order.profiles.email || 'null'}"
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        <div className="font-medium text-gray-900">{customerInfo.name}</div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-600">{customerEmail}</TableCell>
+                    <TableCell className="text-gray-600">{customerInfo.email}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Truck className="h-4 w-4 text-gray-500" />
@@ -289,58 +165,13 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                               {shippingInfo.price.toFixed(2)}
                             </div>
                           )}
-                          {shippingInfo.price === 0 && shippingInfo.name.includes("Free") && (
-                            <div className="text-xs text-green-600 font-medium">
-                              Free
-                            </div>
-                          )}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        <div className="font-bold text-royal-green text-lg flex items-center gap-1">
-                          <IndianRupee className="h-4 w-4" />
-                          {pricing.total.toFixed(2)}
-                        </div>
-                        <div className="text-xs text-gray-500 space-y-1">
-                          <div className="flex justify-between items-center gap-2">
-                            <span>Subtotal:</span>
-                            <span className="flex items-center gap-1">
-                              <IndianRupee className="h-3 w-3" />
-                              {pricing.subtotal.toFixed(2)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center gap-2">
-                            <span>GST:</span>
-                            <span className="flex items-center gap-1">
-                              <IndianRupee className="h-3 w-3" />
-                              {pricing.tax.toFixed(2)}
-                            </span>
-                          </div>
-                          {pricing.shipping > 0 && (
-                            <div className="flex justify-between items-center gap-2">
-                              <span>Shipping:</span>
-                              <span className="flex items-center gap-1">
-                                <IndianRupee className="h-3 w-3" />
-                                {pricing.shipping.toFixed(2)}
-                              </span>
-                            </div>
-                          )}
-                          {DebugUtils.isDebugEnabled() && (
-                            <div className="text-xs text-blue-600 mt-1">
-                              {pricing.taxBreakdown.cgst > 0 && (
-                                <div>CGST: ₹{pricing.taxBreakdown.cgst.toFixed(2)}</div>
-                              )}
-                              {pricing.taxBreakdown.sgst > 0 && (
-                                <div>SGST: ₹{pricing.taxBreakdown.sgst.toFixed(2)}</div>
-                              )}
-                              {pricing.taxBreakdown.igst > 0 && (
-                                <div>IGST: ₹{pricing.taxBreakdown.igst.toFixed(2)}</div>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                      <div className="font-bold text-royal-green text-lg flex items-center gap-1">
+                        <IndianRupee className="h-4 w-4" />
+                        {Number(order.total).toFixed(2)}
                       </div>
                     </TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
