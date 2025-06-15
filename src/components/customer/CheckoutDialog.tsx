@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { IndianRupee } from "@/components/ui/indian-rupee";
+import { IndianRupee } from "lucide-react";
 
 interface CartItem {
   id: string;
