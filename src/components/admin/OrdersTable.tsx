@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, Truck, Bug } from "lucide-react";
+import { Eye, Truck, Bug, User, UserCheck } from "lucide-react";
 import { Order } from "@/types/order";
 import { generateCustomerName } from "@/utils/customerUtils";
 import { DebugUtils } from "@/utils/debugUtils";
@@ -15,14 +15,13 @@ interface OrdersTableProps {
 }
 
 const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps) => {
-  DebugUtils.log("OrdersTable", `🔥 Received ${orders.length} orders`);
-  DebugUtils.table("OrdersTable", "Orders received:", orders.map(order => ({
-    id: order.id.substring(0, 8),
-    user_id: order.user_id.substring(0, 8),
-    has_profiles: !!order.profiles,
-    customer_name: order.profiles ? `${order.profiles.first_name} ${order.profiles.last_name}` : 'NO PROFILE',
-    customer_email: order.profiles?.email || 'NO EMAIL'
-  })));
+  DebugUtils.log("OrdersTable", `🔥 Enhanced customer-order display: Received ${orders.length} orders`);
+  
+  // Enhanced customer-order analysis
+  const ordersWithProfiles = orders.filter(order => order.profiles && (order.profiles.first_name || order.profiles.last_name || order.profiles.email));
+  const ordersWithoutProfiles = orders.filter(order => !order.profiles);
+  
+  DebugUtils.log("OrdersTable", `📊 Customer-order breakdown: ${ordersWithProfiles.length} with profiles, ${ordersWithoutProfiles.length} without profiles`);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", className: string }> = {
@@ -47,11 +46,8 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
 
   const getShippingMethod = (order: Order) => {
     DebugUtils.log("OrdersTable", `🚚 Getting shipping method for order ${order.id.substring(0, 8)}`);
-    DebugUtils.log("OrdersTable", `📦 Order shipping_settings:`, order.shipping_settings);
-    DebugUtils.log("OrdersTable", `💰 Order delivery_price:`, order.delivery_price);
     
     if (order.shipping_settings && order.shipping_settings.name) {
-      DebugUtils.log("OrdersTable", `✅ Found shipping method: ${order.shipping_settings.name}`);
       return {
         name: order.shipping_settings.name,
         price: order.delivery_price || order.shipping_settings.price
@@ -60,16 +56,29 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     
     if (order.delivery_price !== null && order.delivery_price !== undefined) {
       if (order.delivery_price === 0) {
-        DebugUtils.log("OrdersTable", "📦 Detected free shipping based on price");
         return { name: "Free Shipping", price: 0 };
       } else {
-        DebugUtils.log("OrdersTable", `💸 Detected paid shipping: ₹${order.delivery_price}`);
         return { name: "Paid Shipping", price: order.delivery_price };
       }
     }
     
-    DebugUtils.log("OrdersTable", "⚠️ No shipping info found, using default");
     return { name: "Standard Shipping", price: 0 };
+  };
+
+  // Enhanced customer info extraction
+  const getCustomerInfo = (order: Order) => {
+    const customerData = {
+      id: order.user_id,
+      first_name: order.profiles?.first_name || null,
+      last_name: order.profiles?.last_name || null,
+      email: order.profiles?.email || null
+    };
+    
+    const customerName = generateCustomerName(customerData);
+    const customerEmail = order.profiles?.email || 'No email';
+    const hasCompleteProfile = !!(order.profiles?.first_name || order.profiles?.last_name);
+    
+    return { customerName, customerEmail, hasCompleteProfile };
   };
 
   if (orders.length === 0) {
@@ -91,13 +100,19 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     );
   }
 
-  DebugUtils.log("OrdersTable", `📋 Rendering table with ${orders.length} orders`);
+  DebugUtils.log("OrdersTable", `📋 Rendering enhanced customer-order table with ${orders.length} orders`);
 
   return (
     <Card className="border-0 shadow-lg">
       <CardHeader className="bg-gradient-to-r from-white to-gray-50">
         <CardTitle className="text-royal-green flex items-center gap-2">
           Recent Orders ({orders.length})
+          <div className="flex items-center gap-2 text-sm font-normal">
+            <UserCheck className="h-4 w-4 text-green-600" />
+            <span className="text-green-600">{ordersWithProfiles.length} with profiles</span>
+            <User className="h-4 w-4 text-orange-600" />
+            <span className="text-orange-600">{ordersWithoutProfiles.length} without profiles</span>
+          </div>
           {DebugUtils.isDebugEnabled() && (
             <Bug className="h-4 w-4 text-red-500" />
           )}
@@ -109,7 +124,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
             <TableHeader>
               <TableRow className="border-gray-200 bg-gray-50">
                 <TableHead className="text-gray-700 font-semibold">Order ID</TableHead>
-                <TableHead className="text-gray-700 font-semibold">Customer</TableHead>
+                <TableHead className="text-gray-700 font-semibold">Customer Info</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Email</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Shipping Method</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Total</TableHead>
@@ -120,23 +135,18 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
             </TableHeader>
             <TableBody>
               {orders.map((order, index) => {
-                DebugUtils.log("OrdersTable", `🎨 Rendering row ${index + 1} for order ${order.id.substring(0, 8)}`);
+                DebugUtils.log("OrdersTable", `🎨 Rendering customer-order row ${index + 1} for order ${order.id.substring(0, 8)}`);
                 
-                // Create a simplified customer object for the generateCustomerName function
-                const customerData = {
-                  id: order.user_id,
-                  first_name: order.profiles?.first_name || null,
-                  last_name: order.profiles?.last_name || null,
-                  email: order.profiles?.email || null
-                };
-                
-                DebugUtils.log("OrdersTable", `📋 Customer data for generateCustomerName:`, customerData);
-                
-                const customerName = generateCustomerName(customerData);
-                const customerEmail = order.profiles?.email || 'No email';
+                const { customerName, customerEmail, hasCompleteProfile } = getCustomerInfo(order);
                 const shippingInfo = getShippingMethod(order);
                 
-                DebugUtils.log("OrdersTable", `✨ Final display values for row ${index + 1} - Name: "${customerName}", Email: "${customerEmail}", Shipping: "${shippingInfo.name}" (₹${shippingInfo.price})`);
+                DebugUtils.log("OrdersTable", `✨ Customer-order display data for row ${index + 1}:`, {
+                  orderID: order.id.substring(0, 8),
+                  customerName,
+                  customerEmail,
+                  hasCompleteProfile,
+                  shippingMethod: shippingInfo.name
+                });
                 
                 return (
                   <TableRow key={order.id} className="border-gray-200 hover:bg-gray-50 transition-colors">
@@ -147,12 +157,21 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium text-gray-900">{customerName}</div>
-                      {DebugUtils.isDebugEnabled() && (
-                        <div className="text-xs text-gray-500">
-                          User: {order.user_id.substring(0, 8)}
+                      <div className="flex items-center gap-2">
+                        {hasCompleteProfile ? (
+                          <UserCheck className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <User className="h-4 w-4 text-orange-600" />
+                        )}
+                        <div>
+                          <div className="font-medium text-gray-900">{customerName}</div>
+                          {DebugUtils.isDebugEnabled() && (
+                            <div className="text-xs text-gray-500">
+                              User: {order.user_id.substring(0, 8)} | Profile: {hasCompleteProfile ? 'Complete' : 'Incomplete'}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-gray-600">{customerEmail}</TableCell>
                     <TableCell>

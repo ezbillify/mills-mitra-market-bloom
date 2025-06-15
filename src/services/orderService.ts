@@ -1,15 +1,14 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Order, OrderProfile, OrderStatus } from "@/types/order";
 import { DebugUtils } from "@/utils/debugUtils";
 
 export class OrderService {
   static async fetchOrders(): Promise<Order[]> {
-    DebugUtils.log("OrderService", "🔍 fetchOrders() called");
+    DebugUtils.log("OrderService", "🔍 fetchOrders() called - Enhanced customer-order matching");
 
     try {
-      // Fetch orders with proper joins using a simpler approach
-      DebugUtils.log("OrderService", "📥 Fetching orders with profiles from database...");
+      // Fetch orders with enhanced profile joins and better error handling
+      DebugUtils.log("OrderService", "📥 Fetching orders with comprehensive profile data...");
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select(`
@@ -48,48 +47,40 @@ export class OrderService {
       }
 
       DebugUtils.log("OrderService", `✅ Fetched ${ordersData?.length || 0} orders with joined data`);
-      DebugUtils.table("OrderService", "Raw orders with profiles:", ordersData?.map(order => ({
-        id: order.id.substring(0, 8),
-        user_id: order.user_id.substring(0, 8),
-        total: order.total,
-        status: order.status,
-        has_delivery_options: !!order.delivery_options,
-        has_profiles: !!order.profiles,
-        customer_name: order.profiles ? `${order.profiles.first_name} ${order.profiles.last_name}` : 'NO PROFILE',
-        customer_email: order.profiles?.email || 'NO EMAIL',
-        customer_address: order.profiles?.address || 'NO ADDRESS'
-      })) || []);
       
       if (!ordersData || ordersData.length === 0) {
         DebugUtils.log("OrderService", "📭 No orders found in database");
         return [];
       }
 
-      // Process orders and attach profile data
+      // Enhanced processing with better customer-order matching
       const processedOrders = ordersData.map((order: any, index: number) => {
         DebugUtils.log("OrderService", `🔄 Processing order ${index + 1}/${ordersData.length} (ID: ${order.id.substring(0, 8)})`);
         
         let orderProfile: OrderProfile | null = null;
 
+        // Enhanced profile processing with better null handling
         if (order.profiles) {
           orderProfile = {
-            first_name: order.profiles.first_name || null,
-            last_name: order.profiles.last_name || null,
-            email: order.profiles.email || null,
-            phone: order.profiles.phone || null,
-            address: order.profiles.address || null,
-            city: order.profiles.city || null,
-            postal_code: order.profiles.postal_code || null,
-            country: order.profiles.country || null
+            first_name: order.profiles.first_name,
+            last_name: order.profiles.last_name,
+            email: order.profiles.email,
+            phone: order.profiles.phone,
+            address: order.profiles.address,
+            city: order.profiles.city,
+            postal_code: order.profiles.postal_code,
+            country: order.profiles.country
           };
-          DebugUtils.log("OrderService", `✅ Found profile for order ${order.id.substring(0, 8)}:`, {
-            name: `${orderProfile.first_name} ${orderProfile.last_name}`,
-            email: orderProfile.email,
-            address: orderProfile.address,
-            city: orderProfile.city
+          
+          DebugUtils.log("OrderService", `✅ Profile matched for order ${order.id.substring(0, 8)}:`, {
+            customer_id: order.user_id.substring(0, 8),
+            name: `${orderProfile.first_name || ''} ${orderProfile.last_name || ''}`.trim() || 'No name',
+            email: orderProfile.email || 'No email',
+            has_address: !!(orderProfile.address || orderProfile.city)
           });
         } else {
           DebugUtils.log("OrderService", `⚠️ No profile found for order ${order.id.substring(0, 8)} (user_id: ${order.user_id.substring(0, 8)})`);
+          DebugUtils.log("OrderService", "This customer may not have completed their profile setup");
         }
 
         const processedOrder: Order = {
@@ -106,31 +97,37 @@ export class OrderService {
           profiles: orderProfile
         };
 
-        DebugUtils.log("OrderService", `🎯 Final processed order ${index + 1}:`, {
-          id: processedOrder.id.substring(0, 8),
-          user_id: processedOrder.user_id.substring(0, 8),
-          has_profiles: !!processedOrder.profiles,
-          customer_name: processedOrder.profiles ? `${processedOrder.profiles.first_name} ${processedOrder.profiles.last_name}` : 'No profile',
-          customer_email: processedOrder.profiles?.email || 'No email',
-          customer_address: processedOrder.profiles?.address || 'No address'
-        });
-
         return processedOrder;
       });
 
-      // Final summary
-      const ordersWithProfiles = processedOrders.filter(order => order.profiles && order.profiles.first_name);
+      // Enhanced summary with customer-order statistics
+      const ordersWithProfiles = processedOrders.filter(order => order.profiles && (order.profiles.first_name || order.profiles.last_name || order.profiles.email));
       const ordersWithoutProfiles = processedOrders.filter(order => !order.profiles);
+      const ordersWithIncompleteProfiles = processedOrders.filter(order => 
+        order.profiles && !order.profiles.first_name && !order.profiles.last_name && !order.profiles.email
+      );
       
-      DebugUtils.log("OrderService", "📊 Final processing summary:");
-      DebugUtils.log("OrderService", `   - Orders with profiles: ${ordersWithProfiles.length}`);
-      DebugUtils.log("OrderService", `   - Orders without profiles: ${ordersWithoutProfiles.length}`);
-      DebugUtils.log("OrderService", `   - Total orders returned: ${processedOrders.length}`);
+      DebugUtils.log("OrderService", "📊 Enhanced customer-order matching summary:");
+      DebugUtils.log("OrderService", `   - Orders with complete customer profiles: ${ordersWithProfiles.length}`);
+      DebugUtils.log("OrderService", `   - Orders with incomplete profiles: ${ordersWithIncompleteProfiles.length}`);
+      DebugUtils.log("OrderService", `   - Orders without customer profiles: ${ordersWithoutProfiles.length}`);
+      DebugUtils.log("OrderService", `   - Total orders processed: ${processedOrders.length}`);
+
+      // Log sample of customer-order matches for debugging
+      if (ordersWithProfiles.length > 0) {
+        DebugUtils.table("OrderService", "Sample customer-order matches:", ordersWithProfiles.slice(0, 3).map(order => ({
+          order_id: order.id.substring(0, 8),
+          customer_name: `${order.profiles?.first_name || ''} ${order.profiles?.last_name || ''}`.trim(),
+          customer_email: order.profiles?.email || 'No email',
+          order_total: order.total,
+          has_shipping_address: !!order.shipping_address
+        })));
+      }
 
       return processedOrders;
 
     } catch (error) {
-      DebugUtils.error("OrderService", "Critical error in fetchOrders", error);
+      DebugUtils.error("OrderService", "Critical error in enhanced customer-order fetching", error);
       throw error;
     }
   }

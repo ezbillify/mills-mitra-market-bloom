@@ -58,19 +58,19 @@ interface Customer {
   };
 }
 
-// Helper function to safely extract value from potentially wrapped objects
+// Enhanced helper function for better customer-order data extraction
 const extractValue = (value: any): string | null => {
   // Handle actual null/undefined first
   if (value === null || value === undefined) {
     return null;
   }
   
-  // Handle string "null" as actual null
+  // Handle string representations of null/undefined
   if (value === "null" || value === "undefined") {
     return null;
   }
   
-  // If it's a wrapped object with _type and value properties
+  // If it's a wrapped object with _type and value properties (from some frameworks)
   if (typeof value === 'object' && value._type && value.value !== undefined) {
     if (value._type === 'undefined' || value.value === 'undefined' || value.value === "null") {
       return null;
@@ -78,54 +78,59 @@ const extractValue = (value: any): string | null => {
     return value.value;
   }
   
-  // If it's a plain string or null
+  // For plain strings, return them if they have content, otherwise null
   return typeof value === 'string' && value.length > 0 ? value : null;
 };
 
 export const generateCustomerName = (customer: CustomerData | OrderProfile): string => {
-  console.log(`🎯 generateCustomerName called with data:`, customer);
+  console.log(`🎯 generateCustomerName called for customer-order matching:`, {
+    id: 'id' in customer ? customer.id?.substring(0, 8) : 'N/A',
+    first_name: customer.first_name,
+    last_name: customer.last_name,
+    email: customer.email
+  });
   
-  // Extract values safely, handling both wrapped and unwrapped formats
+  // Extract values safely for better customer-order matching
   const firstName = extractValue(customer.first_name);
   const lastName = extractValue(customer.last_name);
   const email = extractValue(customer.email);
   
-  console.log(`🔍 Extracted values - firstName: ${firstName === null ? 'null' : `"${firstName}"`}, lastName: ${lastName === null ? 'null' : `"${lastName}"`}, email: ${email === null ? 'null' : `"${email}"`}`);
+  console.log(`🔍 Enhanced extraction - firstName: ${firstName === null ? 'null' : `"${firstName}"`}, lastName: ${lastName === null ? 'null' : `"${lastName}"`}, email: ${email === null ? 'null' : `"${email}"`}`);
   
-  // If we have both first and last name, use them
+  // Priority 1: Full name (best customer identification)
   if (firstName && lastName) {
     const fullName = `${firstName} ${lastName}`;
-    console.log(`✅ Using full name: "${fullName}"`);
+    console.log(`✅ Customer-order match: Full name "${fullName}"`);
     return fullName;
   }
   
-  // If we have just first name, use it
+  // Priority 2: First name only
   if (firstName) {
-    console.log(`✅ Using first name only: "${firstName}"`);
+    console.log(`✅ Customer-order match: First name "${firstName}"`);
     return firstName;
   }
   
-  // If we have just last name, use it
+  // Priority 3: Last name only
   if (lastName) {
-    console.log(`✅ Using last name only: "${lastName}"`);
+    console.log(`✅ Customer-order match: Last name "${lastName}"`);
     return lastName;
   }
   
-  // If we have email, use the part before @
+  // Priority 4: Email-based name (good fallback for customer identification)
   if (email && email !== 'No email provided' && !email.includes('unknown.com')) {
     const emailName = email.split('@')[0];
-    console.log(`✅ Using email-derived name: "${emailName}"`);
+    console.log(`✅ Customer-order match: Email-derived name "${emailName}"`);
     return emailName;
   }
   
-  // Fallback - for CustomerData use ID, for OrderProfile use generic fallback
+  // Priority 5: Fallback with customer ID (ensures order always shows a customer)
   if ('id' in customer) {
     const fallbackName = `Customer ${customer.id.substring(0, 8)}`;
-    console.log(`🔄 Using fallback name: "${fallbackName}"`);
+    console.log(`🔄 Customer-order fallback: "${fallbackName}"`);
     return fallbackName;
   } else {
     const fallbackName = 'Unknown Customer';
-    console.log(`🔄 Using generic fallback name: "${fallbackName}"`);
+    console.log(`🔄 Customer-order generic fallback: "${fallbackName}"`);
     return fallbackName;
   }
 };
@@ -154,8 +159,9 @@ export const getCustomerAddress = (customer: OrderProfile): string => {
   return addressParts.join(', ') || 'No address provided';
 };
 
+// Enhanced customer data processing for better customer-order relationships
 export const processCustomerData = (userData: UserData): Customer => {
-  console.log(`🔄 Processing customer data for ID: ${userData.profile.id.substring(0, 8)}`);
+  console.log(`🔄 Processing customer data for enhanced customer-order matching: ${userData.profile.id.substring(0, 8)}`);
   
   const customerData: CustomerData = {
     id: userData.profile.id,
@@ -167,11 +173,11 @@ export const processCustomerData = (userData: UserData): Customer => {
   const name = generateCustomerName(customerData);
   const email = getCustomerEmail(customerData);
   
-  // Calculate order statistics
+  // Calculate order statistics for customer-order relationship
   const totalOrders = userData.orders.length;
   const totalSpent = userData.orders.reduce((sum, order) => sum + Number(order.total), 0);
   
-  // Determine status based on recent activity (orders in last 90 days)
+  // Determine customer activity status based on recent orders
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
   
@@ -200,14 +206,14 @@ export const processCustomerData = (userData: UserData): Customer => {
     }
   };
 
-  console.log(`✅ Processed customer:`, {
+  console.log(`✅ Enhanced customer-order processing completed:`, {
     id: customer.id.substring(0, 8),
     name: customer.name,
     email: customer.email,
     totalOrders: customer.totalOrders,
     totalSpent: customer.totalSpent,
     status: customer.status,
-    hasAddress: !!(customer.profile?.address || customer.profile?.city)
+    hasCompleteProfile: !!(customer.profile?.first_name || customer.profile?.last_name)
   });
 
   return customer;
