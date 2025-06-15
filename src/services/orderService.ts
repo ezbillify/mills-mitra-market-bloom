@@ -8,7 +8,7 @@ export class OrderService {
     DebugUtils.log("OrderService", "🔍 fetchOrders() called");
 
     try {
-      // Fetch orders with proper joins using the correct foreign key relationship
+      // Fetch orders with proper joins using a simpler approach
       DebugUtils.log("OrderService", "📥 Fetching orders with profiles from database...");
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
@@ -28,7 +28,7 @@ export class OrderService {
             description,
             price
           ),
-          profiles!orders_user_id_profiles_fkey (
+          profiles!user_id (
             id,
             first_name,
             last_name,
