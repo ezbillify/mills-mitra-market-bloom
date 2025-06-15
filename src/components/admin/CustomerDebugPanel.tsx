@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bug } from "lucide-react";
+import { Bug, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,7 +14,7 @@ const CustomerDebugPanel = () => {
   const runDebugFunction = async () => {
     setLoading(true);
     try {
-      console.log('🔍 Calling debug-customers function...');
+      console.log('🔍 Calling enhanced debug-customers function...');
       
       const { data, error } = await supabase.functions.invoke('debug-customers');
       
@@ -23,12 +23,12 @@ const CustomerDebugPanel = () => {
         throw error;
       }
 
-      console.log('✅ Debug data received:', data);
+      console.log('✅ Enhanced debug data received:', data);
       setDebugData(data);
       
       toast({
         title: "Debug Complete",
-        description: `Found ${data.totalProfiles} profiles and ${data.totalOrders} orders`,
+        description: `Found ${data.totalProfiles} profiles and ${data.totalOrders} orders. RLS: ${data.rlsTestResult.canAccessWithPublicKey ? 'Working' : 'Issue detected'}`,
       });
     } catch (error: any) {
       console.error('💥 Error calling debug function:', error);
@@ -42,12 +42,18 @@ const CustomerDebugPanel = () => {
     }
   };
 
+  const getStatusIcon = (status: boolean) => {
+    return status ? 
+      <CheckCircle className="h-4 w-4 text-green-500" /> : 
+      <XCircle className="h-4 w-4 text-red-500" />;
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bug className="h-5 w-5" />
-          Customer Debug Panel
+          Enhanced Customer Debug Panel
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -56,18 +62,58 @@ const CustomerDebugPanel = () => {
           disabled={loading}
           className="w-full"
         >
-          {loading ? "Running Debug..." : "Run Customer Debug"}
+          {loading ? "Running Enhanced Debug..." : "Run Enhanced Customer Debug"}
         </Button>
         
         {debugData && (
           <div className="space-y-4">
+            {/* RLS Status Check */}
+            <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
+              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                RLS Policy Status
+              </h4>
+              <div className="grid grid-cols-1 gap-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span>Frontend can access profiles:</span>
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(debugData.rlsTestResult.canAccessWithPublicKey)}
+                    <span className={debugData.rlsTestResult.canAccessWithPublicKey ? 'text-green-600' : 'text-red-600'}>
+                      {debugData.rlsTestResult.canAccessWithPublicKey ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Public access count:</span>
+                  <span>{debugData.rlsTestResult.publicAccessCount}</span>
+                </div>
+                {debugData.rlsTestResult.error && (
+                  <div className="text-red-600 text-xs">
+                    Error: {debugData.rlsTestResult.error}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Summary */}
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-2">Summary</h4>
+              <h4 className="font-semibold mb-2">Database Summary</h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>Total Profiles: {debugData.totalProfiles}</div>
                 <div>Total Orders: {debugData.totalOrders}</div>
-                <div>Profiles with Data: {debugData.profilesWithData}</div>
-                <div>Target Customer Found: {debugData.targetCustomer.found ? 'Yes' : 'No'}</div>
+                <div>Complete Profiles: {debugData.profilesWithData}</div>
+                <div>Incomplete Profiles: {debugData.incompleteProfiles}</div>
+              </div>
+            </div>
+
+            {/* Profile Completeness */}
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2">Profile Completeness Analysis</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>With Names: {debugData.profileCompleteness.withNames}</div>
+                <div>With Email: {debugData.profileCompleteness.withEmail}</div>
+                <div>With Phone: {debugData.profileCompleteness.withPhone}</div>
+                <div>With Address: {debugData.profileCompleteness.withAddress}</div>
               </div>
             </div>
             
@@ -82,6 +128,21 @@ const CustomerDebugPanel = () => {
                 </div>
               </div>
             )}
+
+            {/* Sample Data */}
+            <details className="bg-gray-50 p-4 rounded-lg">
+              <summary className="cursor-pointer font-semibold">Sample Complete Profiles</summary>
+              <pre className="mt-2 text-xs overflow-auto max-h-48">
+                {JSON.stringify(debugData.sampleCompleteProfiles, null, 2)}
+              </pre>
+            </details>
+
+            <details className="bg-yellow-50 p-4 rounded-lg">
+              <summary className="cursor-pointer font-semibold">Sample Incomplete Profiles</summary>
+              <pre className="mt-2 text-xs overflow-auto max-h-48">
+                {JSON.stringify(debugData.sampleIncompleteProfiles, null, 2)}
+              </pre>
+            </details>
             
             <details className="bg-gray-50 p-4 rounded-lg">
               <summary className="cursor-pointer font-semibold">Raw Debug Data</summary>

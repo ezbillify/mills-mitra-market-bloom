@@ -25,9 +25,9 @@ serve(async (req) => {
       }
     )
 
-    console.log('🚀 Starting customer debug fetch...');
+    console.log('🚀 Starting enhanced customer debug fetch...');
 
-    // Fetch all profiles
+    // Fetch all profiles with detailed logging
     const { data: profiles, error: profilesError } = await supabaseAdmin
       .from('profiles')
       .select('*')
@@ -71,6 +71,23 @@ serve(async (req) => {
 
     console.log(`✅ Fetched ${orders?.length || 0} orders`);
 
+    // Test regular client access (as the frontend would use)
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+
+    const { data: publicProfiles, error: publicProfilesError } = await supabaseClient
+      .from('profiles')
+      .select('*')
+      .limit(5);
+
+    console.log('🔍 Public client access test:', {
+      canAccessProfiles: !publicProfilesError,
+      profileCount: publicProfiles?.length || 0,
+      error: publicProfilesError?.message
+    });
+
     // Debug specific customer a48bc14d if it exists
     const targetCustomerId = 'a48bc14d-3872-427a-8d28-1ef0889834f3';
     const targetProfile = profiles?.find(p => p.id === targetCustomerId);
@@ -84,11 +101,26 @@ serve(async (req) => {
       orderIds: targetOrders?.map(o => o.id.substring(0, 8))
     });
 
-    // Create summary data
+    // Analyze profile completeness
+    const completeProfiles = profiles?.filter(p => 
+      p.first_name && p.last_name && p.email && !p.email.includes('unknown.com')
+    ) || [];
+
+    const incompleteProfiles = profiles?.filter(p => 
+      !p.first_name || !p.last_name || !p.email || p.email.includes('unknown.com')
+    ) || [];
+
+    // Create comprehensive summary data
     const summary = {
       totalProfiles: profiles?.length || 0,
       totalOrders: orders?.length || 0,
-      profilesWithData: profiles?.filter(p => p.first_name || p.last_name || (p.email && !p.email.includes('unknown.com'))).length || 0,
+      profilesWithData: completeProfiles.length,
+      incompleteProfiles: incompleteProfiles.length,
+      rlsTestResult: {
+        canAccessWithPublicKey: !publicProfilesError,
+        publicAccessCount: publicProfiles?.length || 0,
+        error: publicProfilesError?.message || null
+      },
       targetCustomer: {
         id: targetCustomerId,
         found: !!targetProfile,
@@ -96,9 +128,22 @@ serve(async (req) => {
         orderCount: targetOrders?.length || 0,
         orders: targetOrders
       },
-      sampleProfiles: profiles?.slice(0, 3) || [],
-      sampleOrders: orders?.slice(0, 3) || []
+      sampleCompleteProfiles: completeProfiles.slice(0, 3),
+      sampleIncompleteProfiles: incompleteProfiles.slice(0, 3),
+      sampleOrders: orders?.slice(0, 3) || [],
+      profileCompleteness: {
+        withNames: profiles?.filter(p => p.first_name && p.last_name).length || 0,
+        withEmail: profiles?.filter(p => p.email && !p.email.includes('unknown.com')).length || 0,
+        withPhone: profiles?.filter(p => p.phone).length || 0,
+        withAddress: profiles?.filter(p => p.address).length || 0
+      }
     };
+
+    console.log('📊 Debug summary complete:', {
+      totalProfiles: summary.totalProfiles,
+      completeProfiles: summary.profilesWithData,
+      rlsWorking: summary.rlsTestResult.canAccessWithPublicKey
+    });
 
     return new Response(
       JSON.stringify(summary, null, 2),
