@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Plus, Edit, Trash2, Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import BannerImageUpload from "./BannerImageUpload";
 
 interface Banner {
   id: string;
@@ -238,24 +238,23 @@ const BannerSlider = () => {
                   placeholder="Enter banner subtitle"
                 />
               </div>
-              <div>
-                <Label htmlFor="image_url">Desktop Image URL</Label>
-                <Input
-                  id="image_url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="Enter desktop image URL"
-                />
-              </div>
-              <div>
-                <Label htmlFor="mobile_image_url">Mobile Image URL</Label>
-                <Input
-                  id="mobile_image_url"
-                  value={formData.mobile_image_url}
-                  onChange={(e) => setFormData({ ...formData, mobile_image_url: e.target.value })}
-                  placeholder="Enter mobile image URL"
-                />
-              </div>
+            </div>
+
+            {/* Desktop Banner Image Upload */}
+            <BannerImageUpload
+              currentImage={formData.image_url}
+              onImageChange={(imageUrl) => setFormData({ ...formData, image_url: imageUrl })}
+              label="Desktop Banner Image"
+            />
+
+            {/* Mobile Banner Image Upload */}
+            <BannerImageUpload
+              currentImage={formData.mobile_image_url}
+              onImageChange={(imageUrl) => setFormData({ ...formData, mobile_image_url: imageUrl })}
+              label="Mobile Banner Image (Optional)"
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="link_url">Link URL</Label>
                 <Input
