@@ -6,35 +6,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import {
-  Package,
-  User,
-  MapPin,
-  Phone,
-  Mail,
-  Hash,
-  FileText,
-  Download,
-  Building,
-  CreditCard,
-  Calendar,
-} from "lucide-react";
+import { Hash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { OrderStatus } from "@/types/order";
-import { InvoiceService } from "@/services/invoiceService";
 import { useOrderDetails } from "@/hooks/useOrderDetails";
 import OrderStatusCard from "./order-details/OrderStatusCard";
 import OrderTimelineCard from "./order-details/OrderTimelineCard";
 import TrackingCard from "./order-details/TrackingCard";
+import CustomerInfoCard from "./order-details/CustomerInfoCard";
+import InvoiceInfoCard from "./order-details/InvoiceInfoCard";
+import ShippingAddressCard from "./order-details/ShippingAddressCard";
+import PackingInstructionsCard from "./order-details/PackingInstructionsCard";
+import OrderItemsCard from "./order-details/OrderItemsCard";
+import PDFInvoiceCard from "./order-details/PDFInvoiceCard";
 
 interface OrderDetailsDialogProps {
   orderId: string | null;
@@ -52,7 +38,6 @@ const OrderDetailsDialog = ({
   const { orderDetails, setOrderDetails, orderItems, loading } = useOrderDetails(orderId, open);
   const [trackingNumber, setTrackingNumber] = useState("");
   const [isUpdatingTracking, setIsUpdatingTracking] = useState(false);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const { toast } = useToast();
 
   const updateTrackingNumber = async () => {
@@ -82,53 +67,6 @@ const OrderDetailsDialog = ({
     } finally {
       setIsUpdatingTracking(false);
     }
-  };
-
-  const generatePDFInvoice = async () => {
-    if (!orderDetails) return;
-
-    setIsGeneratingPDF(true);
-    try {
-      await InvoiceService.downloadInvoiceForOrder(orderDetails.id);
-      toast({
-        title: "Success",
-        description: "PDF invoice generated and downloaded successfully",
-      });
-    } catch (error: any) {
-      console.error("Error generating PDF invoice:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF invoice",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGeneratingPDF(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      pending: "bg-yellow-100 text-yellow-800",
-      accepted: "bg-blue-100 text-blue-800",
-      processing: "bg-purple-100 text-purple-800",
-      shipped: "bg-indigo-100 text-indigo-800",
-      out_for_delivery: "bg-orange-100 text-orange-800",
-      delivered: "bg-green-100 text-green-800",
-      completed: "bg-emerald-100 text-emerald-800",
-      cancelled: "bg-red-100 text-red-800",
-    };
-    return colors[status] || "bg-gray-100 text-gray-800";
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
-  };
-
-  const calculateItemsTotal = () => {
-    return orderItems.reduce(
-      (sum, item) => sum + item.quantity * Number(item.price),
-      0
-    );
   };
 
   // Simplified customer info function
@@ -235,221 +173,32 @@ const OrderDetailsDialog = ({
             </div>
 
             {/* Customer Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Customer Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-gray-500" />
-                      <div>
-                        <span className="text-sm font-medium">Customer Name:</span>
-                        <p className="text-gray-900">{customerInfo.name}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-gray-500" />
-                      <div>
-                        <span className="text-sm font-medium">Email:</span>
-                        <p className="text-gray-900">{customerInfo.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-gray-500" />
-                      <div>
-                        <span className="text-sm font-medium">Phone:</span>
-                        <p className="text-gray-900">{customerInfo.phone}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-2">
-                      <MapPin className="h-4 w-4 text-gray-500 mt-1" />
-                      <div>
-                        <span className="text-sm font-medium">Address:</span>
-                        <p className="text-sm text-gray-900 mt-1">{customerInfo.address}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <CustomerInfoCard customerInfo={customerInfo} />
 
             {/* Invoice Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Invoice Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-gray-500" />
-                      <div>
-                        <span className="text-sm font-medium">Invoice Number:</span>
-                        <p className="text-gray-900">INV-{orderDetails.id.substring(0, 8)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-gray-500" />
-                      <div>
-                        <span className="text-sm font-medium">Invoice Date:</span>
-                        <p className="text-gray-900">{new Date(orderDetails.created_at).toLocaleDateString('en-IN')}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4 text-gray-500" />
-                      <div>
-                        <span className="text-sm font-medium">Company:</span>
-                        <p className="text-gray-900">Your Company Name</p>
-                        <p className="text-xs text-gray-500">GST: Your GST Number</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <InvoiceInfoCard 
+              orderId={orderDetails.id} 
+              createdAt={orderDetails.created_at} 
+            />
 
             {/* Shipping Address */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Shipping Address
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="whitespace-pre-line bg-gray-50 p-3 rounded-md">{orderDetails.shipping_address}</p>
-              </CardContent>
-            </Card>
+            <ShippingAddressCard shippingAddress={orderDetails.shipping_address} />
 
             {/* What to Pack */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  What to Pack - Items Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-blue-900 mb-2">Packing Instructions</h4>
-                    <ul className="space-y-1 text-sm text-blue-800">
-                      <li>• Total items: {orderItems.length} different products</li>
-                      <li>• Total quantity: {orderItems.reduce((sum, item) => sum + item.quantity, 0)} pieces</li>
-                      <li>• Order value: ₹{Number(orderDetails.total).toFixed(2)}</li>
-                      <li>• Customer: {customerInfo.name}</li>
-                      <li>• Phone: {customerInfo.phone}</li>
-                    </ul>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h5 className="font-medium">Items to pack:</h5>
-                    {orderItems.map((item, index) => (
-                      <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-medium">
-                          {index + 1}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium">{item.products.name}</p>
-                          <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <PackingInstructionsCard 
+              orderItems={orderItems}
+              total={orderDetails.total}
+              customerInfo={customerInfo}
+            />
 
             {/* Order Items */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  Order Items ({orderItems.length} items)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {orderItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-4 p-4 border rounded-lg"
-                    >
-                      <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
-                        {item.products.image ? (
-                          <img
-                            src={item.products.image}
-                            alt={item.products.name}
-                            className="w-full h-full object-cover rounded"
-                          />
-                        ) : (
-                          <Package className="h-8 w-8 text-gray-400" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium">{item.products.name}</h4>
-                        {item.products.description && (
-                          <p className="text-sm text-gray-600 mt-1">
-                            {item.products.description}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-4 mt-2">
-                          <span className="text-sm">Quantity: {item.quantity}</span>
-                          <span className="text-sm">Unit Price: ₹{Number(item.price).toFixed(2)}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">₹{(item.quantity * Number(item.price)).toFixed(2)}</p>
-                      </div>
-                    </div>
-                  ))}
-
-                  <Separator />
-
-                  <div className="flex justify-between items-center pt-4">
-                    <div className="space-y-1">
-                      <p className="text-sm">Items Total: ₹{calculateItemsTotal().toFixed(2)}</p>
-                      <p className="text-lg font-bold">Order Total: ₹{Number(orderDetails.total).toFixed(2)}</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <OrderItemsCard 
+              orderItems={orderItems}
+              total={orderDetails.total}
+            />
 
             {/* PDF Invoice Generation */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Download className="h-5 w-5" />
-                  PDF Invoice
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-gray-600">
-                  Generate and download a professional PDF invoice for this order.
-                </p>
-                <Button
-                  onClick={generatePDFInvoice}
-                  disabled={isGeneratingPDF}
-                  className="flex items-center gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  {isGeneratingPDF ? "Generating PDF..." : "Download PDF Invoice"}
-                </Button>
-              </CardContent>
-            </Card>
+            <PDFInvoiceCard orderId={orderDetails.id} />
 
             {/* Actions */}
             <div className="flex gap-3 pt-4 border-t">
