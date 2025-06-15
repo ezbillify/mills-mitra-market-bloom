@@ -22,13 +22,13 @@ export class OrderService {
           tracking_number,
           delivery_option_id,
           delivery_price,
-          delivery_options!orders_delivery_option_id_fkey (
+          delivery_options!delivery_option_id (
             id,
             name,
             description,
             price
           ),
-          profiles!orders_user_id_fkey (
+          profiles!user_id (
             id,
             first_name,
             last_name,
