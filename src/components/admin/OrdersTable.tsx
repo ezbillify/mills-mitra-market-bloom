@@ -3,10 +3,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, Truck, Bug, User, UserCheck } from "lucide-react";
+import { Eye, Truck, Bug, User, UserCheck, IndianRupee } from "lucide-react";
 import { Order } from "@/types/order";
 import { generateCustomerName } from "@/utils/customerUtils";
 import { DebugUtils } from "@/utils/debugUtils";
+import { PricingUtils } from "@/utils/pricingUtils";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -135,6 +136,27 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     return { customerName, customerEmail, hasCompleteProfile };
   };
 
+  // Enhanced pricing calculation for admin view
+  const getOrderPricing = (order: Order) => {
+    // For now, we'll use the stored total from the order
+    // In a future enhancement, we could fetch order items and recalculate
+    const orderTotal = Number(order.total) || 0;
+    const shippingCost = Number(order.delivery_price || 0);
+    
+    // Calculate approximate breakdown
+    const totalWithoutShipping = orderTotal - shippingCost;
+    const approximateTaxRate = 0.18; // 18% GST as default
+    const approximateSubtotal = totalWithoutShipping / (1 + approximateTaxRate);
+    const approximateTax = totalWithoutShipping - approximateSubtotal;
+    
+    return {
+      subtotal: approximateSubtotal,
+      tax: approximateTax,
+      shipping: shippingCost,
+      total: orderTotal
+    };
+  };
+
   if (orders.length === 0) {
     return (
       <Card className="border-0 shadow-lg">
@@ -181,7 +203,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                 <TableHead className="text-gray-700 font-semibold">Customer Info</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Email</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Shipping Method</TableHead>
-                <TableHead className="text-gray-700 font-semibold">Total</TableHead>
+                <TableHead className="text-gray-700 font-semibold">Order Value</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Status</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Date</TableHead>
                 <TableHead className="text-gray-700 font-semibold">Actions</TableHead>
@@ -193,6 +215,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                 
                 const { customerName, customerEmail, hasCompleteProfile } = getCustomerInfo(order);
                 const shippingInfo = getShippingMethod(order);
+                const pricing = getOrderPricing(order);
                 
                 DebugUtils.log("OrdersTable", `✨ Customer-order display data for row ${index + 1}:`, {
                   orderID: order.id.substring(0, 8),
@@ -201,7 +224,8 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                   hasCompleteProfile,
                   shippingMethod: shippingInfo.name,
                   profileDataAvailable: !!order.profiles,
-                  profileDataValid: hasCompleteProfileData(order.profiles)
+                  profileDataValid: hasCompleteProfileData(order.profiles),
+                  pricing
                 });
                 
                 return (
@@ -245,8 +269,9 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                         <div>
                           <div className="font-medium text-gray-900">{shippingInfo.name}</div>
                           {shippingInfo.price > 0 && (
-                            <div className="text-xs text-gray-500">
-                              ₹{Number(shippingInfo.price).toFixed(2)}
+                            <div className="text-xs text-gray-500 flex items-center gap-1">
+                              <IndianRupee className="h-3 w-3" />
+                              {PricingUtils.formatPrice(shippingInfo.price)}
                             </div>
                           )}
                           {shippingInfo.price === 0 && shippingInfo.name.includes("Free") && (
@@ -258,7 +283,37 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="font-bold text-royal-green text-lg">₹{Number(order.total).toFixed(2)}</span>
+                      <div className="space-y-1">
+                        <div className="font-bold text-royal-green text-lg flex items-center gap-1">
+                          <IndianRupee className="h-4 w-4" />
+                          {PricingUtils.formatPrice(pricing.total)}
+                        </div>
+                        <div className="text-xs text-gray-500 space-y-1">
+                          <div className="flex justify-between items-center gap-2">
+                            <span>Subtotal:</span>
+                            <span className="flex items-center gap-1">
+                              <IndianRupee className="h-3 w-3" />
+                              {PricingUtils.formatPrice(pricing.subtotal)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center gap-2">
+                            <span>Tax (~18%):</span>
+                            <span className="flex items-center gap-1">
+                              <IndianRupee className="h-3 w-3" />
+                              {PricingUtils.formatPrice(pricing.tax)}
+                            </span>
+                          </div>
+                          {pricing.shipping > 0 && (
+                            <div className="flex justify-between items-center gap-2">
+                              <span>Shipping:</span>
+                              <span className="flex items-center gap-1">
+                                <IndianRupee className="h-3 w-3" />
+                                {PricingUtils.formatPrice(pricing.shipping)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
                     <TableCell className="text-gray-600">
