@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   Dialog,
@@ -53,79 +54,6 @@ const OrderDetailsDialog = ({
   const [isUpdatingTracking, setIsUpdatingTracking] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (orderId && open) {
-      fetchOrderDetails();
-    }
-  }, [orderId, open]);
-
-  const fetchOrderDetails = async () => {
-    if (!orderId) return;
-
-    setLoading(true);
-    try {
-      console.log("Fetching order details for:", orderId);
-
-      // Fetch order with profile data using a simple join
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .select(`
-          *,
-          profiles!orders_user_id_profiles_fkey(
-            first_name,
-            last_name,
-            email,
-            phone,
-            address,
-            city,
-            postal_code,
-            country
-          )
-        `)
-        .eq("id", orderId)
-        .single();
-
-      if (orderError) {
-        console.error("Error fetching order:", orderError);
-        throw new Error(`Failed to fetch order: ${orderError.message}`);
-      }
-
-      // Fetch order items
-      const { data: items, error: itemsError } = await supabase
-        .from("order_items")
-        .select(`
-          *,
-          products (
-            name,
-            image,
-            description
-          )
-        `)
-        .eq("order_id", orderId);
-
-      if (itemsError) {
-        console.error("Error fetching order items:", itemsError);
-        throw new Error(`Failed to fetch order items: ${itemsError.message}`);
-      }
-
-      console.log("Order details fetched:", order);
-      console.log("Order items fetched:", items);
-
-      setOrderDetails(order);
-      setOrderItems(items || []);
-      setTrackingNumber(order.tracking_number || "");
-    } catch (error: any) {
-      console.error("Error fetching order details:", error);
-      toast({
-        title: "Error",
-        description: `Failed to fetch order details: ${error.message}`,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const updateTrackingNumber = async () => {
     if (!orderDetails) return;
