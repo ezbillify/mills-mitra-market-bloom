@@ -21,7 +21,7 @@ interface InvoiceSettings {
 }
 
 export class InvoiceService {
-  static async getInvoiceSettings(): Promise<InvoiceSettings | null> {
+  static async getInvoiceSettings(): Promise<InvoiceSettings> {
     try {
       const { data, error } = await supabase
         .from("invoice_settings")
@@ -29,30 +29,45 @@ export class InvoiceService {
         .maybeSingle();
 
       if (error) {
-        console.error("Error fetching invoice settings:", error);
-        // Return default settings if none exist
-        return {
-          id: "default",
-          company_name: "Your Company Name",
-          company_address: "Your Company Address",
-          company_phone: "Your Phone Number",
-          company_email: "your@email.com",
-          gst_number: "Your GST Number",
-          fssai_number: null,
-          pan_number: null,
-          invoice_prefix: "INV",
-          invoice_counter: 1,
-          terms_and_conditions: "Thank you for your business!",
-          bank_name: null,
-          account_number: null,
-          ifsc_code: null
-        };
+        console.warn("Error fetching invoice settings, using defaults:", error);
       }
 
-      return data;
+      // Always return settings, either from database or defaults
+      return data || {
+        id: "default",
+        company_name: "Your Company Name",
+        company_address: "Your Company Address",
+        company_phone: "Your Phone Number",
+        company_email: "your@email.com",
+        gst_number: "Your GST Number",
+        fssai_number: null,
+        pan_number: null,
+        invoice_prefix: "INV",
+        invoice_counter: 1,
+        terms_and_conditions: "Thank you for your business!",
+        bank_name: null,
+        account_number: null,
+        ifsc_code: null
+      };
     } catch (error) {
-      console.error("Error getting invoice settings:", error);
-      return null;
+      console.warn("Error getting invoice settings, using defaults:", error);
+      // Return default settings instead of null
+      return {
+        id: "default",
+        company_name: "Your Company Name",
+        company_address: "Your Company Address",
+        company_phone: "Your Phone Number",
+        company_email: "your@email.com",
+        gst_number: "Your GST Number",
+        fssai_number: null,
+        pan_number: null,
+        invoice_prefix: "INV",
+        invoice_counter: 1,
+        terms_and_conditions: "Thank you for your business!",
+        bank_name: null,
+        account_number: null,
+        ifsc_code: null
+      };
     }
   }
 
@@ -60,12 +75,8 @@ export class InvoiceService {
     try {
       console.log(`📄 Generating invoice for order ${orderId.substring(0, 8)}`);
 
-      // Fetch invoice settings with fallback
+      // Fetch invoice settings - this will always return settings (either from DB or defaults)
       const invoiceSettings = await this.getInvoiceSettings();
-      if (!invoiceSettings) {
-        console.error("No invoice settings found and fallback failed");
-        throw new Error("Invoice settings not configured. Please contact administrator.");
-      }
 
       // Fetch order details with proper error handling
       const { data: order, error: orderError } = await supabase
