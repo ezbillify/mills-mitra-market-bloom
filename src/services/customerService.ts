@@ -2,57 +2,59 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Customer } from "@/types/customer";
 import { processCustomerData } from "@/utils/customerUtils";
+import { DebugUtils } from "@/utils/debugUtils";
 
 export const fetchCustomersData = async (): Promise<Customer[]> => {
-  console.log('🚀 Starting comprehensive customer data fetch...');
+  DebugUtils.log("CustomerService", "🚀 Starting comprehensive customer data fetch...");
   
   try {
     // Fetch all profiles with detailed logging
-    console.log('📋 Fetching profiles from database...');
+    DebugUtils.log("CustomerService", "📋 Fetching profiles from database...");
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (profilesError) {
-      console.error('❌ Error fetching profiles:', profilesError);
+      DebugUtils.error("CustomerService", "Failed to fetch profiles", profilesError);
       throw profilesError;
     }
 
-    console.log(`✅ Successfully fetched ${profiles?.length || 0} profiles`);
-    
-    // Log each profile for debugging
-    profiles?.forEach((profile, index) => {
-      console.log(`📝 Profile ${index + 1}:`, {
-        id: profile.id.substring(0, 8),
-        firstName: profile.first_name,
-        lastName: profile.last_name,
-        email: profile.email,
-        phone: profile.phone,
-        hasData: !!(profile.first_name || profile.last_name || profile.email)
-      });
-    });
+    DebugUtils.log("CustomerService", `✅ Successfully fetched ${profiles?.length || 0} profiles`);
+    DebugUtils.table("CustomerService", "Profiles data:", profiles?.map(profile => ({
+      id: profile.id.substring(0, 8),
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      email: profile.email,
+      phone: profile.phone,
+      hasData: !!(profile.first_name || profile.last_name || profile.email)
+    })) || []);
 
     // Fetch all orders
-    console.log('📦 Fetching orders from database...');
+    DebugUtils.log("CustomerService", "📦 Fetching orders from database...");
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select('user_id, total, status, created_at')
       .neq('status', 'cancelled');
 
     if (ordersError) {
-      console.error('❌ Error fetching orders:', ordersError);
+      DebugUtils.error("CustomerService", "Failed to fetch orders", ordersError);
       // Continue without orders if there's an error
     }
 
-    console.log(`✅ Successfully fetched ${orders?.length || 0} orders`);
+    DebugUtils.log("CustomerService", `✅ Successfully fetched ${orders?.length || 0} orders`);
+    DebugUtils.table("CustomerService", "Orders data sample:", orders?.slice(0, 5).map(order => ({
+      user_id: order.user_id.substring(0, 8),
+      total: order.total,
+      status: order.status
+    })) || []);
 
     // Create comprehensive user map
     const userMap = new Map();
     
     // First, add all profiles to the map
     profiles?.forEach(profile => {
-      console.log(`➕ Adding profile to map: ${profile.id.substring(0, 8)}`);
+      DebugUtils.log("CustomerService", `➕ Adding profile to map: ${profile.id.substring(0, 8)}`);
       userMap.set(profile.id, {
         profile: {
           id: profile.id,
@@ -76,9 +78,9 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
     orders?.forEach(order => {
       if (userMap.has(order.user_id)) {
         userMap.get(order.user_id).orders.push(order);
-        console.log(`📦 Added order to existing user: ${order.user_id.substring(0, 8)}`);
+        DebugUtils.log("CustomerService", `📦 Added order to existing user: ${order.user_id.substring(0, 8)}`);
       } else {
-        console.log(`🆕 Creating new user entry from order: ${order.user_id.substring(0, 8)}`);
+        DebugUtils.log("CustomerService", `🆕 Creating new user entry from order: ${order.user_id.substring(0, 8)}`);
         userMap.set(order.user_id, {
           profile: {
             id: order.user_id,
@@ -99,11 +101,11 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
       }
     });
 
-    console.log(`📊 Total unique users in map: ${userMap.size}`);
+    DebugUtils.log("CustomerService", `📊 Total unique users in map: ${userMap.size}`);
     
     // Process all users into customers with detailed logging
     const customers = Array.from(userMap.values()).map((userData, index) => {
-      console.log(`🔄 Processing user ${index + 1}/${userMap.size}:`, {
+      DebugUtils.log("CustomerService", `🔄 Processing user ${index + 1}/${userMap.size}:`, {
         id: userData.profile.id.substring(0, 8),
         hasProfile: userData.hasProfile,
         orderCount: userData.orders.length,
@@ -112,7 +114,7 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
       
       const customer = processCustomerData(userData);
       
-      console.log(`✅ Processed customer ${index + 1}:`, {
+      DebugUtils.log("CustomerService", `✅ Processed customer ${index + 1}:`, {
         id: customer.id.substring(0, 8),
         name: customer.name,
         email: customer.email,
@@ -128,8 +130,8 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
     // Sort customers by join date (newest first)
     customers.sort((a, b) => new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime());
 
-    console.log(`🎯 Final results: ${customers.length} customers processed successfully`);
-    console.log('📊 Sample of first 3 customers:', customers.slice(0, 3).map(c => ({
+    DebugUtils.log("CustomerService", `🎯 Final results: ${customers.length} customers processed successfully`);
+    DebugUtils.table("CustomerService", "Final customers summary:", customers.slice(0, 5).map(c => ({
       id: c.id.substring(0, 8),
       name: c.name,
       email: c.email,
@@ -140,7 +142,7 @@ export const fetchCustomersData = async (): Promise<Customer[]> => {
     return customers;
 
   } catch (error) {
-    console.error('💥 Critical error in customer data fetch:', error);
+    DebugUtils.error("CustomerService", "Critical error in customer data fetch", error);
     throw error;
   }
 };

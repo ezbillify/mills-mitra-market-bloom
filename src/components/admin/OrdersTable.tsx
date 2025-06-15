@@ -3,9 +3,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, Truck } from "lucide-react";
+import { Eye, Truck, Bug } from "lucide-react";
 import { Order } from "@/types/order";
 import { generateCustomerName } from "@/utils/customerUtils";
+import { DebugUtils } from "@/utils/debugUtils";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -14,7 +15,14 @@ interface OrdersTableProps {
 }
 
 const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps) => {
-  console.log(`🔥 OrdersTable received ${orders.length} orders:`, orders);
+  DebugUtils.log("OrdersTable", `🔥 Received ${orders.length} orders`);
+  DebugUtils.table("OrdersTable", "Orders received:", orders.map(order => ({
+    id: order.id.substring(0, 8),
+    user_id: order.user_id.substring(0, 8),
+    has_profiles: !!order.profiles,
+    customer_name: order.profiles ? `${order.profiles.first_name} ${order.profiles.last_name}` : 'NO PROFILE',
+    customer_email: order.profiles?.email || 'NO EMAIL'
+  })));
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", className: string }> = {
@@ -38,32 +46,29 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
   };
 
   const getShippingMethod = (order: Order) => {
-    console.log(`🚚 Getting shipping method for order ${order.id.substring(0, 8)}`);
-    console.log(`📦 Order shipping_settings:`, order.shipping_settings);
-    console.log(`💰 Order delivery_price:`, order.delivery_price);
+    DebugUtils.log("OrdersTable", `🚚 Getting shipping method for order ${order.id.substring(0, 8)}`);
+    DebugUtils.log("OrdersTable", `📦 Order shipping_settings:`, order.shipping_settings);
+    DebugUtils.log("OrdersTable", `💰 Order delivery_price:`, order.delivery_price);
     
-    // Check if we have shipping_settings data
     if (order.shipping_settings && order.shipping_settings.name) {
-      console.log(`✅ Found shipping method: ${order.shipping_settings.name}`);
+      DebugUtils.log("OrdersTable", `✅ Found shipping method: ${order.shipping_settings.name}`);
       return {
         name: order.shipping_settings.name,
         price: order.delivery_price || order.shipping_settings.price
       };
     }
     
-    // Fallback based on delivery price
     if (order.delivery_price !== null && order.delivery_price !== undefined) {
       if (order.delivery_price === 0) {
-        console.log(`📦 Detected free shipping based on price`);
+        DebugUtils.log("OrdersTable", "📦 Detected free shipping based on price");
         return { name: "Free Shipping", price: 0 };
       } else {
-        console.log(`💸 Detected paid shipping: ₹${order.delivery_price}`);
+        DebugUtils.log("OrdersTable", `💸 Detected paid shipping: ₹${order.delivery_price}`);
         return { name: "Paid Shipping", price: order.delivery_price };
       }
     }
     
-    // Final fallback
-    console.log(`⚠️ No shipping info found, using default`);
+    DebugUtils.log("OrdersTable", "⚠️ No shipping info found, using default");
     return { name: "Standard Shipping", price: 0 };
   };
 
@@ -86,12 +91,17 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
     );
   }
 
-  console.log(`📋 OrdersTable rendering table with ${orders.length} orders`);
+  DebugUtils.log("OrdersTable", `📋 Rendering table with ${orders.length} orders`);
 
   return (
     <Card className="border-0 shadow-lg">
       <CardHeader className="bg-gradient-to-r from-white to-gray-50">
-        <CardTitle className="text-royal-green">Recent Orders ({orders.length})</CardTitle>
+        <CardTitle className="text-royal-green flex items-center gap-2">
+          Recent Orders ({orders.length})
+          {DebugUtils.isDebugEnabled() && (
+            <Bug className="h-4 w-4 text-red-500" title="Debug mode active" />
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
@@ -110,7 +120,7 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
             </TableHeader>
             <TableBody>
               {orders.map((order, index) => {
-                console.log(`🎨 Rendering row ${index + 1} for order ${order.id.substring(0, 8)}`);
+                DebugUtils.log("OrdersTable", `🎨 Rendering row ${index + 1} for order ${order.id.substring(0, 8)}`);
                 
                 const customerName = generateCustomerName({
                   id: order.user_id,
@@ -121,15 +131,23 @@ const OrdersTable = ({ orders, onUpdateStatus, onViewDetails }: OrdersTableProps
                 const customerEmail = order.profiles?.email || 'No email';
                 const shippingInfo = getShippingMethod(order);
                 
-                console.log(`✨ Final display values for row ${index + 1} - Name: "${customerName}", Email: "${customerEmail}", Shipping: "${shippingInfo.name}" (₹${shippingInfo.price})`);
+                DebugUtils.log("OrdersTable", `✨ Final display values for row ${index + 1} - Name: "${customerName}", Email: "${customerEmail}", Shipping: "${shippingInfo.name}" (₹${shippingInfo.price})`);
                 
                 return (
                   <TableRow key={order.id} className="border-gray-200 hover:bg-gray-50 transition-colors">
                     <TableCell className="font-mono text-sm text-royal-green bg-gray-50 rounded-md m-1 px-3 py-2">
                       #{order.id.slice(0, 8)}
+                      {DebugUtils.isDebugEnabled() && !order.profiles && (
+                        <div className="text-xs text-red-500 mt-1">NO PROFILE</div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="font-medium text-gray-900">{customerName}</div>
+                      {DebugUtils.isDebugEnabled() && (
+                        <div className="text-xs text-gray-500">
+                          User: {order.user_id.substring(0, 8)}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-gray-600">{customerEmail}</TableCell>
                     <TableCell>
