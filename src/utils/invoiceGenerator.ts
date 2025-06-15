@@ -387,7 +387,7 @@ export class InvoiceGenerator {
       return result;
     }
 
-    const integerPart = Math.floor(num);
+    let integerPart = Math.floor(num);
     let result = '';
     let groupIndex = 0;
 
