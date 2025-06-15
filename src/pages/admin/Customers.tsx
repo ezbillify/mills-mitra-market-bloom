@@ -6,6 +6,7 @@ import { Mail, RefreshCw, Bug, BugOff } from "lucide-react";
 import CustomerDetailsDialog from "@/components/admin/CustomerDetailsDialog";
 import CustomerStats from "@/components/admin/CustomerStats";
 import CustomerTable from "@/components/admin/CustomerTable";
+import CustomerDebugPanel from "@/components/admin/CustomerDebugPanel";
 import { useCustomers } from "@/hooks/useCustomers";
 import { Customer } from "@/types/customer";
 import { DebugUtils } from "@/utils/debugUtils";
@@ -92,6 +93,8 @@ const AdminCustomers = () => {
           </CardContent>
         </Card>
       )}
+
+      {debugMode && <CustomerDebugPanel />}
 
       <CustomerStats customers={customers} />
 
