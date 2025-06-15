@@ -1,13 +1,12 @@
-
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Info, Leaf, Heart, Shield, Star, ShoppingCart, Eye, Truck, Award, Users, Menu, Search, User, Phone, Mail, MapPin, Facebook, Twitter, Instagram, Youtube } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Info } from "lucide-react";
 import HeroBanner from "@/components/customer/HeroBanner";
 import AddToCartButton from "@/components/customer/AddToCartButton";
-import { useEffect, useState } from "react";
+import CustomerFooter from "@/components/customer/CustomerFooter";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 interface Product {
   id: string;
@@ -35,13 +34,11 @@ const Home = () => {
         .from('products')
         .select('id, name, price, discounted_price, gst_percentage, selling_price_with_tax, image, category, stock')
         .eq('featured', true)
-        .limit(4);
-
+        .limit(6);
       if (error) {
         console.error('Error fetching featured products:', error);
         return;
       }
-
       setFeaturedProducts(data || []);
     } catch (error) {
       console.error('Error fetching featured products:', error);
@@ -65,169 +62,289 @@ const Home = () => {
   };
 
   return (
-    <div>
-      {/* Hero Section with Dynamic Banner */}
-      <HeroBanner />
-
-      {/* Features */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">🚚</span>
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b mb-0">
+        {/* Top Bar */}
+        <div className="bg-primary text-white py-2">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-center text-sm">
+              <div className="flex items-center space-x-4">
+                <span className="flex items-center">
+                  <Phone className="h-4 w-4 mr-1" />
+                  +91 98765 43210
+                </span>
+                <span className="flex items-center">
+                  <Mail className="h-4 w-4 mr-1" />
+                  support@millsmitra.com
+                </span>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Free Shipping</h3>
-              <p className="text-gray-600">On orders above ₹999</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">✨</span>
+              <div className="hidden md:flex items-center space-x-4">
+                <span>Free Shipping on Orders ₹999+</span>
+                <span>|</span>
+                <span>
+                  <Link to="/orders" className="underline underline-offset-2">
+                    Track Your Order
+                  </Link>
+                </span>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Premium Quality</h3>
-              <p className="text-gray-600">Carefully curated materials</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">💎</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Expert Support</h3>
-              <p className="text-gray-600">Professional guidance</p>
             </div>
           </div>
         </div>
+        {/* Main Header */}
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Leaf className="h-8 w-8 text-primary mr-2" />
+              <Link to="/" className="text-2xl font-bold text-gray-900">MILLS MITRA</Link>
+            </div>
+            {/* Search Bar */}
+            <div className="hidden md:flex flex-1 max-w-lg mx-8">
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  placeholder="Search for millet products..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled
+                />
+                <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
+            </div>
+            {/* Header Actions */}
+            <div className="flex items-center space-x-4">
+              <Link to="/account">
+                <button className="p-2 hover:bg-gray-100 rounded-full">
+                  <User className="h-6 w-6 text-gray-600" />
+                </button>
+              </Link>
+              <Link to="/cart">
+                <button className="p-2 hover:bg-gray-100 rounded-full relative">
+                  <ShoppingCart className="h-6 w-6 text-gray-600" />
+                </button>
+              </Link>
+              <button className="md:hidden p-2 hover:bg-gray-100 rounded-full" aria-label="Open Menu">
+                <Menu className="h-6 w-6 text-gray-600" />
+              </button>
+            </div>
+          </div>
+          {/* Navigation */}
+          <nav className="hidden md:flex mt-4 space-x-8">
+            <Link to="/" className="text-gray-900 hover:text-primary/80 font-medium">Home</Link>
+            <Link to="/products?cat=Health Mix" className="text-gray-700 hover:text-primary">Health Mix</Link>
+            <Link to="/products?cat=Instant Mix" className="text-gray-700 hover:text-primary">Instant Mix</Link>
+            <Link to="/products?cat=Baby Food" className="text-gray-700 hover:text-primary">Baby Food</Link>
+            <Link to="/about-us" className="text-gray-700 hover:text-primary">About Us</Link>
+            <Link to="/contact-us" className="text-gray-700 hover:text-primary">Contact</Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* Hero Banner with improved layout */}
+      <section className="relative min-h-[350px] md:h-[500px] overflow-hidden">
+        <HeroBanner />
       </section>
 
       {/* Featured Products */}
-      <section className="py-16">
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Featured Products</h2>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Featured Products</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+              Discover our most popular millet-based products that blend traditional wisdom with modern convenience.
+            </p>
+          </div>
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardContent className="p-0">
-                    <div className="bg-gray-200 h-48 rounded-t-lg"></div>
-                    <div className="p-4">
-                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-                    </div>
-                  </CardContent>
-                </Card>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1,2,3,4,5,6].map(i => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-gray-200 h-64 rounded-xl mb-4"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
+                  <div className="h-8 bg-gray-200 rounded"></div>
+                </div>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredProducts.map((product) => {
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {featuredProducts.map(product => {
                 const basePrice = getBasePrice(product);
                 const gstAmount = getGSTAmount(product);
                 const finalPrice = product.selling_price_with_tax || (basePrice + gstAmount);
 
                 return (
-                  <Card key={product.id} className="group hover:shadow-lg transition-shadow bg-white">
-                    <CardContent className="p-0">
-                      <div className="relative">
-                        <img
-                          src={product.image || '/placeholder.svg'}
-                          alt={product.name}
-                          className="w-full h-48 object-cover rounded-t-lg group-hover:scale-105 transition-transform duration-300"
+                  <div key={product.id} className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border hover:-translate-y-1">
+                    <div className="relative overflow-hidden">
+                      <img
+                        src={product.image || '/placeholder.svg'}
+                        alt={product.name}
+                        className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      {product.discounted_price && (
+                        <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                          {calculateDiscountPercentage(product.price, product.discounted_price)}% OFF
+                        </div>
+                      )}
+                      {product.stock === 0 && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          <span className="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold">Out of Stock</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                          {product.category}
+                        </span>
+                        {/* keeping weight only if available */}
+                        <span className="text-gray-500 text-sm"></span>
+                      </div>
+                      <h3 className="font-bold text-lg text-gray-900 mb-3 line-clamp-2">{product.name}</h3>
+                      <div className="mb-4">
+                        {product.discounted_price ? (
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-2xl font-bold text-green-600">₹{Number(product.discounted_price).toFixed(2)}</span>
+                            <span className="text-lg text-gray-500 line-through">₹{Number(product.price).toFixed(2)}</span>
+                          </div>
+                        ) : (
+                          <div className="text-2xl font-bold text-green-600 mb-1">₹{Number(product.price).toFixed(2)}</div>
+                        )}
+                        <div className="text-sm text-gray-600">
+                          Final Price: <span className="font-semibold">₹{finalPrice.toFixed(0)}</span> (incl. GST)
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-sm text-gray-600">Stock:</span>
+                        {product.stock > 0 ? (
+                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                            {product.stock} units available
+                          </span>
+                        ) : (
+                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
+                            Out of Stock
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <AddToCartButton 
+                          productId={product.id}
+                          productName={product.name}
+                          disabled={product.stock === 0}
                         />
-                        <Badge className="absolute top-2 left-2">Featured</Badge>
-                        {product.stock === 0 && (
-                          <Badge className="absolute top-2 right-2 bg-red-500 text-xs">Out of Stock</Badge>
-                        )}
-                        {product.discounted_price && (
-                          <Badge className="absolute bottom-2 left-2 bg-green-500 text-xs">
-                            {calculateDiscountPercentage(product.price, product.discounted_price)}% OFF
-                          </Badge>
-                        )}
+                        <Link to={`/products/${product.id}`}>
+                          <Button variant="outline" size="sm" className="w-full h-11 font-semibold flex items-center justify-center gap-2 text-green-700 border-green-700 hover:bg-green-50 hover:text-green-900">
+                            <Eye className="h-4 w-4" />
+                            View Details
+                          </Button>
+                        </Link>
                       </div>
-                      <div className="p-4">
-                        <h3 className="font-semibold mb-1 line-clamp-2">{product.name}</h3>
-                        <p className="text-xs text-gray-500 mb-2 capitalize">{product.category}</p>
-                        
-                        {/* Detailed Price Breakdown */}
-                        <div className="space-y-2 mb-3">
-                          <div className="bg-gray-50 p-2 rounded-md text-xs">
-                            {product.discounted_price ? (
-                              <div className="space-y-1">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-gray-600">Original:</span>
-                                  <span className="line-through text-gray-500">₹{Number(product.price).toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-gray-600">Discounted:</span>
-                                  <span className="font-medium text-green-600">₹{Number(product.discounted_price).toFixed(2)}</span>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex justify-between items-center">
-                                <span className="text-gray-600">Base Price:</span>
-                                <span className="font-medium">₹{Number(product.price).toFixed(2)}</span>
-                              </div>
-                            )}
-                            
-                            <div className="flex justify-between items-center mt-1">
-                              <span className="text-gray-600">GST ({product.gst_percentage || 18}%):</span>
-                              <span>₹{gstAmount.toFixed(2)}</span>
-                            </div>
-                            
-                            <div className="border-t pt-1 mt-1">
-                              <div className="flex justify-between items-center">
-                                <span className="font-semibold">Final Price:</span>
-                                <span className="font-bold text-primary">₹{finalPrice.toFixed(2)}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {product.discounted_price && (
-                            <div className="bg-green-50 border border-green-200 rounded-md p-2">
-                              <div className="flex items-center gap-1">
-                                <Info className="h-3 w-3 text-green-600" />
-                                <p className="text-xs text-green-700">
-                                  Save ₹{(product.price - product.discounted_price).toFixed(2)} 
-                                  ({calculateDiscountPercentage(product.price, product.discounted_price)}% off)
-                                </p>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Stock Status */}
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-600">Stock:</span>
-                            {product.stock > 0 ? (
-                              <Badge variant="default" className="bg-green-500 text-xs">
-                                {product.stock} units
-                              </Badge>
-                            ) : (
-                              <Badge variant="destructive" className="text-xs">Out of Stock</Badge>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Link to={`/products/${product.id}`}>
-                            <Button variant="outline" size="sm" className="w-full h-9 text-xs">
-                              View Details
-                            </Button>
-                          </Link>
-                          <AddToCartButton 
-                            productId={product.id}
-                            productName={product.name}
-                            disabled={product.stock === 0}
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 );
               })}
             </div>
           )}
-          <div className="text-center mt-8">
-            <Button variant="outline" size="lg" asChild>
+          <div className="text-center mt-12">
+            <Button size="lg" className="bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-lg font-semibold text-lg shadow-lg" asChild>
               <Link to="/products">View All Products</Link>
             </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Trust Indicators */}
+      <section className="py-8 bg-primary text-white">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div className="flex flex-col items-center">
+              <Truck className="h-8 w-8 mb-2" />
+              <span className="font-semibold text-sm md:text-base">Free Shipping</span>
+              <span className="text-xs opacity-80">On orders ₹999+</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <Award className="h-8 w-8 mb-2" />
+              <span className="font-semibold text-sm md:text-base">Premium Quality</span>
+              <span className="text-xs opacity-80">Certified Products</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <Users className="h-8 w-8 mb-2" />
+              <span className="font-semibold text-sm md:text-base">10K+ Customers</span>
+              <span className="text-xs opacity-80">Trusted by families</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <Star className="h-8 w-8 mb-2" />
+              <span className="font-semibold text-sm md:text-base">5★ Rated</span>
+              <span className="text-xs opacity-80">Customer satisfaction</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Product Categories Mini-Banner */}
+      <section className="py-12 bg-accent/30">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
+            Best Buy for the Season - Combo Deals Packed with Nutrition
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+              <h3 className="font-bold text-lg text-green-700 mb-2">Health Mix</h3>
+              <p className="text-gray-600 text-sm">Premium millet health mixes with Ayurvedic herbs</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+              <h3 className="font-bold text-lg text-orange-700 mb-2">Instant Mixes</h3>
+              <p className="text-gray-600 text-sm">Ready-to-cook dosa, idli, and upma mixes</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+              <h3 className="font-bold text-lg text-purple-700 mb-2">Baby Food</h3>
+              <p className="text-gray-600 text-sm">Specially crafted nutrition for growing babies</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Health Benefits */}
+      <section className="py-16 bg-green-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Add Millets To Your Daily Diet And Add Happiness To Your Lifestyle
+            </h2>
+            <p className="text-gray-600 max-w-3xl mx-auto text-lg leading-relaxed">
+              Millets are naturally rich in nutrients and drought-tolerant, grown in arid regions of India. 
+              They provide exceptional health benefits and play a vital role in ecological security.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="bg-white p-6 rounded-xl shadow-md">
+              <Heart className="h-12 w-12 text-red-500 mb-4" />
+              <h3 className="font-bold text-lg mb-3">Heart Healthy</h3>
+              <p className="text-gray-600">Rich in antioxidants that help lower cholesterol and maintain healthy blood vessels</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-md">
+              <Shield className="h-12 w-12 text-blue-500 mb-4" />
+              <h3 className="font-bold text-lg mb-3">Diabetes Management</h3>
+              <p className="text-gray-600">Low glycemic index helps stabilize blood sugar levels and promotes insulin sensitivity</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-md">
+              <Leaf className="h-12 w-12 text-green-500 mb-4" />
+              <h3 className="font-bold text-lg mb-3">Weight Management</h3>
+              <p className="text-gray-600">High fiber content aids in weight loss and improves gut health for sustained results</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-md">
+              <Star className="h-12 w-12 text-yellow-500 mb-4" />
+              <h3 className="font-bold text-lg mb-3">Cancer Prevention</h3>
+              <p className="text-gray-600">Phytochemicals help inhibit growth of cancerous cells without damaging normal cells</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-md">
+              <Info className="h-12 w-12 text-purple-500 mb-4" />
+              <h3 className="font-bold text-lg mb-3">Digestive Health</h3>
+              <p className="text-gray-600">Rich dietary fiber improves digestion and supports liver and kidney function</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-md">
+              <Award className="h-12 w-12 text-orange-500 mb-4" />
+              <h3 className="font-bold text-lg mb-3">Instant Energy</h3>
+              <p className="text-gray-600">Provides immediate energy boost while building strong muscles and boosting immunity</p>
+            </div>
           </div>
         </div>
       </section>
@@ -235,20 +352,23 @@ const Home = () => {
       {/* Call to Action */}
       <section className="py-16 bg-primary text-white">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
-          <p className="text-xl mb-8 opacity-90">
-            Join thousands of satisfied customers who trust Mills Mitra
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Transform Your Health?</h2>
+          <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
+            Join thousands of families who trust our premium millet products for their daily nutrition needs
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" asChild>
-              <Link to="/register">Create Account</Link>
+            <Button className="bg-white text-green-600 hover:bg-gray-100 px-8 py-4 rounded-lg font-semibold text-lg transition-colors shadow-lg" asChild>
+              <Link to="/products">Start Shopping</Link>
             </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link to="/products">Browse Products</Link>
+            <Button variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-green-600 px-8 py-4 rounded-lg font-semibold text-lg transition-colors" asChild>
+              <Link to="/contact-us">Contact Us</Link>
             </Button>
           </div>
         </div>
       </section>
+
+      {/* Footer (already matches most of the sample style, uses site branding) */}
+      <CustomerFooter />
     </div>
   );
 };
