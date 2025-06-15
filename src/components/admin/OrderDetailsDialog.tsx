@@ -112,33 +112,28 @@ const OrderDetailsDialog = ({
     try {
       console.log("Fetching order details for:", orderId);
 
-      // First, fetch the order details
+      // Fetch order with profile data using a join
       const { data: order, error: orderError } = await supabase
         .from("orders")
-        .select("*")
+        .select(`
+          *,
+          profiles!orders_user_id_profiles_fkey(
+            first_name,
+            last_name,
+            email,
+            phone,
+            address,
+            city,
+            postal_code,
+            country
+          )
+        `)
         .eq("id", orderId)
         .single();
 
       if (orderError) {
         console.error("Error fetching order:", orderError);
         throw new Error(`Failed to fetch order: ${orderError.message}`);
-      }
-
-      // Then fetch the profile separately using the user_id from the order
-      let profileData = null;
-      if (order.user_id) {
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("first_name, last_name, email, phone, address, city, postal_code, country")
-          .eq("id", order.user_id)
-          .maybeSingle();
-
-        if (profileError) {
-          console.error("Error fetching profile:", profileError);
-          // Don't throw error for profile, just log it
-        } else {
-          profileData = profile;
-        }
       }
 
       // Fetch order items
@@ -160,16 +155,10 @@ const OrderDetailsDialog = ({
       }
 
       console.log("Order details fetched:", order);
-      console.log("Profile data fetched:", profileData);
+      console.log("Profile data from join:", order?.profiles);
       console.log("Order items fetched:", items);
 
-      // Combine the data
-      const orderWithProfile = {
-        ...order,
-        profiles: profileData
-      };
-
-      setOrderDetails(orderWithProfile);
+      setOrderDetails(order);
       setOrderItems(items || []);
       setTrackingNumber(order.tracking_number || "");
     } catch (error: any) {
@@ -261,19 +250,48 @@ const OrderDetailsDialog = ({
   };
 
   const getCustomerInfo = () => {
-    if (!orderDetails) return { name: "Unknown", email: "Unknown", phone: "Unknown" };
+    if (!orderDetails) return { 
+      name: "Unknown", 
+      email: "Unknown", 
+      phone: "Unknown", 
+      address: "Unknown",
+      hasProfile: false 
+    };
+    
+    console.log("Processing customer info for profiles:", orderDetails.profiles);
     
     if (orderDetails.profiles) {
-      const { first_name, last_name, email, phone } = orderDetails.profiles;
-      const name = first_name || last_name 
-        ? `${first_name || ''} ${last_name || ''}`.trim()
-        : email || `Customer ${orderDetails.user_id?.substring(0, 8)}`;
+      const { first_name, last_name, email, phone, address, city, postal_code, country } = orderDetails.profiles;
+      
+      // Generate customer name
+      let name = "Customer";
+      if (first_name || last_name) {
+        name = `${first_name || ''} ${last_name || ''}`.trim();
+      } else if (email) {
+        name = email;
+      } else {
+        name = `Customer ${orderDetails.user_id?.substring(0, 8)}`;
+      }
+      
+      // Generate full address
+      let fullAddress = "No address provided";
+      if (address) {
+        const addressParts = [address];
+        if (city) addressParts.push(city);
+        if (postal_code) addressParts.push(postal_code);
+        if (country) addressParts.push(country);
+        fullAddress = addressParts.join(", ");
+      }
+      
+      const hasCompleteProfile = !!(first_name || last_name) && !!email && !!address;
       
       return {
         name,
         email: email || "No email provided",
         phone: phone || "No phone provided",
-        hasProfile: true
+        address: fullAddress,
+        hasProfile: true,
+        hasCompleteProfile
       };
     }
     
@@ -281,7 +299,9 @@ const OrderDetailsDialog = ({
       name: `Customer ${orderDetails.user_id?.substring(0, 8)}`,
       email: "Profile not completed",
       phone: "Profile not completed",
-      hasProfile: false
+      address: "Profile not completed",
+      hasProfile: false,
+      hasCompleteProfile: false
     };
   };
 
@@ -422,9 +442,14 @@ const OrderDetailsDialog = ({
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
                   Customer Information
-                  {!customerInfo.hasProfile && (
+                  {customerInfo.hasProfile && !customerInfo.hasCompleteProfile && (
                     <Badge variant="outline" className="text-orange-600 border-orange-600">
                       Profile Incomplete
+                    </Badge>
+                  )}
+                  {customerInfo.hasProfile && customerInfo.hasCompleteProfile && (
+                    <Badge variant="outline" className="text-green-600 border-green-600">
+                      Profile Complete
                     </Badge>
                   )}
                 </CardTitle>
@@ -458,29 +483,21 @@ const OrderDetailsDialog = ({
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <div>
-                      <span className="text-sm font-medium">Profile Address:</span>
-                      <p className="text-sm text-gray-600">
-                        {orderDetails.profiles?.address ? (
-                          <>
-                            {orderDetails.profiles.address}
-                            <br />
-                            {orderDetails.profiles.city && `${orderDetails.profiles.city}, `}
-                            {orderDetails.profiles.postal_code && `${orderDetails.profiles.postal_code}`}
-                            <br />
-                            {orderDetails.profiles.country}
-                          </>
-                        ) : (
-                          <span className="text-orange-600">No address on file - Customer needs to complete profile</span>
-                        )}
-                      </p>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-gray-500 mt-1" />
+                      <div>
+                        <span className="text-sm font-medium">Profile Address:</span>
+                        <p className="text-sm text-gray-900 mt-1">
+                          {customerInfo.address}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Invoice Information - New Section */}
+            {/* Invoice Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
