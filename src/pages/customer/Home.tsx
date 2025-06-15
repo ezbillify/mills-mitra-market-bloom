@@ -4,7 +4,6 @@ import { Info, Leaf, Heart, Shield, Star, ShoppingCart, Eye, Truck, Award, Users
 import { Badge } from "@/components/ui/badge";
 import HeroBanner from "@/components/customer/HeroBanner";
 import AddToCartButton from "@/components/customer/AddToCartButton";
-import CustomerFooter from "@/components/customer/CustomerFooter";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -356,9 +355,6 @@ const Home = () => {
           </div>
         </div>
       </section>
-
-      {/* Footer (already matches most of the sample style, uses site branding) */}
-      <CustomerFooter />
     </div>
   );
 };
