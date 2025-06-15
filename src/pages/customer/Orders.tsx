@@ -1,12 +1,15 @@
 
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useOrders } from "@/hooks/useOrders";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Download, Package, Truck } from "lucide-react";
+import { Eye, Download, Package, Truck, IndianRupee } from "lucide-react";
 import OrderItemTable from "./OrderItemTable";
 import { generateCustomerName } from "@/utils/customerUtils";
+import { InvoiceService } from "@/services/invoiceService";
+import { useToast } from "@/hooks/use-toast";
 
 const statusLabels: Record<string, string> = {
   pending: "Pending",
@@ -33,9 +36,39 @@ const badgeVariants: Record<string, "default" | "secondary" | "destructive" | "o
 const Orders = () => {
   const { orders, loading } = useOrders();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [downloadingInvoices, setDownloadingInvoices] = useState<Set<string>>(new Set());
 
   const handleViewOrder = (orderId: string) => {
     navigate(`/orders/${orderId}`);
+  };
+
+  const handleDownloadInvoice = async (orderId: string) => {
+    setDownloadingInvoices(prev => new Set([...prev, orderId]));
+    try {
+      await InvoiceService.downloadInvoiceForOrder(orderId);
+      toast({
+        title: "Success",
+        description: "Invoice downloaded successfully",
+      });
+    } catch (error) {
+      console.error("Error downloading invoice:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download invoice. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingInvoices(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(orderId);
+        return newSet;
+      });
+    }
+  };
+
+  const canDownloadInvoice = (status: string) => {
+    return status === 'shipped' || status === 'delivered' || status === 'completed';
   };
 
   if (loading) {
@@ -81,7 +114,10 @@ const Orders = () => {
                   )}
                 </div>
                 <div className="text-right">
-                  <div className="text-lg font-bold">₹{Number(order.total).toFixed(2)}</div>
+                  <div className="text-lg font-bold flex items-center gap-1">
+                    <IndianRupee className="h-4 w-4" />
+                    {Number(order.total).toFixed(2)}
+                  </div>
                   <Badge variant={badgeVariants[order.status] || "default"}>
                     {statusLabels[order.status] || order.status}
                   </Badge>
@@ -106,8 +142,9 @@ const Orders = () => {
                     {order.shipping_settings?.description && (
                       <p className="text-gray-600">{order.shipping_settings.description}</p>
                     )}
-                    <p className="text-gray-600">
-                      Shipping Cost: ₹{Number(order.delivery_price || order.shipping_settings?.price || 0).toFixed(2)}
+                    <p className="text-gray-600 flex items-center gap-1">
+                      Shipping Cost: <IndianRupee className="h-3 w-3" />
+                      {Number(order.delivery_price || order.shipping_settings?.price || 0).toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -124,10 +161,22 @@ const Orders = () => {
                   <Eye className="h-4 w-4 mr-2" />
                   View Details
                 </Button>
-                <Button variant="outline" size="sm" disabled>
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Invoice
-                </Button>
+                {canDownloadInvoice(order.status) ? (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleDownloadInvoice(order.id)}
+                    disabled={downloadingInvoices.has(order.id)}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {downloadingInvoices.has(order.id) ? "Downloading..." : "Download Invoice"}
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" disabled>
+                    <Download className="h-4 w-4 mr-2" />
+                    Invoice Available After Shipping
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

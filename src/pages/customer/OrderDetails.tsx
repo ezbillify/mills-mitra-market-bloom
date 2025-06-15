@@ -144,7 +144,11 @@ const OrderDetails = () => {
     }
   };
 
-  const canDownloadInvoice = order && (order.status === 'completed' || order.status === 'delivered' || order.status === 'shipped');
+  const canDownloadInvoice = order && (
+    order.status === 'shipped' || 
+    order.status === 'delivered' || 
+    order.status === 'completed'
+  );
 
   if (loading) {
     return (
