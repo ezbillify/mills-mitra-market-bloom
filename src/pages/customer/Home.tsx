@@ -131,8 +131,6 @@ const Home = () => {
           <nav className="hidden md:flex mt-4 space-x-8">
             <Link to="/" className="text-gray-900 hover:text-primary/80 font-medium">Home</Link>
             <Link to="/products?cat=Health Mix" className="text-gray-700 hover:text-primary">Health Mix</Link>
-            <Link to="/products?cat=Instant Mix" className="text-gray-700 hover:text-primary">Instant Mix</Link>
-            <Link to="/products?cat=Baby Food" className="text-gray-700 hover:text-primary">Baby Food</Link>
             <Link to="/about-us" className="text-gray-700 hover:text-primary">About Us</Link>
             <Link to="/contact-us" className="text-gray-700 hover:text-primary">Contact</Link>
           </nav>
@@ -285,18 +283,10 @@ const Home = () => {
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
             Best Buy for the Season - Combo Deals Packed with Nutrition
           </h2>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-1 gap-6 max-w-md mx-auto">
             <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
               <h3 className="font-bold text-lg text-green-700 mb-2">Health Mix</h3>
               <p className="text-gray-600 text-sm">Premium millet health mixes with Ayurvedic herbs</p>
-            </div>
-            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <h3 className="font-bold text-lg text-orange-700 mb-2">Instant Mixes</h3>
-              <p className="text-gray-600 text-sm">Ready-to-cook dosa, idli, and upma mixes</p>
-            </div>
-            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <h3 className="font-bold text-lg text-purple-700 mb-2">Baby Food</h3>
-              <p className="text-gray-600 text-sm">Specially crafted nutrition for growing babies</p>
             </div>
           </div>
         </div>
