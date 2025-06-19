@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -36,6 +37,7 @@ import Banners from "@/pages/admin/Banners";
 import Categories from "@/pages/admin/Categories";
 import ShippingSettings from "@/pages/admin/ShippingSettings";
 import InvoiceSettings from "@/pages/admin/InvoiceSettings";
+import ThemeSettings from "@/pages/admin/ThemeSettings";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -87,6 +89,7 @@ const App = () => {
                 <Route path="categories" element={<Categories />} />
                 <Route path="shipping" element={<ShippingSettings />} />
                 <Route path="invoice-settings" element={<InvoiceSettings />} />
+                <Route path="theme-settings" element={<ThemeSettings />} />
               </Route>
 
               {/* 404 Page */}

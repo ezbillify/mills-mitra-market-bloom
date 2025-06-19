@@ -1,151 +1,133 @@
 
-import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Package, Users, ShoppingCart, BarChart3, Image, Settings, LogOut, Truck, Tag, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Users,
+  BarChart3,
+  Image,
+  Grid3X3,
+  Truck,
+  FileText,
+  Palette,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { useState } from "react";
+
+const sidebarItems = [
+  {
+    title: "Dashboard",
+    icon: LayoutDashboard,
+    href: "/admin",
+  },
+  {
+    title: "Products",
+    icon: Package,
+    href: "/admin/products",
+  },
+  {
+    title: "Orders", 
+    icon: ShoppingCart,
+    href: "/admin/orders",
+  },
+  {
+    title: "Customers",
+    icon: Users,
+    href: "/admin/customers",
+  },
+  {
+    title: "Analytics",
+    icon: BarChart3,
+    href: "/admin/analytics",
+  },
+  {
+    title: "Banners",
+    icon: Image,
+    href: "/admin/banners",
+  },
+  {
+    title: "Categories",
+    icon: Grid3X3,
+    href: "/admin/categories",
+  },
+  {
+    title: "Shipping",
+    icon: Truck,
+    href: "/admin/shipping",
+  },
+  {
+    title: "Invoice Settings",
+    icon: FileText,
+    href: "/admin/invoice-settings",
+  },
+  {
+    title: "Theme Settings",
+    icon: Palette,
+    href: "/admin/theme-settings",
+  },
+];
 
 const AdminSidebar = () => {
   const location = useLocation();
-  const { signOut } = useAuth();
-  
-  const navigation = [
-    {
-      name: "Dashboard",
-      href: "/admin",
-      icon: LayoutDashboard
-    },
-    {
-      name: "Products",
-      href: "/admin/products",
-      icon: Package
-    },
-    {
-      name: "Categories",
-      href: "/admin/categories",
-      icon: Tag
-    },
-    {
-      name: "Orders",
-      href: "/admin/orders",
-      icon: ShoppingCart
-    },
-    {
-      name: "Customers",
-      href: "/admin/customers",
-      icon: Users
-    },
-    {
-      name: "Analytics",
-      href: "/admin/analytics",
-      icon: BarChart3
-    },
-    {
-      name: "Banners",
-      href: "/admin/banners",
-      icon: Image
-    },
-    {
-      name: "Shipping",
-      href: "/admin/shipping",
-      icon: Truck
-    },
-    {
-      name: "Invoice Settings",
-      href: "/admin/invoice-settings",
-      icon: FileText
-    }
-  ];
-  
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="flex h-full w-80 flex-col bg-white shadow-xl border-r border-gray-100">
-      {/* Header */}
-      <div className="flex h-24 items-center px-8 border-b border-gray-100 bg-gradient-to-r from-royal-green to-medium-green">
-        <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg ring-2 ring-white/20">
-            <LayoutDashboard className="w-7 h-7 text-royal-green" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-emerald-500">Admin Panel</h1>
-            <p className="text-sm font-medium text-green-950">Mills Mitra Market</p>
-          </div>
-        </div>
-      </div>
-      
-      {/* Navigation */}
-      <nav className="flex-1 px-6 py-8 space-y-2 bg-gradient-to-b from-gray-50/50 to-white">
-        <div className="mb-6">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-3">
-            Management
-          </h2>
-        </div>
-        {navigation.map((item) => {
-          const isActive = location.pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={cn(
-                "group flex items-center px-4 py-3.5 text-sm font-medium rounded-xl transition-all duration-300 ease-out relative overflow-hidden",
-                isActive
-                  ? "bg-royal-green text-white shadow-lg shadow-royal-green/25 scale-[1.02]"
-                  : "text-gray-700 hover:bg-gradient-to-r hover:from-royal-green/5 hover:to-medium-green/5 hover:text-royal-green hover:translate-x-1"
-              )}
-            >
-              {/* Active indicator */}
-              {isActive && (
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-full" />
-              )}
-              
-              <item.icon className={cn(
-                "mr-4 h-5 w-5 transition-all duration-300",
-                isActive 
-                  ? "text-white transform scale-110" 
-                  : "text-gray-500 group-hover:text-royal-green group-hover:scale-110"
-              )} />
-              
-              <span className="relative z-10">{item.name}</span>
-              
-              {/* Hover effect background */}
-              {!isActive && (
-                <div className="absolute inset-0 bg-gradient-to-r from-royal-green/0 to-royal-green/0 group-hover:from-royal-green/5 group-hover:to-medium-green/5 rounded-xl transition-all duration-300" />
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-      
-      {/* Footer */}
-      <div className="p-6 border-t border-gray-100 bg-gradient-to-r from-gray-50 to-gray-100/50">
-        <div className="mb-4 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-royal-green to-medium-green rounded-full flex items-center justify-center">
-              <span className="text-xs font-bold text-white">A</span>
+    <div className={cn(
+      "relative border-r bg-white transition-all duration-300",
+      collapsed ? "w-16" : "w-64"
+    )}>
+      <div className="flex h-14 items-center border-b px-4">
+        {!collapsed && (
+          <Link to="/admin" className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
+              <LayoutDashboard className="h-4 w-4 text-white" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">Admin User</p>
-              <p className="text-xs text-gray-500 truncate">administrator</p>
-            </div>
-          </div>
-        </div>
-        
-        <Button 
-          onClick={handleSignOut} 
-          variant="outline" 
-          className="w-full justify-start bg-white border-gray-200 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-200 shadow-sm"
+            <span className="font-bold text-lg">Admin Panel</span>
+          </Link>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setCollapsed(!collapsed)}
+          className={cn(
+            "h-8 w-8 p-0",
+            collapsed ? "mx-auto" : "ml-auto"
+          )}
         >
-          <LogOut className="mr-3 h-4 w-4" />
-          Sign Out
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
         </Button>
       </div>
+      <ScrollArea className="flex-1">
+        <div className="space-y-2 p-2">
+          {sidebarItems.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <Link key={item.href} to={item.href}>
+                <Button
+                  variant={isActive ? "secondary" : "ghost"}
+                  className={cn(
+                    "w-full justify-start",
+                    collapsed && "px-2",
+                    isActive && "bg-primary/10 text-primary font-medium"
+                  )}
+                >
+                  <item.icon className={cn("h-4 w-4", !collapsed && "mr-2")} />
+                  {!collapsed && item.title}
+                </Button>
+              </Link>
+            );
+          })}
+        </div>
+      </ScrollArea>
     </div>
   );
 };
