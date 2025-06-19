@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +12,7 @@ import { AlertCircle } from 'lucide-react';
 
 const Cart = () => {
   const { user } = useAuth();
-  const { cartCount } = useCartCount();
+  const { cartCount, refetchCartCount } = useCartCount();
 
   const { data: cartItems = [], isLoading, error, refetch } = useQuery({
     queryKey: ['cart-items', user?.id],
@@ -52,6 +51,12 @@ const Cart = () => {
     },
     enabled: !!user,
   });
+
+  const handleOrderComplete = () => {
+    // Refresh cart data and cart count after successful order
+    refetch();
+    refetchCartCount();
+  };
 
   if (!user) {
     return (
@@ -124,7 +129,7 @@ const Cart = () => {
             <CartItems items={cartItems} onUpdate={refetch} />
           </div>
           <div className="lg:col-span-1">
-            <CartSummary items={cartItems} />
+            <CartSummary items={cartItems} onOrderComplete={handleOrderComplete} />
           </div>
         </div>
       </div>
