@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,18 +48,12 @@ const OrderDetails = () => {
     const fetchOrder = async () => {
       setLoading(true);
       
-      // Use consistent query that respects RLS policies
+      // Simplified query without shipping_settings relationship
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select(`
           *,
-          profiles!orders_user_id_profiles_fkey(*),
-          shipping_settings!orders_delivery_option_id_fkey(
-            id,
-            name,
-            description,
-            price
-          )
+          profiles!orders_user_id_profiles_fkey(*)
         `)
         .eq("id", orderId)
         .maybeSingle();
@@ -180,6 +175,16 @@ const OrderDetails = () => {
     order.status === 'out_for_delivery'
   );
 
+  // Get shipping method info
+  const getShippingMethodInfo = () => {
+    const deliveryPrice = Number(order?.delivery_price || 0);
+    if (deliveryPrice === 0) {
+      return { name: "Free Shipping", price: 0 };
+    } else {
+      return { name: "Standard Shipping", price: deliveryPrice };
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -207,6 +212,7 @@ const OrderDetails = () => {
   }
 
   const orderTotals = calculateOrderTotals();
+  const shippingInfo = getShippingMethodInfo();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -307,13 +313,10 @@ const OrderDetails = () => {
               </h4>
               <div className="text-sm">
                 <p className="font-medium text-gray-900">
-                  {order.shipping_settings?.name || 'Standard Shipping'}
+                  {shippingInfo.name}
                 </p>
-                {order.shipping_settings?.description && (
-                  <p className="text-gray-600 mt-1">{order.shipping_settings.description}</p>
-                )}
                 <p className="text-gray-600 mt-1 flex items-center gap-1">
-                  Shipping Cost: <IndianRupee className="h-3 w-3" />{orderTotals.shippingCost.toFixed(2)}
+                  Shipping Cost: <IndianRupee className="h-3 w-3" />{shippingInfo.price.toFixed(2)}
                 </p>
               </div>
             </div>

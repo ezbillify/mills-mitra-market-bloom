@@ -1,11 +1,13 @@
+
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, User, LogOut, Package, Menu } from "lucide-react";
+import { ShoppingCart, User, LogOut, Package, Menu, Phone, Mail, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { useCartCount } from "@/hooks/useCartCount";
 import AdminAccessButton from "./AdminAccessButton";
 import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,25 +47,71 @@ const CustomerHeader = () => {
 
   return (
     <header className="bg-white shadow-sm border-b sticky top-0 z-50">
+      {/* Top bar with contact info and shipping info */}
+      <div className="bg-primary text-white py-2 hidden md:block">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2">
+                <Phone className="h-4 w-4" />
+                <span>+91 98765 43210</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Mail className="h-4 w-4" />
+                <span>support@millsmitra.com</span>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span>Free Shipping on Orders ₹999+</span>
+              <Link to="/orders" className="hover:underline">Track Your Order</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main header */}
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-14 sm:h-16">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="text-lg sm:text-2xl font-bold text-primary">
-            MILLS MITRA
+          <Link to="/" className="text-2xl font-bold text-primary flex items-center space-x-2">
+            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-bold">
+              M
+            </div>
+            <span>MILLS MITRA</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link to="/" className="text-gray-700 hover:text-primary transition-colors">
-              Home
-            </Link>
-            <Link to="/products" className="text-gray-700 hover:text-primary transition-colors">
-              Products
-            </Link>
-          </nav>
+          {/* Desktop Navigation and Search */}
+          <div className="hidden md:flex items-center space-x-8 flex-1 max-w-2xl mx-8">
+            <nav className="flex items-center space-x-6">
+              <Link to="/" className="text-gray-700 hover:text-primary transition-colors font-medium">
+                Home
+              </Link>
+              <Link to="/products" className="text-gray-700 hover:text-primary transition-colors font-medium">
+                Health Mix
+              </Link>
+              <Link to="/about-us" className="text-gray-700 hover:text-primary transition-colors font-medium">
+                About Us
+              </Link>
+              <Link to="/contact-us" className="text-gray-700 hover:text-primary transition-colors font-medium">
+                Contact
+              </Link>
+            </nav>
+            
+            {/* Search bar */}
+            <div className="flex-1 max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search for millet products..."
+                  className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Right side actions */}
-          <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="flex items-center space-x-4">
             {user ? (
               <>
                 {/* Cart - Always visible */}
@@ -125,6 +173,16 @@ const CustomerHeader = () => {
                   </SheetTrigger>
                   <SheetContent side="right" className="w-64">
                     <div className="flex flex-col space-y-4 mt-8">
+                      {/* Mobile Search */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          type="text"
+                          placeholder="Search products..."
+                          className="pl-10 pr-4 py-2 w-full"
+                        />
+                      </div>
+                      
                       <Link 
                         to="/" 
                         className="text-lg font-medium"
@@ -137,7 +195,21 @@ const CustomerHeader = () => {
                         className="text-lg font-medium"
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        Products
+                        Health Mix
+                      </Link>
+                      <Link 
+                        to="/about-us" 
+                        className="text-lg font-medium"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        About Us
+                      </Link>
+                      <Link 
+                        to="/contact-us" 
+                        className="text-lg font-medium"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Contact
                       </Link>
                       <Link 
                         to="/account" 
@@ -155,6 +227,19 @@ const CustomerHeader = () => {
                         <Package className="h-5 w-5 mr-2" />
                         My Orders
                       </Link>
+                      
+                      {/* Mobile contact info */}
+                      <div className="pt-4 border-t space-y-2 text-sm text-gray-600">
+                        <div className="flex items-center space-x-2">
+                          <Phone className="h-4 w-4" />
+                          <span>+91 98765 43210</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Mail className="h-4 w-4" />
+                          <span>support@millsmitra.com</span>
+                        </div>
+                      </div>
+                      
                       <div className="pt-4 border-t">
                         <AdminAccessButton />
                       </div>
@@ -191,6 +276,16 @@ const CustomerHeader = () => {
                   </SheetTrigger>
                   <SheetContent side="right" className="w-64">
                     <div className="flex flex-col space-y-4 mt-8">
+                      {/* Mobile Search */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          type="text"
+                          placeholder="Search products..."
+                          className="pl-10 pr-4 py-2 w-full"
+                        />
+                      </div>
+                      
                       <Link 
                         to="/" 
                         className="text-lg font-medium"
@@ -203,8 +298,35 @@ const CustomerHeader = () => {
                         className="text-lg font-medium"
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        Products
+                        Health Mix
                       </Link>
+                      <Link 
+                        to="/about-us" 
+                        className="text-lg font-medium"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        About Us
+                      </Link>
+                      <Link 
+                        to="/contact-us" 
+                        className="text-lg font-medium"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Contact
+                      </Link>
+                      
+                      {/* Mobile contact info */}
+                      <div className="pt-4 border-t space-y-2 text-sm text-gray-600">
+                        <div className="flex items-center space-x-2">
+                          <Phone className="h-4 w-4" />
+                          <span>+91 98765 43210</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Mail className="h-4 w-4" />
+                          <span>support@millsmitra.com</span>
+                        </div>
+                      </div>
+                      
                       <div className="pt-4 border-t space-y-2">
                         <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
                           <Button variant="outline" className="w-full">Sign In</Button>
