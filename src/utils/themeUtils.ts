@@ -53,8 +53,37 @@ export const applyThemeColors = (colors: {
   root.style.setProperty('--background', hexToHsl(colors.background));
   root.style.setProperty('--foreground', hexToHsl(colors.foreground));
 
-  // For warm-brown and other custom colors
+  // For warm-brown and other custom colors used throughout the app
   root.style.setProperty('--warm-brown', colors.primary);
   root.style.setProperty('--warm-beige', colors.secondary);
   root.style.setProperty('--millet-gold', colors.accent);
+
+  // Apply to CSS custom properties for direct color usage
+  document.documentElement.style.setProperty('--color-warm-brown', colors.primary);
+  document.documentElement.style.setProperty('--color-warm-beige', colors.secondary);
+  document.documentElement.style.setProperty('--color-millet-gold', colors.accent);
+};
+
+export const saveTheme = (colors: {
+  primary: string;
+  secondary: string;
+  accent: string;
+  background: string;
+  foreground: string;
+}) => {
+  localStorage.setItem('customer-theme', JSON.stringify(colors));
+  applyThemeColors(colors);
+};
+
+export const resetTheme = () => {
+  localStorage.removeItem('customer-theme');
+  const defaultColors = {
+    primary: '#8B4513',
+    secondary: '#D2B48C',
+    accent: '#DAA520',
+    background: '#FAFAFA',
+    foreground: '#1A1A1A',
+  };
+  applyThemeColors(defaultColors);
+  return defaultColors;
 };

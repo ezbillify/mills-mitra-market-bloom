@@ -83,7 +83,7 @@ const CartSummary = ({ items, onOrderComplete }: CartSummaryProps) => {
 
         <div className="mt-6 space-y-3">
           <Button 
-            className="w-full bg-green-600 hover:bg-green-700 text-white"
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-medium"
             onClick={() => setCheckoutOpen(true)}
             disabled={items.length === 0}
           >

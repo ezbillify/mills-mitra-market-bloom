@@ -45,6 +45,14 @@
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 150 85% 20%;        /* Darker Green */
     --sidebar-ring: 0 0% 100%;            /* White */
+
+    /* Default theme colors - can be overridden by theme utils */
+    --warm-brown: #8B4513;
+    --warm-beige: #D2B48C;
+    --millet-gold: #DAA520;
+    --color-warm-brown: #8B4513;
+    --color-warm-beige: #D2B48C;
+    --color-millet-gold: #DAA520;
   }
 
   .dark {
@@ -98,8 +106,38 @@
   }
 }
 
-/* Custom color utilities for the royal green and white theme */
+/* Custom color utilities for theming */
 @layer utilities {
+  .text-warm-brown {
+    color: var(--warm-brown);
+  }
+  .bg-warm-brown {
+    background-color: var(--warm-brown);
+  }
+  .border-warm-brown {
+    border-color: var(--warm-brown);
+  }
+  
+  .text-warm-beige {
+    color: var(--warm-beige);
+  }
+  .bg-warm-beige {
+    background-color: var(--warm-beige);
+  }
+  .border-warm-beige {
+    border-color: var(--warm-beige);
+  }
+  
+  .text-millet-gold {
+    color: var(--millet-gold);
+  }
+  .bg-millet-gold {
+    background-color: var(--millet-gold);
+  }
+  .border-millet-gold {
+    border-color: var(--millet-gold);
+  }
+  
   .text-royal-green {
     color: #0F5132;
   }
@@ -157,6 +195,10 @@
   
   .bg-green-gradient {
     background: linear-gradient(135deg, #0F5132 0%, #2D8653 100%);
+  }
+
+  .bg-organic-gradient {
+    background: linear-gradient(135deg, var(--color-warm-beige) 0%, #FFFFFF 100%);
   }
 }
 
