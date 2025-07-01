@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { IndianRupee } from "lucide-react";
 import { PricingUtils } from "@/utils/pricingUtils";
+import { useRazorpay } from "@/hooks/useRazorpay";
 
 interface CartItem {
   id: string;
@@ -49,6 +50,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   const [shippingOptions, setShippingOptions] = useState<DeliveryOption[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { initiatePayment, loading: razorpayLoading } = useRazorpay();
   
   const [formData, setFormData] = useState({
     address: "",
@@ -144,6 +146,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     setLoading(true);
 
     try {
+      // Create order first
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -153,7 +156,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           shipping_address: shippingAddress,
           delivery_option_id: formData.shippingOptionId,
           delivery_price: shippingPrice,
-          payment_type: formData.paymentMethod,   // <--- Store payment type here!
+          payment_type: formData.paymentMethod,
         })
         .select()
         .single();
@@ -167,7 +170,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           order_id: order.id,
           product_id: item.product_id,
           quantity: item.quantity,
-          price: itemPricing.discountedPrice, // Use the effective price (discounted or regular)
+          price: itemPricing.discountedPrice,
         };
       });
 
@@ -177,21 +180,62 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
 
       if (itemsError) throw itemsError;
 
-      // Clear cart
-      const { error: cartError } = await supabase
-        .from('cart_items')
-        .delete()
-        .eq('user_id', user.id);
+      // Handle payment based on method
+      if (formData.paymentMethod === 'razorpay') {
+        // Get user profile for customer info
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, email, phone')
+          .eq('id', user.id)
+          .single();
 
-      if (cartError) throw cartError;
+        const customerName = profile?.first_name && profile?.last_name 
+          ? `${profile.first_name} ${profile.last_name}`
+          : profile?.email || 'Customer';
 
-      toast({
-        title: "Order placed successfully!",
-        description: `Your order has been placed. Order ID: ${order.id.slice(0, 8)}`,
-      });
+        await initiatePayment({
+          amount: orderTotals.grandTotal,
+          orderId: order.id,
+          customerInfo: {
+            name: customerName,
+            email: profile?.email || user.email || '',
+            phone: formData.phone || profile?.phone || '',
+          },
+          onSuccess: async (paymentId: string) => {
+            // Clear cart after successful payment
+            await supabase.from('cart_items').delete().eq('user_id', user.id);
+            
+            toast({
+              title: "Payment Successful!",
+              description: `Your order has been placed. Order ID: ${order.id.slice(0, 8)}`,
+            });
 
-      onOrderComplete();
-      onOpenChange(false);
+            onOrderComplete();
+            onOpenChange(false);
+          },
+          onFailure: (error: any) => {
+            console.error('Payment failed:', error);
+            // Order remains in pending state for manual review
+          },
+        });
+      } else {
+        // COD - complete the order
+        // Clear cart
+        const { error: cartError } = await supabase
+          .from('cart_items')
+          .delete()
+          .eq('user_id', user.id);
+
+        if (cartError) throw cartError;
+
+        toast({
+          title: "Order placed successfully!",
+          description: `Your order has been placed. Order ID: ${order.id.slice(0, 8)}`,
+        });
+
+        onOrderComplete();
+        onOpenChange(false);
+      }
       
       // Reset form
       setFormData({
@@ -441,12 +485,12 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || loadingProfile || !formData.shippingOptionId || shippingOptions.length === 0} 
+              disabled={loading || loadingProfile || razorpayLoading || !formData.shippingOptionId || shippingOptions.length === 0} 
               className="flex-1 bg-[#C9A350] hover:bg-[#D49847] text-white"
             >
-              {loading ? "Placing Order..." : (
+              {loading || razorpayLoading ? "Processing..." : (
                 <span className="flex items-center gap-1">
-                  Place Order (<IndianRupee className="h-3 w-3" />{orderTotals.grandTotal.toFixed(2)})
+                  {formData.paymentMethod === 'razorpay' ? 'Pay Now' : 'Place Order'} (<IndianRupee className="h-3 w-3" />{orderTotals.grandTotal.toFixed(2)})
                 </span>
               )}
             </Button>

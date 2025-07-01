@@ -5,11 +5,11 @@ import { FileText, CreditCard, Calendar, Building, BadgeDollarSign } from "lucid
 interface InvoiceInfoCardProps {
   orderId: string;
   createdAt: string;
-  paymentType?: string; // Add paymentType as optional
+  paymentType?: string;
 }
 
 const PAYMENT_LABELS: Record<string, string> = {
-  cod: "Cash on Delivery",
+  cod: "Cash on Delivery (COD)",
   razorpay: "Paid via Razorpay",
 };
 
@@ -19,6 +19,7 @@ const InvoiceInfoCard = ({ orderId, createdAt, paymentType }: InvoiceInfoCardPro
     : paymentType
     ? paymentType.charAt(0).toUpperCase() + paymentType.slice(1)
     : "N/A";
+
   return (
     <Card>
       <CardHeader>
@@ -48,7 +49,19 @@ const InvoiceInfoCard = ({ orderId, createdAt, paymentType }: InvoiceInfoCardPro
               <BadgeDollarSign className="h-4 w-4 text-gray-500" />
               <div>
                 <span className="text-sm font-medium">Payment Method:</span>
-                <p className="text-gray-900">{readablePayment}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-gray-900">{readablePayment}</p>
+                  {paymentType === 'razorpay' && (
+                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                      Online
+                    </span>
+                  )}
+                  {paymentType === 'cod' && (
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                      COD
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -57,7 +70,7 @@ const InvoiceInfoCard = ({ orderId, createdAt, paymentType }: InvoiceInfoCardPro
               <Building className="h-4 w-4 text-gray-500" />
               <div>
                 <span className="text-sm font-medium">Company:</span>
-                <p className="text-gray-900">Your Company Name</p>
+                <p className="text-gray-900">Mills Mitra</p>
                 <p className="text-xs text-gray-500">GST: Your GST Number</p>
               </div>
             </div>

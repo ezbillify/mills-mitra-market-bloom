@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import OrderItemTable from "./OrderItemTable";
 import { supabase } from "@/integrations/supabase/client";
 import { generateCustomerName } from "@/utils/customerUtils";
-import { ArrowLeft, Truck, Download, IndianRupee } from "lucide-react";
+import { ArrowLeft, Truck, Download, IndianRupee, CreditCard } from "lucide-react";
 import { InvoiceService } from "@/services/invoiceService";
 import { useToast } from "@/hooks/use-toast";
 import { PricingUtils } from "@/utils/pricingUtils";
@@ -32,6 +32,11 @@ const badgeVariants: Record<string, "default" | "secondary" | "destructive" | "o
   accepted: "default",
   out_for_delivery: "secondary",
   completed: "default",
+};
+
+const PAYMENT_LABELS: Record<string, string> = {
+  cod: "Cash on Delivery (COD)",
+  razorpay: "Paid via Razorpay",
 };
 
 const OrderDetails = () => {
@@ -185,6 +190,21 @@ const OrderDetails = () => {
     }
   };
 
+  const getPaymentMethodDisplay = () => {
+    const paymentType = order?.payment_type;
+    const label = paymentType && PAYMENT_LABELS[paymentType]
+      ? PAYMENT_LABELS[paymentType]
+      : paymentType
+      ? paymentType.charAt(0).toUpperCase() + paymentType.slice(1)
+      : "N/A";
+
+    return {
+      label,
+      badge: paymentType === 'razorpay' ? 'Online' : paymentType === 'cod' ? 'COD' : null,
+      color: paymentType === 'razorpay' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+    };
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -213,6 +233,7 @@ const OrderDetails = () => {
 
   const orderTotals = calculateOrderTotals();
   const shippingInfo = getShippingMethodInfo();
+  const paymentInfo = getPaymentMethodDisplay();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -331,6 +352,20 @@ const OrderDetails = () => {
               <Badge className="text-base" variant={badgeVariants[order.status] || "default"}>
                 {statusLabels[order.status] || order.status}
               </Badge>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2 flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Payment Method
+              </h4>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-gray-900">{paymentInfo.label}</p>
+                {paymentInfo.badge && (
+                  <span className={`px-2 py-1 text-xs rounded-full ${paymentInfo.color}`}>
+                    {paymentInfo.badge}
+                  </span>
+                )}
+              </div>
             </div>
             <div>
               <h4 className="font-medium mb-2">Order ID</h4>
