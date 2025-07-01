@@ -1,6 +1,7 @@
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Info, Leaf, Heart, Shield, Star, ShoppingCart, Eye, Truck, Award, Users, Menu, Search, User, Phone, Mail, MapPin, Facebook, Twitter, Instagram, Youtube } from "lucide-react";
+import { Info, Leaf, Heart, Shield, Star, ShoppingCart, Eye, Truck, Award, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import HeroBanner from "@/components/customer/HeroBanner";
 import AddToCartButton from "@/components/customer/AddToCartButton";
@@ -62,80 +63,6 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b mb-0">
-        {/* Top Bar */}
-        <div className="bg-primary text-white py-2">
-          <div className="container mx-auto px-4">
-            <div className="flex justify-between items-center text-sm">
-              <div className="flex items-center space-x-4">
-                <span className="flex items-center">
-                  <Phone className="h-4 w-4 mr-1" />
-                  +91 98765 43210
-                </span>
-                <span className="flex items-center">
-                  <Mail className="h-4 w-4 mr-1" />
-                  support@millsmitra.com
-                </span>
-              </div>
-              <div className="hidden md:flex items-center space-x-4">
-                <span>Free Shipping on Orders ₹999+</span>
-                <span>|</span>
-                <span>
-                  <Link to="/orders" className="underline underline-offset-2">
-                    Track Your Order
-                  </Link>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Main Header */}
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Leaf className="h-8 w-8 text-primary mr-2" />
-              <Link to="/" className="text-2xl font-bold text-gray-900">MILLS MITRA</Link>
-            </div>
-            {/* Search Bar */}
-            <div className="hidden md:flex flex-1 max-w-lg mx-8">
-              <div className="relative w-full">
-                <input
-                  type="text"
-                  placeholder="Search for millet products..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  disabled
-                />
-                <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
-            </div>
-            {/* Header Actions */}
-            <div className="flex items-center space-x-4">
-              <Link to="/account">
-                <button className="p-2 hover:bg-gray-100 rounded-full">
-                  <User className="h-6 w-6 text-gray-600" />
-                </button>
-              </Link>
-              <Link to="/cart">
-                <button className="p-2 hover:bg-gray-100 rounded-full relative">
-                  <ShoppingCart className="h-6 w-6 text-gray-600" />
-                </button>
-              </Link>
-              <button className="md:hidden p-2 hover:bg-gray-100 rounded-full" aria-label="Open Menu">
-                <Menu className="h-6 w-6 text-gray-600" />
-              </button>
-            </div>
-          </div>
-          {/* Navigation */}
-          <nav className="hidden md:flex mt-4 space-x-8">
-            <Link to="/" className="text-gray-900 hover:text-primary/80 font-medium">Home</Link>
-            <Link to="/products?cat=Health Mix" className="text-gray-700 hover:text-primary">Health Mix</Link>
-            <Link to="/about-us" className="text-gray-700 hover:text-primary">About Us</Link>
-            <Link to="/contact-us" className="text-gray-700 hover:text-primary">Contact</Link>
-          </nav>
-        </div>
-      </header>
-
       {/* Hero Banner with improved layout */}
       <section className="relative min-h-[350px] md:h-[500px] overflow-hidden">
         <HeroBanner />
@@ -192,7 +119,6 @@ const Home = () => {
                         <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
                           {product.category}
                         </span>
-                        {/* keeping weight only if available */}
                         <span className="text-gray-500 text-sm"></span>
                       </div>
                       <h3 className="font-bold text-lg text-gray-900 mb-3 line-clamp-2">{product.name}</h3>
