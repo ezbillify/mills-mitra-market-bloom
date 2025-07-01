@@ -44,13 +44,39 @@ export const useRazorpay = () => {
     setLoading(true);
     
     try {
+      console.log('🔵 Initiating payment with options:', {
+        amount: options.amount,
+        orderId: options.orderId,
+        customerInfo: {
+          name: options.customerInfo.name,
+          email: options.customerInfo.email,
+          phone: options.customerInfo.phone ? '***' : 'missing'
+        }
+      });
+
+      // Validate required fields
+      if (!options.amount || options.amount <= 0) {
+        throw new Error('Invalid amount');
+      }
+      
+      if (!options.orderId) {
+        throw new Error('Order ID is required');
+      }
+      
+      if (!options.customerInfo.name || !options.customerInfo.email) {
+        throw new Error('Customer name and email are required');
+      }
+
       // Load Razorpay script
+      console.log('📜 Loading Razorpay script...');
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
         throw new Error('Failed to load Razorpay SDK');
       }
+      console.log('✅ Razorpay script loaded successfully');
 
       // Create Razorpay order via edge function
+      console.log('📤 Calling razorpay-payment edge function...');
       const { data, error } = await supabase.functions.invoke('razorpay-payment', {
         body: {
           amount: options.amount,
@@ -60,9 +86,23 @@ export const useRazorpay = () => {
         },
       });
 
-      if (error || !data.success) {
+      console.log('📥 Edge function response:', { data, error });
+
+      if (error) {
+        console.error('❌ Supabase function error:', error);
+        throw new Error(`Function call failed: ${error.message}`);
+      }
+
+      if (!data || !data.success) {
+        console.error('❌ Payment order creation failed:', data);
         throw new Error(data?.error || 'Failed to create payment order');
       }
+
+      console.log('✅ Payment order created successfully:', {
+        razorpayOrderId: data.razorpayOrderId,
+        amount: data.amount,
+        currency: data.currency
+      });
 
       // Initialize Razorpay checkout
       const razorpayOptions = {
@@ -82,6 +122,11 @@ export const useRazorpay = () => {
         },
         handler: async (response: any) => {
           try {
+            console.log('💳 Payment completed, verifying...', {
+              paymentId: response.razorpay_payment_id,
+              orderId: response.razorpay_order_id
+            });
+
             // Verify payment via edge function
             const { data: verifyData, error: verifyError } = await supabase.functions.invoke('razorpay-verify', {
               body: {
@@ -92,10 +137,12 @@ export const useRazorpay = () => {
               },
             });
 
-            if (verifyError || !verifyData.success) {
+            if (verifyError || !verifyData?.success) {
+              console.error('❌ Payment verification failed:', { verifyData, verifyError });
               throw new Error('Payment verification failed');
             }
 
+            console.log('✅ Payment verified successfully');
             toast({
               title: 'Payment Successful!',
               description: 'Your order has been confirmed.',
@@ -103,7 +150,7 @@ export const useRazorpay = () => {
 
             options.onSuccess(response.razorpay_payment_id);
           } catch (error) {
-            console.error('Payment verification error:', error);
+            console.error('❌ Payment verification error:', error);
             toast({
               title: 'Payment Verification Failed',
               description: 'There was an issue verifying your payment. Please contact support.',
@@ -114,16 +161,18 @@ export const useRazorpay = () => {
         },
         modal: {
           ondismiss: () => {
+            console.log('🚫 Payment modal dismissed by user');
             options.onFailure(new Error('Payment cancelled by user'));
           },
         },
       };
 
+      console.log('🎯 Opening Razorpay checkout...');
       const razorpay = new window.Razorpay(razorpayOptions);
       razorpay.open();
 
     } catch (error) {
-      console.error('Payment initiation error:', error);
+      console.error('❌ Payment initiation error:', error);
       toast({
         title: 'Payment Error',
         description: error instanceof Error ? error.message : 'Failed to initiate payment',
