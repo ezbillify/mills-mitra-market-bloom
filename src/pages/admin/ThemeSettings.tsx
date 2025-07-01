@@ -4,123 +4,78 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Palette, Save, RotateCcw } from 'lucide-react';
+import { Palette, Save, RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { applyThemeColors, saveTheme, resetTheme, getDefaultColors } from '@/utils/themeUtils';
 
 const ThemeSettings = () => {
   const { toast } = useToast();
-  const [themeColors, setThemeColors] = useState({
-    primary: '#8B4513', // warm-brown
-    secondary: '#D2B48C', // warm-beige
-    accent: '#DAA520', // millet-gold
-    background: '#FAFAFA',
-    foreground: '#1A1A1A',
-  });
-
+  const [themeColors, setThemeColors] = useState(getDefaultColors());
   const [previewMode, setPreviewMode] = useState(false);
+  const [originalColors, setOriginalColors] = useState(getDefaultColors());
 
   useEffect(() => {
     // Load saved theme from localStorage
     const savedTheme = localStorage.getItem('customer-theme');
     if (savedTheme) {
-      setThemeColors(JSON.parse(savedTheme));
+      try {
+        const colors = JSON.parse(savedTheme);
+        setThemeColors(colors);
+        setOriginalColors(colors);
+      } catch (error) {
+        console.error('Error loading saved theme:', error);
+        const defaults = getDefaultColors();
+        setThemeColors(defaults);
+        setOriginalColors(defaults);
+      }
     }
   }, []);
-
-  const applyTheme = (colors: typeof themeColors, preview = false) => {
-    const root = document.documentElement;
-    
-    // Convert hex to HSL for CSS custom properties
-    const hexToHsl = (hex: string) => {
-      const r = parseInt(hex.slice(1, 3), 16) / 255;
-      const g = parseInt(hex.slice(3, 5), 16) / 255;
-      const b = parseInt(hex.slice(5, 7), 16) / 255;
-
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
-      let h, s, l = (max + min) / 2;
-
-      if (max === min) {
-        h = s = 0;
-      } else {
-        const d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch (max) {
-          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-          case g: h = (b - r) / d + 2; break;
-          case b: h = (r - g) / d + 4; break;
-          default: h = 0;
-        }
-        h /= 6;
-      }
-
-      return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
-    };
-
-    // Apply theme colors as CSS custom properties
-    root.style.setProperty('--primary', hexToHsl(colors.primary));
-    root.style.setProperty('--secondary', hexToHsl(colors.secondary));
-    root.style.setProperty('--background', hexToHsl(colors.background));
-    root.style.setProperty('--foreground', hexToHsl(colors.foreground));
-
-    // For warm-brown and other custom colors
-    root.style.setProperty('--warm-brown', colors.primary);
-    root.style.setProperty('--warm-beige', colors.secondary);
-    root.style.setProperty('--millet-gold', colors.accent);
-
-    if (!preview) {
-      localStorage.setItem('customer-theme', JSON.stringify(colors));
-    }
-  };
 
   const handleColorChange = (colorKey: keyof typeof themeColors, value: string) => {
     const newColors = { ...themeColors, [colorKey]: value };
     setThemeColors(newColors);
     
-    if (previewMode) {
-      applyTheme(newColors, true);
-    }
+    // Apply changes immediately for real-time preview
+    applyThemeColors(newColors);
   };
 
-  const saveTheme = () => {
-    applyTheme(themeColors);
+  const handleSaveTheme = () => {
+    saveTheme(themeColors);
+    setOriginalColors(themeColors);
+    setPreviewMode(false);
     toast({
-      title: "Theme saved",
-      description: "Customer theme has been updated successfully",
+      title: "Theme saved successfully!",
+      description: "Your theme changes have been applied and saved.",
     });
   };
 
-  const resetTheme = () => {
-    const defaultColors = {
-      primary: '#8B4513',
-      secondary: '#D2B48C', 
-      accent: '#DAA520',
-      background: '#FAFAFA',
-      foreground: '#1A1A1A',
-    };
+  const handleResetTheme = () => {
+    const defaultColors = resetTheme();
     setThemeColors(defaultColors);
-    applyTheme(defaultColors);
-    localStorage.removeItem('customer-theme');
+    setOriginalColors(defaultColors);
+    setPreviewMode(false);
     toast({
-      title: "Theme reset",
-      description: "Theme has been reset to default values",
+      title: "Theme reset to defaults",
+      description: "All theme settings have been restored to their original values.",
     });
   };
 
   const togglePreview = () => {
     if (previewMode) {
       // Stop preview, revert to saved theme
-      const savedTheme = localStorage.getItem('customer-theme');
-      if (savedTheme) {
-        applyTheme(JSON.parse(savedTheme));
-      } else {
-        resetTheme();
-      }
+      applyThemeColors(originalColors);
+      setThemeColors(originalColors);
     } else {
-      // Start preview
-      applyTheme(themeColors, true);
+      // Start preview mode
+      setOriginalColors({ ...themeColors });
     }
     setPreviewMode(!previewMode);
+  };
+
+  const cancelPreview = () => {
+    applyThemeColors(originalColors);
+    setThemeColors(originalColors);
+    setPreviewMode(false);
   };
 
   return (
@@ -129,17 +84,17 @@ const ThemeSettings = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Theme Settings</h1>
           <p className="text-muted-foreground">
-            Customize the customer-facing theme colors
+            Customize the customer-facing theme colors. Changes apply in real-time.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             onClick={togglePreview}
-            className={previewMode ? "bg-blue-50 border-blue-200" : ""}
+            className={previewMode ? "bg-blue-50 border-blue-200 text-blue-700" : ""}
           >
-            <Palette className="h-4 w-4 mr-2" />
-            {previewMode ? "Stop Preview" : "Live Preview"}
+            {previewMode ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+            {previewMode ? "Exit Preview" : "Preview Mode"}
           </Button>
         </div>
       </div>
@@ -158,7 +113,7 @@ const ThemeSettings = () => {
                   type="color"
                   value={themeColors.primary}
                   onChange={(e) => handleColorChange('primary', e.target.value)}
-                  className="w-16 h-10 p-1"
+                  className="w-16 h-10 p-1 border-2"
                 />
                 <Input
                   type="text"
@@ -178,7 +133,7 @@ const ThemeSettings = () => {
                   type="color"
                   value={themeColors.secondary}
                   onChange={(e) => handleColorChange('secondary', e.target.value)}
-                  className="w-16 h-10 p-1"
+                  className="w-16 h-10 p-1 border-2"
                 />
                 <Input
                   type="text"
@@ -198,7 +153,7 @@ const ThemeSettings = () => {
                   type="color"
                   value={themeColors.accent}
                   onChange={(e) => handleColorChange('accent', e.target.value)}
-                  className="w-16 h-10 p-1"
+                  className="w-16 h-10 p-1 border-2"
                 />
                 <Input
                   type="text"
@@ -218,7 +173,7 @@ const ThemeSettings = () => {
                   type="color"
                   value={themeColors.background}
                   onChange={(e) => handleColorChange('background', e.target.value)}
-                  className="w-16 h-10 p-1"
+                  className="w-16 h-10 p-1 border-2"
                 />
                 <Input
                   type="text"
@@ -238,7 +193,7 @@ const ThemeSettings = () => {
                   type="color"
                   value={themeColors.foreground}
                   onChange={(e) => handleColorChange('foreground', e.target.value)}
-                  className="w-16 h-10 p-1"
+                  className="w-16 h-10 p-1 border-2"
                 />
                 <Input
                   type="text"
@@ -254,70 +209,80 @@ const ThemeSettings = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Preview</CardTitle>
+            <CardTitle>Live Preview</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div 
-                className="p-4 rounded-lg border"
+                className="p-6 rounded-lg border-2 transition-all duration-300"
                 style={{ 
                   backgroundColor: themeColors.background,
-                  borderColor: themeColors.primary + '20'
+                  borderColor: themeColors.primary + '40'
                 }}
               >
                 <h3 
-                  className="font-semibold mb-2"
+                  className="font-bold text-xl mb-3"
                   style={{ color: themeColors.primary }}
                 >
                   MILLS MITRA
                 </h3>
-                <p style={{ color: themeColors.foreground }}>
-                  Sample customer interface text
+                <p className="mb-4" style={{ color: themeColors.foreground }}>
+                  This is how your customer interface will look with the current theme settings.
                 </p>
-                <div className="mt-3 space-y-2">
+                <div className="space-y-3">
                   <div 
-                    className="px-3 py-2 rounded text-white text-sm"
+                    className="px-4 py-3 rounded-md text-white text-sm font-medium transition-all duration-200 hover:opacity-90"
                     style={{ backgroundColor: themeColors.primary }}
                   >
-                    Primary Button
+                    Primary Button Example
                   </div>
                   <div 
-                    className="px-3 py-2 rounded text-sm"
+                    className="px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 hover:opacity-90"
                     style={{ 
                       backgroundColor: themeColors.secondary,
                       color: themeColors.foreground
                     }}
                   >
-                    Secondary Button
+                    Secondary Button Example
                   </div>
                   <div 
-                    className="px-3 py-2 rounded text-sm"
+                    className="px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 hover:opacity-90"
                     style={{ 
                       backgroundColor: themeColors.accent,
                       color: themeColors.foreground
                     }}
                   >
-                    Accent Button
+                    Accent Button Example
                   </div>
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <Button onClick={saveTheme} className="flex-1">
+              <div className="flex gap-3">
+                <Button onClick={handleSaveTheme} className="flex-1 bg-green-600 hover:bg-green-700">
                   <Save className="h-4 w-4 mr-2" />
                   Save Theme
                 </Button>
-                <Button variant="outline" onClick={resetTheme}>
+                <Button variant="outline" onClick={handleResetTheme} className="flex-1">
                   <RotateCcw className="h-4 w-4 mr-2" />
-                  Reset
+                  Reset to Default
                 </Button>
               </div>
 
               {previewMode && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-800">
-                    🔍 <strong>Preview Mode Active:</strong> Changes are temporarily applied. Click "Save Theme" to make them permanent.
-                  </p>
+                <div className="p-4 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800">
+                        🎨 Preview Mode Active
+                      </p>
+                      <p className="text-xs text-yellow-600 mt-1">
+                        Changes are being applied in real-time. Save to make them permanent.
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={cancelPreview}>
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>

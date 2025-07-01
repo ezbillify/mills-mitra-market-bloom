@@ -39,7 +39,7 @@ const AdminAccessButton = () => {
       <Button 
         variant="outline" 
         size="sm" 
-        className="border-white text-white hover:bg-white hover:text-primary transition-colors"
+        className="border-2 border-white/80 text-white bg-transparent hover:bg-white hover:text-primary transition-all duration-200 font-medium shadow-sm hover:shadow-md"
       >
         <Shield className="h-4 w-4 mr-2" />
         Admin Panel

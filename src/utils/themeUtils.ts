@@ -7,7 +7,14 @@ export const initializeTheme = () => {
       applyThemeColors(colors);
     } catch (error) {
       console.error('Error loading saved theme:', error);
+      // Apply default theme if saved theme is corrupted
+      const defaultColors = getDefaultColors();
+      applyThemeColors(defaultColors);
     }
+  } else {
+    // Apply default theme if no saved theme
+    const defaultColors = getDefaultColors();
+    applyThemeColors(defaultColors);
   }
 };
 
@@ -59,9 +66,12 @@ export const applyThemeColors = (colors: {
   root.style.setProperty('--millet-gold', colors.accent);
 
   // Apply to CSS custom properties for direct color usage
-  document.documentElement.style.setProperty('--color-warm-brown', colors.primary);
-  document.documentElement.style.setProperty('--color-warm-beige', colors.secondary);
-  document.documentElement.style.setProperty('--color-millet-gold', colors.accent);
+  root.style.setProperty('--color-warm-brown', colors.primary);
+  root.style.setProperty('--color-warm-beige', colors.secondary);
+  root.style.setProperty('--color-millet-gold', colors.accent);
+
+  // Dispatch a custom event to notify other components of theme changes
+  window.dispatchEvent(new CustomEvent('themeChanged', { detail: colors }));
 };
 
 export const saveTheme = (colors: {
@@ -75,15 +85,33 @@ export const saveTheme = (colors: {
   applyThemeColors(colors);
 };
 
-export const resetTheme = () => {
-  localStorage.removeItem('customer-theme');
-  const defaultColors = {
+export const getDefaultColors = () => {
+  return {
     primary: '#8B4513',
     secondary: '#D2B48C',
     accent: '#DAA520',
     background: '#FAFAFA',
     foreground: '#1A1A1A',
   };
+};
+
+export const resetTheme = () => {
+  localStorage.removeItem('customer-theme');
+  const defaultColors = getDefaultColors();
   applyThemeColors(defaultColors);
   return defaultColors;
+};
+
+// Listen for storage changes from other tabs/windows
+export const setupThemeListener = () => {
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'customer-theme' && e.newValue) {
+      try {
+        const colors = JSON.parse(e.newValue);
+        applyThemeColors(colors);
+      } catch (error) {
+        console.error('Error applying theme from storage event:', error);
+      }
+    }
+  });
 };
