@@ -20,6 +20,7 @@ import ShippingAddressCard from "./order-details/ShippingAddressCard";
 import PackingInstructionsCard from "./order-details/PackingInstructionsCard";
 import OrderItemsCard from "./order-details/OrderItemsCard";
 import PDFInvoiceCard from "./order-details/PDFInvoiceCard";
+import PaymentProgressIndicator from "@/components/PaymentProgressIndicator";
 
 interface OrderDetailsDialogProps {
   orderId: string | null;
@@ -147,6 +148,15 @@ const OrderDetailsDialog = ({
           </div>
         ) : orderDetails ? (
           <div className="space-y-6">
+            {/* Payment Progress for Online Payments */}
+            {orderDetails.payment_type === 'razorpay' && (
+              <PaymentProgressIndicator 
+                paymentType={orderDetails.payment_type}
+                orderStatus={orderDetails.status}
+                createdAt={orderDetails.created_at}
+              />
+            )}
+
             {/* Order Summary */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <OrderStatusCard
@@ -178,7 +188,7 @@ const OrderDetailsDialog = ({
             <InvoiceInfoCard 
               orderId={orderDetails.id} 
               createdAt={orderDetails.created_at} 
-              paymentType={orderDetails.payment_type} // Pass payment type to InvoiceInfoCard
+              paymentType={orderDetails.payment_type}
             />
 
             {/* Shipping Address */}

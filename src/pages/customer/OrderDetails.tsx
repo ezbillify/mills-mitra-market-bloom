@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +10,7 @@ import { ArrowLeft, Truck, Download, IndianRupee, CreditCard } from "lucide-reac
 import { InvoiceService } from "@/services/invoiceService";
 import { useToast } from "@/hooks/use-toast";
 import { PricingUtils } from "@/utils/pricingUtils";
+import PaymentProgressIndicator from "@/components/PaymentProgressIndicator";
 
 const statusLabels: Record<string, string> = {
   pending: "Pending",
@@ -241,6 +241,18 @@ const OrderDetails = () => {
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Orders
       </Button>
+
+      {/* Payment Progress Indicator for Online Payments */}
+      {order.payment_type === 'razorpay' && (
+        <div className="mb-6">
+          <PaymentProgressIndicator 
+            paymentType={order.payment_type}
+            orderStatus={order.status}
+            createdAt={order.created_at}
+          />
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start flex-wrap">
