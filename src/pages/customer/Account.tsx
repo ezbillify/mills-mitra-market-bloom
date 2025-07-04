@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MapPin, ArrowRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
   Form,
@@ -98,7 +99,7 @@ const Account = () => {
   }
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto py-10 space-y-6">
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle>Account Settings</CardTitle>
@@ -181,6 +182,29 @@ const Account = () => {
               </Button>
             </form>
           </Form>
+        </CardContent>
+      </Card>
+
+      {/* Address Management */}
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Address Management
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-600 mb-4">
+            Manage your saved addresses for faster checkout
+          </p>
+          <Button 
+            variant="outline" 
+            onClick={() => navigate("/address-book")}
+            className="flex items-center gap-2"
+          >
+            Manage Addresses
+            <ArrowRight className="h-4 w-4" />
+          </Button>
         </CardContent>
       </Card>
     </div>

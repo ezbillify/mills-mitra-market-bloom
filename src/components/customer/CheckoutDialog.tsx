@@ -6,12 +6,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { IndianRupee } from "lucide-react";
+import { IndianRupee, MapPin, Plus } from "lucide-react";
 import { PricingUtils } from "@/utils/pricingUtils";
 import { useRazorpay } from "@/hooks/useRazorpay";
+import AddressManager from "./AddressManager";
 
 interface CartItem {
   id: string;
@@ -62,7 +64,8 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     shippingOptionId: "",
   });
 
-  const [hasExistingAddress, setHasExistingAddress] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<any>(null);
+  const [addressTab, setAddressTab] = useState("saved");
 
   // Fetch user profile and shipping options when dialog opens
   useEffect(() => {
@@ -101,32 +104,57 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     if (!user) return;
     
     setLoadingProfile(true);
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('address, city, state, postal_code, phone')
-      .eq('id', user.id)
-      .single();
+    try {
+      // Fetch default address from addresses table
+      const { data: defaultAddress, error } = await supabase
+        .from('addresses')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_default', true)
+        .single();
 
-    if (!error && profile) {
-      const hasAddress = !!(profile.address || profile.city || profile.postal_code);
-      setHasExistingAddress(hasAddress);
-      
-      if (hasAddress) {
-        setFormData(prev => ({
-          ...prev,
-          address: profile.address || "",
-          city: profile.city || "",
-          state: profile.state || "",
-          postalCode: profile.postal_code || "",
-          phone: profile.phone || "",
-        }));
+      if (!error && defaultAddress) {
+        setSelectedAddress(defaultAddress);
+        setAddressTab("saved");
+      } else {
+        // Fallback to profile data if no saved addresses
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('address, city, state, postal_code, phone')
+          .eq('id', user.id)
+          .single();
+
+        if (profile && (profile.address || profile.city || profile.postal_code)) {
+          setFormData(prev => ({
+            ...prev,
+            address: profile.address || "",
+            city: profile.city || "",
+            state: profile.state || "",
+            postalCode: profile.postal_code || "",
+            phone: profile.phone || "",
+          }));
+          setAddressTab("manual");
+        }
       }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoadingProfile(false);
     }
-    setLoadingProfile(false);
   };
 
   // Calculate order totals using centralized pricing
-  const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} - ${formData.postalCode}`;
+  const getShippingAddress = () => {
+    if (selectedAddress && addressTab === "saved") {
+      const parts = [selectedAddress.address_line_1];
+      if (selectedAddress.address_line_2) parts.push(selectedAddress.address_line_2);
+      parts.push(`${selectedAddress.city}, ${selectedAddress.state} ${selectedAddress.postal_code}`);
+      return parts.join(', ');
+    }
+    return `${formData.address}, ${formData.city}, ${formData.state} - ${formData.postalCode}`;
+  };
+  
+  const shippingAddress = getShippingAddress();
   const selectedShippingOption = shippingOptions.find(option => option.id === formData.shippingOptionId);
   const shippingPrice = selectedShippingOption?.price || 0;
   
@@ -268,7 +296,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Order Summary */}
-          <Card className={hasExistingAddress ? "border-[#88B04B]" : ""}>
+          <Card>
             <CardHeader>
               <CardTitle className="text-lg">Order Summary</CardTitle>
             </CardHeader>
@@ -365,89 +393,95 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           </Card>
 
           {/* Shipping Address */}
-          <Card className={hasExistingAddress ? "border-[#88B04B] bg-[#88B04B]/5" : ""}>
+          <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
                 Shipping Address
-                {hasExistingAddress && (
-                  <span className="text-xs px-2 py-1 bg-[#88B04B] text-white rounded-full">
-                    Address Found
-                  </span>
-                )}
               </CardTitle>
-              {hasExistingAddress && (
-                <p className="text-sm text-[#88B04B] font-medium">
-                  Using your saved address information
-                </p>
-              )}
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               {loadingProfile ? (
                 <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#C9A350] mx-auto"></div>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
                   <p className="text-sm text-gray-600 mt-2">Loading your address...</p>
                 </div>
               ) : (
-                <>
-                  <div>
-                    <Label htmlFor="address">Address</Label>
-                    <Textarea
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      required
-                      rows={3}
-                      className={hasExistingAddress ? "border-[#88B04B]/50 focus:border-[#88B04B]" : ""}
+                <Tabs value={addressTab} onValueChange={setAddressTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="saved">Saved Addresses</TabsTrigger>
+                    <TabsTrigger value="manual">New Address</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="saved" className="space-y-4">
+                    <AddressManager 
+                      onAddressSelect={setSelectedAddress}
+                      selectedAddressId={selectedAddress?.id}
+                      showSelection={true}
                     />
-                  </div>
+                    {!selectedAddress && (
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        Please select an address or create a new one
+                      </p>
+                    )}
+                  </TabsContent>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <TabsContent value="manual" className="space-y-4">
                     <div>
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                        required
-                        className={hasExistingAddress ? "border-[#88B04B]/50 focus:border-[#88B04B]" : ""}
+                      <Label htmlFor="address">Address</Label>
+                      <Textarea
+                        id="address"
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        required={addressTab === "manual"}
+                        rows={3}
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="state">State</Label>
-                      <Input
-                        id="state"
-                        value={formData.state}
-                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                        required
-                        className={hasExistingAddress ? "border-[#88B04B]/50 focus:border-[#88B04B]" : ""}
-                      />
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="city">City</Label>
+                        <Input
+                          id="city"
+                          value={formData.city}
+                          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                          required={addressTab === "manual"}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="state">State</Label>
+                        <Input
+                          id="state"
+                          value={formData.state}
+                          onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                          required={addressTab === "manual"}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="postalCode">Postal Code</Label>
-                      <Input
-                        id="postalCode"
-                        value={formData.postalCode}
-                        onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                        required
-                        className={hasExistingAddress ? "border-[#88B04B]/50 focus:border-[#88B04B]" : ""}
-                      />
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="postalCode">Postal Code</Label>
+                        <Input
+                          id="postalCode"
+                          value={formData.postalCode}
+                          onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+                          required={addressTab === "manual"}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          required={addressTab === "manual"}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        required
-                        className={hasExistingAddress ? "border-[#88B04B]/50 focus:border-[#88B04B]" : ""}
-                      />
-                    </div>
-                  </div>
-                </>
+                  </TabsContent>
+                </Tabs>
               )}
             </CardContent>
           </Card>
@@ -485,7 +519,15 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || loadingProfile || razorpayLoading || !formData.shippingOptionId || shippingOptions.length === 0} 
+              disabled={
+                loading || 
+                loadingProfile || 
+                razorpayLoading || 
+                !formData.shippingOptionId || 
+                shippingOptions.length === 0 ||
+                (addressTab === "saved" && !selectedAddress) ||
+                (addressTab === "manual" && (!formData.address || !formData.city || !formData.state || !formData.postalCode || !formData.phone))
+              } 
               className="flex-1 bg-[#C9A350] hover:bg-[#D49847] text-white"
             >
               {loading || razorpayLoading ? "Processing..." : (
