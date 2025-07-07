@@ -140,7 +140,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     
     const redirectUrl = `${window.location.origin}/`;
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -160,11 +160,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         variant: "destructive",
       });
     } else {
-      console.log('✅ Sign up successful');
-      toast({
-        title: "Success!",
-        description: "Account created successfully. You can now sign in.",
-      });
+      console.log('✅ Sign up successful', data);
+      // With email confirmation disabled, user should be immediately signed in
+      if (data.user && !data.user.email_confirmed_at) {
+        toast({
+          title: "Success!",
+          description: "Account created successfully! You are now signed in.",
+        });
+      } else {
+        toast({
+          title: "Success!",
+          description: "Account created successfully! You are now signed in.",
+        });
+      }
     }
 
     return { error };

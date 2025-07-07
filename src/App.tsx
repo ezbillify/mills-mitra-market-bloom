@@ -16,6 +16,7 @@ import ProductDetail from "@/pages/customer/ProductDetail";
 import Cart from "@/pages/customer/Cart";
 import Login from "@/pages/customer/Login";
 import Register from "@/pages/customer/Register";
+import ResetPassword from "@/pages/customer/ResetPassword";
 import Account from "@/pages/customer/Account";
 import AddressBook from "@/pages/customer/AddressBook";
 import Orders from "@/pages/customer/Orders";
@@ -60,6 +61,7 @@ const App = () => {
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/account" element={<Account />} />
                 <Route path="/address-book" element={<AddressBook />} />
                 <Route path="/orders" element={<Orders />} />

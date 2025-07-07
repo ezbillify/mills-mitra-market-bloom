@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -88,6 +89,45 @@ const Login = () => {
     setLoading(false);
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Password reset sent",
+          description: "Check your email for password reset instructions.",
+        });
+      }
+    } catch (error) {
+      console.error('❌ Password reset error:', error);
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-md">
       <Card>
@@ -138,6 +178,17 @@ const Login = () => {
             >
               Sign in with Google
             </Button>
+            
+            <div className="text-center mt-4">
+              <button
+                type="button"
+                onClick={() => handleForgotPassword()}
+                className="text-sm text-primary hover:underline"
+                disabled={loading}
+              >
+                Forgot your password?
+              </button>
+            </div>
           </form>
           
           <div className="mt-6 text-center">

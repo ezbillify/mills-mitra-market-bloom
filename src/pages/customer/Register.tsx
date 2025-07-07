@@ -42,7 +42,9 @@ const Register = () => {
       );
       
       if (!error) {
-        navigate("/login");
+        // With email confirmation disabled, user is immediately signed in
+        // Navigate to account page instead of login
+        navigate("/account");
       }
     } catch (error) {
       console.error('Registration error:', error);
