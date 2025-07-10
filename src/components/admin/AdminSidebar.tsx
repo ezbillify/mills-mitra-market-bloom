@@ -65,11 +65,6 @@ const sidebarItems = [
     icon: FileText,
     href: "/admin/invoice-settings",
   },
-  {
-    title: "Theme Settings",
-    icon: Palette,
-    href: "/admin/theme-settings",
-  },
 ];
 
 const AdminSidebar = () => {
