@@ -1,10 +1,12 @@
 
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { initializeTheme, setupThemeListener } from "@/utils/themeUtils";
 import CustomerLayout from "@/layouts/CustomerLayout";
 import AdminLayout from "@/layouts/AdminLayout";
 import AdminProtectedRoute from "@/components/admin/AdminProtectedRoute";
@@ -45,6 +47,40 @@ import NotFound from "@/pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
+  useEffect(() => {
+    // Initialize theme on app mount for all users
+    initializeTheme();
+    
+    // Set up theme listener for real-time updates
+    setupThemeListener();
+    
+    // Additional initialization for mobile devices
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        // Re-apply theme on orientation change for mobile
+        const savedTheme = localStorage.getItem('customer-theme');
+        if (savedTheme) {
+          try {
+            const colors = JSON.parse(savedTheme);
+            setTimeout(() => initializeTheme(), 100);
+          } catch (error) {
+            initializeTheme();
+          }
+        }
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    
+    // Clean up listeners on unmount
+    return () => {
+      window.removeEventListener('storage', () => {});
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
