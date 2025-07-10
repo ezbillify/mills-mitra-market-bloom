@@ -1,5 +1,8 @@
 
 export const initializeTheme = () => {
+  // Ensure DOM is ready
+  if (typeof document === 'undefined') return;
+  
   const savedTheme = localStorage.getItem('customer-theme');
   if (savedTheme) {
     try {
@@ -15,6 +18,16 @@ export const initializeTheme = () => {
     // Apply default theme if no saved theme
     const defaultColors = getDefaultColors();
     applyThemeColors(defaultColors);
+  }
+  
+  // Force style recalculation for mobile devices
+  if (window.innerWidth <= 768) {
+    setTimeout(() => {
+      document.documentElement.style.transform = 'translateZ(0)';
+      requestAnimationFrame(() => {
+        document.documentElement.style.transform = '';
+      });
+    }, 100);
   }
 };
 
@@ -54,24 +67,39 @@ export const applyThemeColors = (colors: {
     return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
   };
 
-  // Apply theme colors as CSS custom properties
+  // Apply theme colors as CSS custom properties in HSL format
   root.style.setProperty('--primary', hexToHsl(colors.primary));
   root.style.setProperty('--secondary', hexToHsl(colors.secondary));
+  root.style.setProperty('--accent', hexToHsl(colors.accent));
   root.style.setProperty('--background', hexToHsl(colors.background));
   root.style.setProperty('--foreground', hexToHsl(colors.foreground));
 
-  // For warm-brown and other custom colors used throughout the app
-  root.style.setProperty('--warm-brown', colors.primary);
-  root.style.setProperty('--warm-beige', colors.secondary);
-  root.style.setProperty('--millet-gold', colors.accent);
+  // For custom colors - set as HSL for tailwind config compatibility
+  root.style.setProperty('--warm-brown', hexToHsl(colors.primary));
+  root.style.setProperty('--warm-beige', hexToHsl(colors.secondary));
+  root.style.setProperty('--millet-gold', hexToHsl(colors.accent));
 
-  // Apply to CSS custom properties for direct color usage
+  // Keep hex versions for direct usage in components
   root.style.setProperty('--color-warm-brown', colors.primary);
   root.style.setProperty('--color-warm-beige', colors.secondary);
   root.style.setProperty('--color-millet-gold', colors.accent);
 
+  // Force style recalculation to ensure changes are applied immediately
+  document.documentElement.offsetHeight;
+  
   // Dispatch a custom event to notify other components of theme changes
   window.dispatchEvent(new CustomEvent('themeChanged', { detail: colors }));
+  
+  // Additional mobile-specific fixes
+  if (window.innerWidth <= 768) {
+    requestAnimationFrame(() => {
+      // Trigger a repaint to ensure mobile browsers apply the styles
+      document.body.style.transform = 'translateZ(0)';
+      setTimeout(() => {
+        document.body.style.transform = '';
+      }, 1);
+    });
+  }
 };
 
 export const saveTheme = (colors: {

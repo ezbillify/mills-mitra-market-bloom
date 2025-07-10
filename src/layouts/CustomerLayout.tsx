@@ -13,9 +13,30 @@ const CustomerLayout = () => {
     // Set up theme listener for real-time updates
     setupThemeListener();
     
-    // Clean up listener on unmount
+    // Additional initialization for mobile devices
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        // Re-apply theme on orientation change for mobile
+        const savedTheme = localStorage.getItem('customer-theme');
+        if (savedTheme) {
+          try {
+            const colors = JSON.parse(savedTheme);
+            setTimeout(() => initializeTheme(), 100);
+          } catch (error) {
+            initializeTheme();
+          }
+        }
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    
+    // Clean up listeners on unmount
     return () => {
       window.removeEventListener('storage', () => {});
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
     };
   }, []);
 

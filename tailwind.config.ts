@@ -64,9 +64,9 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				// Theme customizable colors
-				'warm-brown': 'var(--warm-brown)',
-				'warm-beige': 'var(--warm-beige)',
-				'millet-gold': 'var(--millet-gold)',
+				'warm-brown': 'hsl(var(--warm-brown))',
+				'warm-beige': 'hsl(var(--warm-beige))',
+				'millet-gold': 'hsl(var(--millet-gold))',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

@@ -47,9 +47,9 @@
     --sidebar-ring: 0 0% 100%;            /* White */
 
     /* Default theme colors - can be overridden by theme utils */
-    --warm-brown: #8B4513;
-    --warm-beige: #D2B48C;
-    --millet-gold: #DAA520;
+    --warm-brown: 19 75% 32%;   /* HSL equivalent of #8B4513 */
+    --warm-beige: 34 57% 69%;   /* HSL equivalent of #D2B48C */
+    --millet-gold: 43 77% 49%;  /* HSL equivalent of #DAA520 */
     --color-warm-brown: #8B4513;
     --color-warm-beige: #D2B48C;
     --color-millet-gold: #DAA520;
