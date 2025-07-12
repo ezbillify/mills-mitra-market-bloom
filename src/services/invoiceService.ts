@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { InvoiceGenerator } from "@/utils/invoiceGenerator";
+import { downloadBlob } from "@/utils/webviewDownload";
 import { Order } from "@/types/order";
 
 interface InvoiceSettings {
@@ -215,7 +216,8 @@ export class InvoiceService {
       if (pdfBlob) {
         const filename = `invoice-${orderId.substring(0, 8).toUpperCase()}.pdf`;
         console.log(`💾 Downloading invoice as: ${filename}`);
-        InvoiceGenerator.downloadInvoice(pdfBlob, filename);
+        // Use WebView-compatible download that works with Flutter app
+        downloadBlob(pdfBlob, filename);
       } else {
         throw new Error("Failed to generate PDF invoice");
       }
