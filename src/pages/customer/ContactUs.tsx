@@ -67,7 +67,7 @@ const ContactUs = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 mb-2">Call us for immediate assistance</p>
-                <p className="font-semibold text-lg">+91 98765 43210</p>
+                <p className="font-semibold text-lg">+91 88619 23747</p>
                 <p className="text-sm text-gray-500">Mon-Sat: 9:00 AM - 7:00 PM</p>
               </CardContent>
             </Card>
@@ -178,7 +178,7 @@ const ContactUs = () => {
                         type="tel"
                         value={formData.phone}
                         onChange={handleInputChange}
-                        placeholder="+91 98765 43210"
+                        placeholder="+91 88619 23747"
                       />
                     </div>
                     <div>

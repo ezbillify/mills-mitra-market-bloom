@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,42 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
+// Component to handle profile-based redirect
+const ProfileRedirect = ({ userId }: { userId: string }) => {
+  const [redirect, setRedirect] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const checkProfile = async () => {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', userId)
+          .single();
+        
+        // If profile is incomplete (missing first_name or last_name), go to account page
+        if (!profile?.first_name || !profile?.last_name) {
+          setRedirect("/account");
+        } else {
+          // Profile is complete, go to home page
+          setRedirect("/");
+        }
+      } catch (error) {
+        // If there's an error checking profile, default to account page
+        setRedirect("/account");
+      }
+    };
+    
+    checkProfile();
+  }, [userId]);
+  
+  if (redirect) {
+    return <Navigate to={redirect} replace />;
+  }
+  
+  return <div>Loading...</div>;
+};
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -26,7 +62,7 @@ const Login = () => {
     if (isAdmin) {
       return <Navigate to="/admin" replace />;
     } else {
-      return <Navigate to="/account" replace />;
+      return <ProfileRedirect userId={user.id} />;
     }
   }
 
@@ -49,17 +85,9 @@ const Login = () => {
       const { error } = await signIn(email, password);
       
       if (!error) {
-        // Check if user is admin for redirect
-        const adminEmails = ['admin@ezbillify.com', 'admin@millsmitra.com'];
-        const isAdmin = adminEmails.includes(email);
-        
-        console.log('✅ Login successful, redirecting...', isAdmin ? 'to admin' : 'to account');
-        
-        if (isAdmin) {
-          navigate("/admin");
-        } else {
-          navigate("/account");
-        }
+        // We'll handle the redirect in the auth state change listener
+        // The ProfileRedirect component will handle the logic when user state updates
+        console.log('✅ Login successful, auth state will handle redirect');
       }
     } catch (error) {
       console.error('❌ Login error:', error);

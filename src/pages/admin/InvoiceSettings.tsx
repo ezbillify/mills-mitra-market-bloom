@@ -178,7 +178,7 @@ const InvoiceSettings = () => {
                 id="company_phone"
                 value={settings.company_phone}
                 onChange={(e) => updateField("company_phone", e.target.value)}
-                placeholder="+91 9876543210"
+                placeholder="+91 88619 23747"
               />
             </div>
 

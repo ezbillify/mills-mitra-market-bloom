@@ -70,7 +70,7 @@ export class InvoiceService {
       id: "default",
       company_name: "Mills Mitra",
       company_address: "Bangalore",
-      company_phone: "+91 9019790466",
+      company_phone: "+91 88619 23747",
       company_email: "help@millsmitra.com",
       gst_number: "29AAOFW1876C1Z8",
       fssai_number: null,

@@ -55,7 +55,7 @@ const CustomerHeader = () => {
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-2">
                 <Phone className="h-4 w-4" />
-                <span className="hidden sm:inline">+91 98765 43210</span>
+                <span className="hidden sm:inline">+91 88619 23747</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Mail className="h-4 w-4" />
@@ -235,7 +235,7 @@ const CustomerHeader = () => {
                         <div className="pt-4 border-t space-y-2 text-sm text-gray-600">
                           <div className="flex items-center space-x-2">
                             <Phone className="h-4 w-4" />
-                            <span>+91 98765 43210</span>
+                            <span>+91 88619 23747</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Mail className="h-4 w-4" />
@@ -326,7 +326,7 @@ const CustomerHeader = () => {
                         <div className="pt-4 border-t space-y-2 text-sm text-gray-600">
                           <div className="flex items-center space-x-2">
                             <Phone className="h-4 w-4" />
-                            <span>+91 98765 43210</span>
+                            <span>+91 88619 23747</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Mail className="h-4 w-4" />

@@ -25,7 +25,7 @@ const AboutUs = () => {
         <h2>Contact Us</h2>
         <p>If you have any questions or comments, please feel free to contact us. We would love to hear from you!</p>
         <p>Email: support@millsmitra.com</p>
-        <p>Phone: +91 98765 43210</p>
+        <p>Phone: +91 88619 23747</p>
       </div>
     </div>
   );
