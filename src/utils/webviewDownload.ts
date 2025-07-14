@@ -1,6 +1,5 @@
 /**
- * WebView Download Utility
- * Handles file downloads for both Flutter WebView and regular browser environments
+ * WebView Download Utility for Flutter + Web
  */
 
 export interface DownloadOptions {
@@ -9,29 +8,28 @@ export interface DownloadOptions {
 }
 
 /**
- * Sends a direct file URL to Flutter WebView or triggers browser download
- * @param fileUrl - The URL of the file to download
- * @param options - Optional download configuration
+ * Checks if the app is running inside a Flutter WebView
  */
-export const sendDownloadToFlutter = (fileUrl: string, options?: DownloadOptions) => {
+export const isFlutterWebView = (): boolean => {
+  return !!(window as any).Downloader;
+};
+
+/**
+ * Send direct file download request (URL or base64) to Flutter or fallback to browser
+ */
+export const sendDownloadToFlutter = (fileUrl: string, options?: DownloadOptions): boolean => {
   try {
-    // Check if inside Flutter WebView
+    const downloadData = {
+      url: fileUrl,
+      filename: options?.filename,
+      mimeType: options?.mimeType
+    };
+
     if ((window as any).Downloader) {
-      if (fileUrl.startsWith("blob:")) {
-        alert("⚠️ Cannot download blob URLs directly. Use downloadBlob() for blob support.");
-        return false;
-      }
-
-      const downloadData = {
-        url: fileUrl,
-        filename: options?.filename,
-        mimeType: options?.mimeType
-      };
-
       (window as any).Downloader.postMessage(JSON.stringify(downloadData));
       return true;
     } else {
-      // Fallback for browser
+      // Browser fallback
       const link = document.createElement('a');
       link.href = fileUrl;
       if (options?.filename) {
@@ -44,60 +42,43 @@ export const sendDownloadToFlutter = (fileUrl: string, options?: DownloadOptions
       return false;
     }
   } catch (error) {
-    console.error('❌ Error sending download to WebView:', error);
+    console.error('❌ Error sending download to Flutter:', error);
     window.open(fileUrl, '_blank');
     return false;
   }
 };
 
 /**
- * Downloads a Blob as a file (for generated content like PDFs or Excel)
- * @param blob - The blob data to download
- * @param filename - The filename for the download
+ * Converts Blob to base64 data URL and sends to Flutter WebView or browser
  */
-export const downloadBlob = async (blob: Blob, filename: string) => {
-  try {
-    const reader = new FileReader();
+export const downloadBlob = (blob: Blob, filename: string) => {
+  const reader = new FileReader();
 
-    reader.onloadend = function () {
-      const result = reader.result;
-      if (!result || typeof result !== 'string') {
-        console.error("❌ Failed to convert blob to base64");
-        return;
-      }
+  reader.onloadend = () => {
+    const base64Data = reader.result as string; // This is a data:...;base64,... string
 
-      const base64data = result.split(',')[1]; // remove `data:*/*;base64,`
-
-      if ((window as any).Downloader) {
-        const downloadData = {
-          base64: base64data,
-          filename: filename,
-          mimeType: blob.type,
-        };
-
-        (window as any).Downloader.postMessage(JSON.stringify(downloadData));
-      } else {
-        // Browser fallback
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(url), 100);
-      }
+    const downloadData = {
+      url: base64Data,         // ✅ full data: URL
+      filename: filename,
+      mimeType: blob.type
     };
 
-    reader.readAsDataURL(blob);
-  } catch (error) {
-    console.error('❌ Error downloading blob:', error);
-  }
-};
+    if ((window as any).Downloader) {
+      (window as any).Downloader.postMessage(JSON.stringify(downloadData));
+    } else {
+      // Browser fallback
+      const link = document.createElement('a');
+      link.href = base64Data;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
-/**
- * Checks if the app is running in a Flutter WebView
- */
-export const isFlutterWebView = (): boolean => {
-  return !!(window as any).Downloader;
+  reader.onerror = () => {
+    console.error('❌ Failed to read blob as base64');
+  };
+
+  reader.readAsDataURL(blob); // ✅ Triggers reader.onloadend
 };
