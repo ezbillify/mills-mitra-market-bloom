@@ -211,6 +211,9 @@ function downloadFromBlob(blob: Blob, fileName: string = 'invoice.pdf'): void {
   downloadInvoice(blob, fileName);
 }
 
+// Alias for backward compatibility
+const downloadBlob = downloadFromBlob;
+
 // 4. Generate and download invoice (example with jsPDF)
 function generateAndDownloadInvoice(invoiceData: InvoiceData): void {
   // This is an example - replace with your actual PDF generation logic
@@ -257,6 +260,17 @@ document.addEventListener('DOMContentLoaded', function(): void {
   
   console.log(`✅ Set up ${downloadButtons.length} download interceptors`);
 });
+
+// Export functions for use in other modules
+export { 
+  downloadInvoice, 
+  downloadPDFFromBase64, 
+  downloadFromURL, 
+  downloadFromBlob,
+  downloadBlob, // Alias for backward compatibility
+  generateAndDownloadInvoice,
+  isFlutterWebView
+};
 
 // Global function to trigger download from anywhere in your code
 (window as any).downloadInvoice = downloadInvoice;
