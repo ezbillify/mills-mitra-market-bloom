@@ -1,7 +1,6 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Info, Leaf, Heart, Shield, Star, ShoppingCart, Eye, Truck, Award, Users } from "lucide-react";
+import { Info, Leaf, Heart, Shield, Star, Eye, Truck, Award, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import HeroBanner from "@/components/customer/HeroBanner";
 import AddToCartButton from "@/components/customer/AddToCartButton";
@@ -31,19 +30,31 @@ const Home = () => {
   const fetchFeaturedProducts = async () => {
     try {
       const { data, error } = await supabase
-        .from('products')
-        .select('id, name, price, discounted_price, gst_percentage, selling_price_with_tax, image, category, stock')
-        .eq('featured', true)
+        .from("products")
+        .select("id, name, price, discounted_price, gst_percentage, selling_price_with_tax, image, category, stock")
+        .eq("featured", true)
         .limit(6);
       if (error) {
-        console.error('Error fetching featured products:', error);
+        console.error("Error fetching featured products:", error);
         return;
       }
       setFeaturedProducts(data || []);
     } catch (error) {
-      console.error('Error fetching featured products:', error);
+      console.error("Error fetching featured products:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    if (error) {
+      console.error("Google Sign-In Error:", error.message);
     }
   };
 
@@ -63,9 +74,19 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Banner with improved layout */}
+      {/* Hero Banner */}
       <section className="relative min-h-[350px] md:h-[500px] overflow-hidden">
         <HeroBanner />
+      </section>
+
+      {/* Google Login */}
+      <section className="py-8 text-center">
+        <Button
+          onClick={handleGoogleLogin}
+          className="bg-[#4285F4] hover:bg-[#357AE8] text-white px-6 py-3 rounded-lg text-lg font-semibold shadow-md"
+        >
+          Sign in with Google
+        </Button>
       </section>
 
       {/* Featured Products */}
@@ -79,7 +100,7 @@ const Home = () => {
           </div>
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[1,2,3,4,5,6].map(i => (
+              {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="animate-pulse">
                   <div className="bg-gray-200 h-64 rounded-xl mb-4"></div>
                   <div className="h-4 bg-gray-200 rounded mb-2"></div>
@@ -90,16 +111,19 @@ const Home = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuredProducts.map(product => {
+              {featuredProducts.map((product) => {
                 const basePrice = getBasePrice(product);
                 const gstAmount = getGSTAmount(product);
-                const finalPrice = product.selling_price_with_tax || (basePrice + gstAmount);
+                const finalPrice = product.selling_price_with_tax || basePrice + gstAmount;
 
                 return (
-                  <div key={product.id} className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border hover:-translate-y-1">
+                  <div
+                    key={product.id}
+                    className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border hover:-translate-y-1"
+                  >
                     <div className="relative overflow-hidden">
                       <img
-                        src={product.image || '/placeholder.svg'}
+                        src={product.image || "/placeholder.svg"}
                         alt={product.name}
                         className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                       />
@@ -119,17 +143,22 @@ const Home = () => {
                         <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
                           {product.category}
                         </span>
-                        <span className="text-gray-500 text-sm"></span>
                       </div>
                       <h3 className="font-bold text-lg text-gray-900 mb-3 line-clamp-2">{product.name}</h3>
                       <div className="mb-4">
                         {product.discounted_price ? (
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-2xl font-bold text-green-600">₹{Number(product.discounted_price).toFixed(2)}</span>
-                            <span className="text-lg text-gray-500 line-through">₹{Number(product.price).toFixed(2)}</span>
+                            <span className="text-2xl font-bold text-green-600">
+                              ₹{Number(product.discounted_price).toFixed(2)}
+                            </span>
+                            <span className="text-lg text-gray-500 line-through">
+                              ₹{Number(product.price).toFixed(2)}
+                            </span>
                           </div>
                         ) : (
-                          <div className="text-2xl font-bold text-green-600 mb-1">₹{Number(product.price).toFixed(2)}</div>
+                          <div className="text-2xl font-bold text-green-600 mb-1">
+                            ₹{Number(product.price).toFixed(2)}
+                          </div>
                         )}
                         <div className="text-sm text-gray-600">
                           Final Price: <span className="font-semibold">₹{finalPrice.toFixed(0)}</span> (incl. GST)
@@ -148,13 +177,17 @@ const Home = () => {
                         )}
                       </div>
                       <div className="space-y-2">
-                        <AddToCartButton 
+                        <AddToCartButton
                           productId={product.id}
                           productName={product.name}
                           disabled={product.stock === 0}
                         />
                         <Link to={`/products/${product.id}`}>
-                          <Button variant="outline" size="sm" className="w-full h-11 font-semibold flex items-center justify-center gap-2 text-green-700 border-green-700 hover:bg-green-50 hover:text-green-900">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full h-11 font-semibold flex items-center justify-center gap-2 text-green-700 border-green-700 hover:bg-green-50 hover:text-green-900"
+                          >
                             <Eye className="h-4 w-4" />
                             View Details
                           </Button>
@@ -167,13 +200,17 @@ const Home = () => {
             </div>
           )}
           <div className="text-center mt-12">
-            <Button size="lg" className="bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-lg font-semibold text-lg shadow-lg" asChild>
+            <Button
+              size="lg"
+              className="bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-lg font-semibold text-lg shadow-lg"
+              asChild
+            >
               <Link to="/products">View All Products</Link>
             </Button>
           </div>
         </div>
       </section>
-
+      
       {/* Trust Indicators */}
       <section className="py-8 bg-primary text-white">
         <div className="container mx-auto px-4">
