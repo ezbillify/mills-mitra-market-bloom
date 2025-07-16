@@ -15,7 +15,7 @@ const ContactUs = () => {
         </div>
 
         {/* Only Contact Info - Removed Message Form */}
-        <div className="grid lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div className="flex justify-center max-w-5xl mx-auto">
           {/* Contact Information Cards */}
           <div className="space-y-6">
             <Card>
