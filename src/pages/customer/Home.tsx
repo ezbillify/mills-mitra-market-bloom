@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Info, Leaf, Heart, Shield, Star, ShoppingCart, Eye, Truck, Award, Users } from "lucide-react";
@@ -152,7 +153,7 @@ const Home = () => {
                           productName={product.name}
                           disabled={product.stock === 0}
                         />
-                        <Link to={/products/${product.id}}>
+                        <Link to={`/products/${product.id}`}>
                           <Button variant="outline" size="sm" className="w-full h-11 font-semibold flex items-center justify-center gap-2 text-green-700 border-green-700 hover:bg-green-50 hover:text-green-900">
                             <Eye className="h-4 w-4" />
                             View Details
