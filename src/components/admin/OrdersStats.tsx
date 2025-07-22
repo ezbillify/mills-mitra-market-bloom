@@ -1,13 +1,14 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Order } from "@/hooks/useOrders";
-import { Package, Clock, Truck, CheckCircle } from "lucide-react";
+import { Package, Clock, Truck, CheckCircle, Ban, ShoppingBag, Plane } from "lucide-react";
 
 interface OrdersStatsProps {
   orders: Order[];
+  onFilterChange?: (status: string | null) => void;
+  activeFilter?: string | null;
 }
 
-const OrdersStats = ({ orders }: OrdersStatsProps) => {
+const OrdersStats = ({ orders, onFilterChange, activeFilter }: OrdersStatsProps) => {
   const stats = [
     {
       title: "Total Orders",
@@ -15,38 +16,90 @@ const OrdersStats = ({ orders }: OrdersStatsProps) => {
       icon: Package,
       color: "text-royal-green",
       bgColor: "bg-royal-green/10",
-      borderColor: "border-l-royal-green"
+      borderColor: "border-l-royal-green",
+      filterStatus: null
     },
     {
       title: "Pending",
-      value: orders.filter(o => o.status === 'pending').length,
+      value: orders.filter(o => o.status === 'PENDING').length,
       icon: Clock,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
-      borderColor: "border-l-orange-600"
+      borderColor: "border-l-orange-600",
+      filterStatus: "PENDING"
+    },
+    {
+      title: "Accepted",
+      value: orders.filter(o => o.status === 'ACCEPTED').length,
+      icon: CheckCircle,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      borderColor: "border-l-green-600",
+      filterStatus: "ACCEPTED"
     },
     {
       title: "Processing",
-      value: orders.filter(o => o.status === 'processing').length,
+      value: orders.filter(o => o.status === 'PROCESSING').length,
       icon: Truck,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
-      borderColor: "border-l-blue-600"
+      borderColor: "border-l-blue-600",
+      filterStatus: "PROCESSING"
     },
     {
-      title: "Revenue",
-      value: `₹${orders.reduce((sum, order) => sum + Number(order.total), 0).toFixed(2)}`,
+      title: "Cancelled",
+      value: orders.filter(o => o.status === 'CANCELLED').length,
+      icon: Ban,
+      color: "text-red-600",
+      bgColor: "bg-red-50",
+      borderColor: "border-l-red-600",
+      filterStatus: "CANCELLED"
+    },
+    {
+      title: "Completed",
+      value: orders.filter(o => o.status === 'COMPLETED').length,
       icon: CheckCircle,
       color: "text-emerald-600",
       bgColor: "bg-emerald-50",
-      borderColor: "border-l-emerald-600"
+      borderColor: "border-l-emerald-600",
+      filterStatus: "COMPLETED"
+    },
+    {
+      title: "Out for Delivery",
+      value: orders.filter(o => o.status === 'OUT_FOR_DELIVERY').length,
+      icon: Truck,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+      borderColor: "border-l-purple-600",
+      filterStatus: "OUT_FOR_DELIVERY"
+    },
+    {
+      title: "Shipped",
+      value: orders.filter(o => o.status === 'SHIPPED').length,
+      icon: Plane,
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50",
+      borderColor: "border-l-indigo-600",
+      filterStatus: "SHIPPED"
     }
   ];
+
+  const handleCardClick = (filterStatus: string | null) => {
+    if (onFilterChange) {
+      onFilterChange(filterStatus);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       {stats.map((stat, index) => (
-        <Card key={index} className={`border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${stat.borderColor} border-l-4 bg-white`}>
+        <Card 
+          key={index} 
+          className={`border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${stat.borderColor} border-l-4 bg-white cursor-pointer ${
+            activeFilter === stat.filterStatus ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+          }`}
+          onClick={() => handleCardClick(stat.filterStatus)}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-700">{stat.title}</CardTitle>
             <div className={`p-2 rounded-lg ${stat.bgColor}`}>
