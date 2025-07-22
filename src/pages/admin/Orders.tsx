@@ -1,17 +1,33 @@
-
 import OrdersStats from "@/components/admin/OrdersStats";
 import OrdersTable from "@/components/admin/OrdersTable";
 import OrderDetailsDialog from "@/components/admin/OrderDetailsDialog";
 import OrdersHeader from "@/components/admin/OrdersHeader";
 import OrdersLoading from "@/components/admin/OrdersLoading";
 import { useOrders } from "@/hooks/useOrders";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const AdminOrders = () => {
   const { orders, loading, fetchOrders, updateOrderStatus } = useOrders({ isAdminView: true });
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  
+  // Filter functionality
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [filteredOrders, setFilteredOrders] = useState(orders);
+
+  // Update filtered orders when orders data or filter changes
+  useEffect(() => {
+    if (activeFilter === null) {
+      setFilteredOrders(orders);
+    } else {
+      setFilteredOrders(orders.filter(order => order.status === activeFilter));
+    }
+  }, [orders, activeFilter]);
+
+  const handleFilterChange = (status: string | null) => {
+    setActiveFilter(status);
+  };
 
   const handleViewDetails = (orderId: string) => {
     console.log("Opening order details for:", orderId);
@@ -40,9 +56,13 @@ const AdminOrders = () => {
         </Card>
       ) : (
         <>
-          <OrdersStats orders={orders} />
+          <OrdersStats 
+            orders={orders} 
+            onFilterChange={handleFilterChange}
+            activeFilter={activeFilter}
+          />
           <OrdersTable
-            orders={orders}
+            orders={filteredOrders}
             onUpdateStatus={updateOrderStatus}
             onViewDetails={handleViewDetails}
           />
