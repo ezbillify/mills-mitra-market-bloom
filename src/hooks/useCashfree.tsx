@@ -39,6 +39,42 @@ export const useCashfree = () => {
     });
   };
 
+  // Mobile detection
+  const isMobile = () => {
+    return window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  };
+
+  // Fix z-index conflicts and mobile issues
+  const fixZIndexAndMobileConflicts = () => {
+    // Fix z-index conflicts
+    document.querySelectorAll('*').forEach(el => {
+      const zIndex = window.getComputedStyle(el).zIndex;
+      if (parseInt(zIndex) > 9999) {
+        (el as HTMLElement).style.zIndex = '1';
+      }
+    });
+
+    // Mobile-specific fixes
+    if (isMobile()) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      document.body.classList.add('cashfree-modal-open');
+    }
+  };
+
+  // Restore mobile settings
+  const restoreMobileSettings = () => {
+    if (isMobile()) {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      document.body.classList.remove('cashfree-modal-open');
+    }
+  };
+
   const initiatePayment = async (options: CashfreeOptions) => {
     setLoading(true);
     
@@ -50,7 +86,8 @@ export const useCashfree = () => {
           name: options.customerInfo.name,
           email: options.customerInfo.email,
           phone: options.customerInfo.phone ? '***' : 'missing'
-        }
+        },
+        isMobile: isMobile()
       });
 
       // Validate required fields
@@ -108,6 +145,9 @@ export const useCashfree = () => {
         currency: data.currency
       });
 
+      // Fix z-index and mobile issues before opening checkout
+      fixZIndexAndMobileConflicts();
+
       // Initialize Cashfree checkout
       const cashfree = window.Cashfree({
         mode: data.environment || 'production' // 'sandbox' for testing, 'production' for live
@@ -115,27 +155,15 @@ export const useCashfree = () => {
 
       const checkoutOptions = {
         paymentSessionId: data.paymentSessionId,
-        redirectTarget: '_modal',
-        appearance: {
-          width: '400px',
-          height: '700px'
-        },
-        onLoad: function(data: any) {
-          console.log('Cashfree checkout loaded:', data);
-          // Force modal to be on top
-          setTimeout(() => {
-            const modal = document.querySelector('[id*="cashfree"], [class*="cashfree"]');
-            if (modal) {
-              (modal as HTMLElement).style.zIndex = '999999';
-              (modal as HTMLElement).style.pointerEvents = 'auto';
-            }
-          }, 100);
-        }
+        redirectTarget: isMobile() ? '_self' : '_modal', // Mobile: redirect, Desktop: modal
       };
 
-      console.log('🎯 Opening Cashfree checkout...');
+      console.log('🎯 Opening Cashfree checkout...', { isMobile: isMobile(), redirectTarget: checkoutOptions.redirectTarget });
       
       cashfree.checkout(checkoutOptions).then(async (result: any) => {
+        // Restore mobile settings
+        restoreMobileSettings();
+
         if (result.error) {
           console.error('❌ Cashfree checkout error:', result.error);
           options.onFailure(result.error);
@@ -143,8 +171,10 @@ export const useCashfree = () => {
         }
 
         if (result.redirect) {
-          // Handle redirect case (shouldn't happen with _modal)
+          // Handle redirect case (mobile)
           console.log('🔄 Redirect triggered:', result.redirectUrl);
+          window.location.href = result.redirectUrl;
+          return;
         }
 
         if (result.paymentDetails) {
@@ -186,6 +216,9 @@ export const useCashfree = () => {
           }
         }
       }).catch((error: any) => {
+        // Restore mobile settings on error
+        restoreMobileSettings();
+        
         console.error('❌ Cashfree checkout failed:', error);
         toast({
           title: 'Payment Error',
@@ -196,6 +229,9 @@ export const useCashfree = () => {
       });
 
     } catch (error) {
+      // Restore mobile settings on error
+      restoreMobileSettings();
+      
       console.error('❌ Payment initiation error:', error);
       toast({
         title: 'Payment Error',
