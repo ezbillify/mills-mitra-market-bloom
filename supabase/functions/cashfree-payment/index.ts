@@ -1,7 +1,12 @@
-// supabase/functions/cashfree-payment/index.ts
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { corsHeaders } from '../_shared/cors.ts'
+
+// CORS headers inline
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 
+    'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
+}
 
 serve(async (req) => {
   // Handle CORS
@@ -40,7 +45,7 @@ serve(async (req) => {
     // Get Cashfree credentials from environment
     const clientId = Deno.env.get('CASHFREE_CLIENT_ID')
     const clientSecret = Deno.env.get('CASHFREE_CLIENT_SECRET')
-    const environment = Deno.env.get('CASHFREE_ENVIRONMENT') || 'production' // 'sandbox' or 'production'
+    const environment = Deno.env.get('CASHFREE_ENVIRONMENT') || 'production'
     
     if (!clientId || !clientSecret) {
       throw new Error('Cashfree credentials not configured')
@@ -51,13 +56,18 @@ serve(async (req) => {
       ? 'https://sandbox.cashfree.com/pg'
       : 'https://api.cashfree.com/pg'
 
+    // Generate short unique order ID for Cashfree (max 50 chars)
+    const timestamp = Date.now()
+    const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase()
+    const cashfreeOrderId = `CF${timestamp}${randomSuffix}`
+
     // Create order payload for Cashfree
     const orderPayload = {
-      order_id: `CF_${orderId}_${Date.now()}`, // Unique Cashfree order ID
+      order_id: cashfreeOrderId, // Fixed: Now under 50 characters
       order_amount: amount,
       order_currency: currency,
       customer_details: {
-        customer_id: `CUST_${orderId}`,
+        customer_id: `CUST_${orderId.substring(0, 8)}`,
         customer_name: customerInfo.name,
         customer_email: customerInfo.email,
         customer_phone: customerInfo.phone,
