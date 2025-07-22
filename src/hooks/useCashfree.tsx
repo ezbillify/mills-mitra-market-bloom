@@ -39,31 +39,19 @@ export const useCashfree = () => {
     });
   };
 
-  // Simple mobile detection
-  const isMobile = () => {
-    return window.innerWidth <= 768;
-  };
-
-  // Clean up any existing issues
-  const cleanupBeforePayment = () => {
-    // Remove any existing cashfree elements
-    const existingElements = document.querySelectorAll('[id*="cashfree"], [class*="cashfree"]');
-    existingElements.forEach(el => el.remove());
-
-    // Fix z-index conflicts
-    document.querySelectorAll('*').forEach(el => {
-      const zIndex = window.getComputedStyle(el).zIndex;
-      if (parseInt(zIndex) > 9999) {
-        (el as HTMLElement).style.zIndex = '1';
-      }
-    });
-  };
-
   const initiatePayment = async (options: CashfreeOptions) => {
     setLoading(true);
 
     try {
-      console.log('🔵 Starting Cashfree payment...');
+      console.log('🔵 Initiating Cashfree payment with options:', {
+        amount: options.amount,
+        orderId: options.orderId,
+        customerInfo: {
+          name: options.customerInfo.name,
+          email: options.customerInfo.email,
+          phone: options.customerInfo.phone ? '***' : 'missing'
+        }
+      });
 
       // Validate required fields
       if (!options.amount || options.amount <= 0) {
@@ -79,16 +67,19 @@ export const useCashfree = () => {
       }
 
       if (!options.customerInfo.phone) {
-        throw new Error('Phone number is required for Cashfree payments');
+        throw new Error('Customer phone number is required');
       }
 
       // Load Cashfree script
+      console.log('📜 Loading Cashfree script...');
       const scriptLoaded = await loadCashfreeScript();
       if (!scriptLoaded) {
         throw new Error('Failed to load Cashfree SDK');
       }
+      console.log('✅ Cashfree script loaded successfully');
 
-      // Create payment order
+      // Create Cashfree order via edge function
+      console.log('📤 Calling cashfree-payment edge function...');
       const { data, error } = await supabase.functions.invoke('cashfree-payment', {
         body: {
           amount: options.amount,
@@ -98,54 +89,34 @@ export const useCashfree = () => {
         },
       });
 
+      console.log('📥 Edge function response:', { data, error });
+
       if (error) {
-        throw new Error(`Payment creation failed: ${error.message}`);
+        console.error('❌ Supabase function error:', error);
+        throw new Error(`Function call failed: ${error.message}`);
       }
 
       if (!data || !data.success) {
+        console.error('❌ Payment order creation failed:', data);
         throw new Error(data?.error || 'Failed to create payment order');
       }
 
-      console.log('✅ Payment order created successfully');
+      console.log('✅ Payment order created successfully:', {
+        cfOrderId: data.cfOrderId,
+        paymentSessionId: data.paymentSessionId,
+        amount: data.amount,
+        currency: data.currency
+      });
 
-      // Clean up before opening payment
-      cleanupBeforePayment();
+      // Fix z-index conflicts (the original working fix)
+      document.querySelectorAll('*').forEach(el => {
+        const zIndex = window.getComputedStyle(el).zIndex;
+        if (parseInt(zIndex) > 9999) {
+          (el as HTMLElement).style.zIndex = '1';
+        }
+      });
 
-      // For mobile: Use redirect mode (most reliable)
-      if (isMobile()) {
-        console.log('📱 Mobile detected - using redirect mode');
-
-        // Create a form to redirect to Cashfree
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = data.environment === 'sandbox'
-          ? 'https://sandbox.cashfree.com/pg/checkout/hosted'
-          : 'https://api.cashfree.com/pg/checkout/hosted';
-
-        // Add payment session ID
-        const sessionInput = document.createElement('input');
-        sessionInput.type = 'hidden';
-        sessionInput.name = 'payment_session_id';
-        sessionInput.value = data.paymentSessionId;
-        form.appendChild(sessionInput);
-
-        // Add return URL
-        const returnInput = document.createElement('input');
-        returnInput.type = 'hidden';
-        returnInput.name = 'return_url';
-        returnInput.value = window.location.origin + '/payment-success';
-        form.appendChild(returnInput);
-
-        document.body.appendChild(form);
-        form.submit();
-
-        // For redirect mode, we'll handle success on the return page
-        return;
-      }
-
-      // For desktop: Use modal mode
-      console.log('🖥️ Desktop detected - using modal mode');
-
+      // Initialize Cashfree checkout
       const cashfree = window.Cashfree({
         mode: data.environment || 'production'
       });
@@ -155,16 +126,27 @@ export const useCashfree = () => {
         redirectTarget: '_modal',
       };
 
+      console.log('🎯 Opening Cashfree checkout...');
+
       cashfree.checkout(checkoutOptions).then(async (result: any) => {
         if (result.error) {
-          console.error('❌ Payment error:', result.error);
+          console.error('❌ Cashfree checkout error:', result.error);
           options.onFailure(result.error);
           return;
         }
 
+        if (result.redirect) {
+          console.log('🔄 Redirect triggered:', result.redirectUrl);
+        }
+
         if (result.paymentDetails) {
           try {
-            // Verify payment
+            console.log('💳 Payment completed, verifying...', {
+              orderId: result.paymentDetails.orderId,
+              paymentId: result.paymentDetails.paymentId
+            });
+
+            // Verify payment via edge function
             const { data: verifyData, error: verifyError } = await supabase.functions.invoke('cashfree-verify', {
               body: {
                 cfOrderId: result.paymentDetails.orderId,
@@ -174,9 +156,11 @@ export const useCashfree = () => {
             });
 
             if (verifyError || !verifyData?.success) {
+              console.error('❌ Payment verification failed:', { verifyData, verifyError });
               throw new Error('Payment verification failed');
             }
 
+            console.log('✅ Payment verified successfully');
             toast({
               title: 'Payment Successful!',
               description: 'Your order has been confirmed.',
@@ -187,14 +171,19 @@ export const useCashfree = () => {
             console.error('❌ Payment verification error:', error);
             toast({
               title: 'Payment Verification Failed',
-              description: 'Please contact support.',
+              description: 'There was an issue verifying your payment. Please contact support.',
               variant: 'destructive',
             });
             options.onFailure(error);
           }
         }
       }).catch((error: any) => {
-        console.error('❌ Checkout failed:', error);
+        console.error('❌ Cashfree checkout failed:', error);
+        toast({
+          title: 'Payment Error',
+          description: 'Failed to open payment checkout',
+          variant: 'destructive',
+        });
         options.onFailure(error);
       });
 

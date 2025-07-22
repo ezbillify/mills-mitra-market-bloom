@@ -112,56 +112,21 @@
   }
 }
 
-/* Simple Cashfree Mobile Fix - Add this to the END of your src/index.css */
+/* Add ONLY this to your src/index.css to fix green lines */
 
-/* Remove any green lines or weird styling */
+/* Remove green borders/outlines from Cashfree elements */
 .cashfree-pg-container *,
 [id*="cashfree"] *,
 [class*="cashfree"] * {
-  border: none !important;
-  outline: none !important;
+  border-color: transparent !important;
+  outline-color: transparent !important;
   box-shadow: none !important;
-  background-color: transparent !important;
 }
 
-/* Fix modal positioning */
+/* Ensure Cashfree modal is on top and clickable */
 .cashfree-pg-container,
 [id*="cashfree"],
 [class*="cashfree"] {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
   z-index: 999999 !important;
-  background-color: rgba(0, 0, 0, 0.8) !important;
-}
-
-/* Mobile specific - force full screen */
-@media (max-width: 768px) {
-
-  .cashfree-pg-container,
-  [id*="cashfree"],
-  [class*="cashfree"] {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: none !important;
-    border-radius: 0 !important;
-  }
-}
-
-/* Hide elements that might conflict */
-body.payment-processing {
-  overflow: hidden !important;
-}
-
-body.payment-processing .header,
-body.payment-processing .navbar,
-body.payment-processing .sidebar {
-  display: none !important;
+  pointer-events: auto !important;
 }
