@@ -115,7 +115,22 @@ export const useCashfree = () => {
 
       const checkoutOptions = {
         paymentSessionId: data.paymentSessionId,
-        redirectTarget: '_modal', // Opens in modal
+        redirectTarget: '_modal',
+        appearance: {
+          width: '400px',
+          height: '700px'
+        },
+        onLoad: function(data: any) {
+          console.log('Cashfree checkout loaded:', data);
+          // Force modal to be on top
+          setTimeout(() => {
+            const modal = document.querySelector('[id*="cashfree"], [class*="cashfree"]');
+            if (modal) {
+              (modal as HTMLElement).style.zIndex = '999999';
+              (modal as HTMLElement).style.pointerEvents = 'auto';
+            }
+          }, 100);
+        }
       };
 
       console.log('🎯 Opening Cashfree checkout...');
