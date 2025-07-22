@@ -502,7 +502,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="razorpay" id="razorpay" />
-                  <Label htmlFor="razorpay">Razorpay (Online Payment)</Label>
+                  <Label htmlFor="razorpay">Online Payment</Label>
                 </div>
               </RadioGroup>
             </CardContent>
@@ -528,7 +528,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                 (addressTab === "saved" && !selectedAddress) ||
                 (addressTab === "manual" && (!formData.address || !formData.city || !formData.state || !formData.postalCode || !formData.phone))
               } 
-              className="flex-1 bg-[#C9A350] hover:bg-[#D49847] text-white"
+              className="flex-1 bg-[#6A8A4E] hover:bg-[green] text-white"
             >
               {loading || razorpayLoading ? "Processing..." : (
                 <span className="flex items-center gap-1">
