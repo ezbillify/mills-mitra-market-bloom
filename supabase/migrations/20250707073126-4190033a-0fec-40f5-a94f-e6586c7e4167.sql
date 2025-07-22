@@ -1,0 +1,3 @@
+-- Enable email confirmation bypass for faster signup
+-- This is for reference - the actual setting needs to be changed in Supabase Dashboard
+-- Go to Authentication > Settings and disable "Enable email confirmations"

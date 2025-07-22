@@ -1,0 +1,411 @@
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import OrderItemTable from "./OrderItemTable";
+import { supabase } from "@/integrations/supabase/client";
+import { generateCustomerName } from "@/utils/customerUtils";
+import { ArrowLeft, Truck, Download, IndianRupee, CreditCard } from "lucide-react";
+import { InvoiceService } from "@/services/invoiceService";
+import { useToast } from "@/hooks/use-toast";
+import { PricingUtils } from "@/utils/pricingUtils";
+import PaymentProgressIndicator from "@/components/PaymentProgressIndicator";
+
+const statusLabels: Record<string, string> = {
+  pending: "Pending",
+  processing: "Processing",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+  accepted: "Accepted",
+  out_for_delivery: "Out for delivery",
+  completed: "Completed",
+};
+
+const badgeVariants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  pending: "outline",
+  processing: "default",
+  shipped: "secondary",
+  delivered: "default",
+  cancelled: "destructive",
+  accepted: "default",
+  out_for_delivery: "secondary",
+  completed: "default",
+};
+
+const PAYMENT_LABELS: Record<string, string> = {
+  cod: "Cash on Delivery (COD)",
+  razorpay: "Paid via Razorpay",
+};
+
+const OrderDetails = () => {
+  const { orderId } = useParams<{ orderId: string }>();
+  const [order, setOrder] = useState<any>(null);
+  const [orderItems, setOrderItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!orderId) return;
+    const fetchOrder = async () => {
+      setLoading(true);
+      
+      // Simplified query without shipping_settings relationship
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .select(`
+          *,
+          profiles!orders_user_id_profiles_fkey(*)
+        `)
+        .eq("id", orderId)
+        .maybeSingle();
+
+      if (orderError) {
+        console.error("Error fetching order:", orderError);
+        toast({
+          title: "Error",
+          description: "Order not found or you don't have access to it.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Use consistent query for order items
+      const { data: itemsData, error: itemsError } = await supabase
+        .from("order_items")
+        .select(`
+          *,
+          products (
+            name,
+            description,
+            price,
+            discounted_price,
+            gst_percentage,
+            selling_price_with_tax,
+            hsn_code
+          )
+        `)
+        .eq("order_id", orderId);
+
+      if (itemsError) {
+        console.error("Error fetching order items:", itemsError);
+        toast({
+          title: "Error",
+          description: "Could not load order items.",
+          variant: "destructive",
+        });
+      }
+
+      setOrder(orderData || null);
+      setOrderItems(itemsData || []);
+      setLoading(false);
+    };
+    fetchOrder();
+  }, [orderId, toast]);
+
+  const calculateOrderTotals = () => {
+    if (!orderItems.length) return { subtotal: 0, totalTax: 0, grandTotal: 0, shippingCost: 0 };
+
+    const shippingAddress = order?.shipping_address || '';
+    const shippingCost = Number(order?.delivery_price || 0);
+    
+    const orderTotals = PricingUtils.calculateOrderTotals(
+      orderItems.map(item => ({
+        product: {
+          price: item.price,
+          discounted_price: null,
+          gst_percentage: item.products?.gst_percentage || 18
+        },
+        quantity: item.quantity
+      })),
+      shippingAddress,
+      shippingCost
+    );
+
+    return {
+      subtotal: orderTotals.totalTaxableAmount,
+      totalTax: orderTotals.totalTaxAmount,
+      grandTotal: orderTotals.grandTotal,
+      shippingCost: orderTotals.deliveryPrice
+    };
+  };
+
+  const handleDownloadInvoice = async () => {
+    if (!orderId) return;
+    
+    setDownloadingInvoice(true);
+    try {
+      console.log(`🧾 Customer downloading invoice for order ${orderId.substring(0, 8)}`);
+      await InvoiceService.downloadInvoiceForOrder(orderId);
+      toast({
+        title: "Success",
+        description: "Invoice downloaded successfully",
+      });
+    } catch (error: any) {
+      console.error("Error downloading invoice:", error);
+      let errorMessage = "Failed to download invoice. Please try again.";
+      
+      // Provide more specific error messages based on the error type
+      if (error.message?.includes('Order not found')) {
+        errorMessage = "Order not found or you don't have access to it.";
+      } else if (error.message?.includes('No items found')) {
+        errorMessage = "No items found for this order. Please contact support.";
+      } else if (error.message?.includes('Authentication error')) {
+        errorMessage = "Please login and try again.";
+      } else if (error.message?.includes('permission')) {
+        errorMessage = "You don't have permission to access this invoice.";
+      }
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
+
+  // Allow invoice download for more order statuses and improve conditions
+  const canDownloadInvoice = order && (
+    order.status === 'processing' || 
+    order.status === 'shipped' || 
+    order.status === 'delivered' || 
+    order.status === 'completed' ||
+    order.status === 'accepted' ||
+    order.status === 'out_for_delivery'
+  );
+
+  // Get shipping method info
+  const getShippingMethodInfo = () => {
+    const deliveryPrice = Number(order?.delivery_price || 0);
+    if (deliveryPrice === 0) {
+      return { name: "Free Shipping", price: 0 };
+    } else {
+      return { name: "Standard Shipping", price: deliveryPrice };
+    }
+  };
+
+  const getPaymentMethodDisplay = () => {
+    const paymentType = order?.payment_type;
+    const label = paymentType && PAYMENT_LABELS[paymentType]
+      ? PAYMENT_LABELS[paymentType]
+      : paymentType
+      ? paymentType.charAt(0).toUpperCase() + paymentType.slice(1)
+      : "N/A";
+
+    return {
+      label,
+      badge: paymentType === 'razorpay' ? 'Online' : paymentType === 'cod' ? 'COD' : null,
+      color: paymentType === 'razorpay' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+    };
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-xl mx-auto">
+          <CardContent>
+            <div className="text-center py-10">Order not found.</div>
+            <Button variant="outline" onClick={() => navigate("/orders")}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Orders
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const orderTotals = calculateOrderTotals();
+  const shippingInfo = getShippingMethodInfo();
+  const paymentInfo = getPaymentMethodDisplay();
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <Button variant="ghost" className="mb-4" onClick={() => navigate("/orders")}>
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Orders
+      </Button>
+
+      {/* Payment Progress Indicator for Online Payments */}
+      {order.payment_type === 'razorpay' && (
+        <div className="mb-6">
+          <PaymentProgressIndicator 
+            paymentType={order.payment_type}
+            orderStatus={order.status}
+            createdAt={order.created_at}
+          />
+        </div>
+      )}
+
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-start flex-wrap">
+            <div>
+              <CardTitle className="text-lg">Order {order.id.substring(0, 8)}</CardTitle>
+              <p className="text-sm text-gray-600 mt-1">
+                Placed on {new Date(order.created_at).toLocaleDateString()}
+              </p>
+              {order.profiles && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  For: {generateCustomerName(order.profiles)}
+                </p>
+              )}
+            </div>
+            <div className="text-right">
+              <div className="text-lg font-bold flex items-center gap-1">
+                <IndianRupee className="h-4 w-4" />
+                {Number(order.total).toFixed(2)}
+              </div>
+              <Badge variant={badgeVariants[order.status] || "default"}>
+                {statusLabels[order.status] || order.status}
+              </Badge>
+              {canDownloadInvoice && (
+                <div className="mt-2">
+                  <Button 
+                    onClick={handleDownloadInvoice}
+                    disabled={downloadingInvoice}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {downloadingInvoice ? "Generating..." : "Download Invoice"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Order Summary */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-medium mb-3 flex items-center gap-2">
+              <IndianRupee className="h-4 w-4" />
+              Order Summary
+            </h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span>Subtotal (Taxable Amount):</span>
+                <span className="flex items-center gap-1">
+                  <IndianRupee className="h-3 w-3" />
+                  {orderTotals.subtotal.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Total GST:</span>
+                <span className="flex items-center gap-1">
+                  <IndianRupee className="h-3 w-3" />
+                  {orderTotals.totalTax.toFixed(2)}
+                </span>
+              </div>
+              {orderTotals.shippingCost > 0 && (
+                <div className="flex justify-between">
+                  <span>Shipping:</span>
+                  <span className="flex items-center gap-1">
+                    <IndianRupee className="h-3 w-3" />
+                    {orderTotals.shippingCost.toFixed(2)}
+                  </span>
+                </div>
+              )}
+              <div className="border-t pt-2 font-semibold">
+                <div className="flex justify-between">
+                  <span>Total:</span>
+                  <span className="flex items-center gap-1">
+                    <IndianRupee className="h-3 w-3" />
+                    {Number(order.total).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-medium mb-2">Shipping Address</h4>
+              <p className="text-sm text-gray-600">{order.shipping_address}</p>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2 flex items-center gap-2">
+                <Truck className="h-4 w-4" />
+                Shipping Method
+              </h4>
+              <div className="text-sm">
+                <p className="font-medium text-gray-900">
+                  {shippingInfo.name}
+                </p>
+                <p className="text-gray-600 mt-1 flex items-center gap-1">
+                  Shipping Cost: <IndianRupee className="h-3 w-3" />{shippingInfo.price.toFixed(2)}
+                </p>
+              </div>
+            </div>
+            {order.tracking_number && (
+              <div>
+                <h4 className="font-medium mb-2">Tracking Number</h4>
+                <p className="text-sm text-gray-600">{order.tracking_number}</p>
+              </div>
+            )}
+            <div>
+              <h4 className="font-medium mb-2">Order Status</h4>
+              <Badge className="text-base" variant={badgeVariants[order.status] || "default"}>
+                {statusLabels[order.status] || order.status}
+              </Badge>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2 flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Payment Method
+              </h4>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-gray-900">{paymentInfo.label}</p>
+                {paymentInfo.badge && (
+                  <span className={`px-2 py-1 text-xs rounded-full ${paymentInfo.color}`}>
+                    {paymentInfo.badge}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">Order ID</h4>
+              <p className="text-sm text-gray-600">{order.id}</p>
+            </div>
+            {canDownloadInvoice && (
+              <div>
+                <h4 className="font-medium mb-2">Invoice</h4>
+                <Button 
+                  onClick={handleDownloadInvoice}
+                  disabled={downloadingInvoice}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  {downloadingInvoice ? "Generating..." : "Download Invoice"}
+                </Button>
+                <p className="text-xs text-gray-500 mt-1">
+                  Tax invoice with GST details and HSN codes
+                </p>
+              </div>
+            )}
+          </div>
+          <OrderItemTable orderId={order.id} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default OrderDetails;
