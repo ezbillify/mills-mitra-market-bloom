@@ -21,66 +21,66 @@ const OrdersStats = ({ orders, onFilterChange, activeFilter }: OrdersStatsProps)
     },
     {
       title: "Pending",
-      value: orders.filter(o => o.status === 'PENDING').length,
+      value: orders.filter(o => o.status === 'pending').length,
       icon: Clock,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
       borderColor: "border-l-orange-600",
-      filterStatus: "PENDING"
+      filterStatus: "pending"
     },
     {
       title: "Accepted",
-      value: orders.filter(o => o.status === 'ACCEPTED').length,
+      value: orders.filter(o => o.status === 'accepted').length,
       icon: CheckCircle,
       color: "text-green-600",
       bgColor: "bg-green-50",
       borderColor: "border-l-green-600",
-      filterStatus: "ACCEPTED"
+      filterStatus: "accepted"
     },
     {
       title: "Processing",
-      value: orders.filter(o => o.status === 'PROCESSING').length,
+      value: orders.filter(o => o.status === 'processing').length,
       icon: Truck,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
       borderColor: "border-l-blue-600",
-      filterStatus: "PROCESSING"
+      filterStatus: "processing"
     },
     {
       title: "Cancelled",
-      value: orders.filter(o => o.status === 'CANCELLED').length,
+      value: orders.filter(o => o.status === 'cancelled').length,
       icon: Ban,
       color: "text-red-600",
       bgColor: "bg-red-50",
       borderColor: "border-l-red-600",
-      filterStatus: "CANCELLED"
+      filterStatus: "cancelled"
     },
     {
       title: "Completed",
-      value: orders.filter(o => o.status === 'COMPLETED').length,
+      value: orders.filter(o => o.status === 'completed').length,
       icon: CheckCircle,
       color: "text-emerald-600",
       bgColor: "bg-emerald-50",
       borderColor: "border-l-emerald-600",
-      filterStatus: "COMPLETED"
+      filterStatus: "completed"
     },
     {
       title: "Out for Delivery",
-      value: orders.filter(o => o.status === 'OUT_FOR_DELIVERY').length,
+      value: orders.filter(o => o.status === 'out_for_delivery').length,
       icon: Truck,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
       borderColor: "border-l-purple-600",
-      filterStatus: "OUT_FOR_DELIVERY"
+      filterStatus: "out_for_delivery"
     },
     {
       title: "Shipped",
-      value: orders.filter(o => o.status === 'SHIPPED').length,
+      value: orders.filter(o => o.status === 'shipped').length,
       icon: Plane,
       color: "text-indigo-600",
       bgColor: "bg-indigo-50",
       borderColor: "border-l-indigo-600",
-      filterStatus: "SHIPPED"
+      filterStatus: "shipped"
     }
   ];
 
