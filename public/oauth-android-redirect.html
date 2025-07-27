@@ -1,19 +1,24 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Redirecting...</title>
-    <script>
-      // Extract the fragment and redirect to app
-      const fragment = window.location.hash; // "#access_token=..."
-      if (fragment) {
-        const customScheme = "com.ezbillify.millsmitra://oauth2redirect" + fragment;
-        window.location.href = customScheme;
-      } else {
-        document.body.innerText = "No session data found.";
-      }
-    </script>
   </head>
   <body>
-    Redirecting to app...
+    <h3>Redirecting back to the app...</h3>
+
+    <script>
+      // Extract the fragment part from the URL
+      const fragment = window.location.hash;
+
+      if (fragment) {
+        // Construct the deep link back to the app with the auth fragment
+        const androidRedirectUrl = `com.ezbillify.millsmitra://oauth2redirect${fragment}`;
+        window.location.href = androidRedirectUrl;
+      } else {
+        document.body.innerHTML = "<h3>Failed to redirect: No session found.</h3>";
+      }
+    </script>
   </body>
 </html>
