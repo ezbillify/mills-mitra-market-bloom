@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, Navigate } from "react-router-dom";
+import { Link, useNavigate, Navigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,9 +17,9 @@ const ProfileRedirect = ({ userId }: { userId: string }) => {
     const checkProfile = async () => {
       try {
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('id', userId)
+          .from("profiles")
+          .select("first_name, last_name")
+          .eq("id", userId)
           .single();
 
         if (!profile?.first_name || !profile?.last_name) {
@@ -48,31 +48,47 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signIn, signInWithGoogle, user } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // ✅ Use deep link to open Chrome Custom Tab from Android WebView
+  // ✅ Detect Android WebView and redirect only if not coming from callback
   useEffect(() => {
     const isAndroidWebView =
       /Android/i.test(navigator.userAgent) &&
-      /wv/.test(navigator.userAgent);
+      /wv/.test(navigator.userAgent) &&
+      !location.pathname.includes("callback");
 
     if (isAndroidWebView) {
-      // This triggers MainActivity to open Chrome Custom Tab
-      window.location.href = "supabase-login://google";
+      window.location.href = "supabase-login://google"; // Trigger Chrome Custom Tab
+    }
+  }, [location]);
+
+  // ✅ Check for auth fragment when redirected back
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes("access_token")) {
+      supabase.auth
+        .getSession()
+        .then(({ data }) => {
+          if (data.session) {
+            navigate("/");
+          }
+        })
+        .catch(console.error);
     }
   }, []);
 
-  // ✅ Already signed in → redirect
+  // ✅ If already signed in, redirect based on role
   if (user) {
-    const adminEmails = ['admin@ezbillify.com', 'admin@millsmitra.com'];
-    const isAdmin = adminEmails.includes(user.email || '');
+    const adminEmails = ["admin@ezbillify.com", "admin@millsmitra.com"];
+    const isAdmin = adminEmails.includes(user.email || "");
 
-    if (isAdmin) {
-      return <Navigate to="/admin" replace />;
-    } else {
-      return <ProfileRedirect userId={user.id} />;
-    }
+    return isAdmin ? (
+      <Navigate to="/admin" replace />
+    ) : (
+      <ProfileRedirect userId={user.id} />
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,36 +104,32 @@ const Login = () => {
     }
 
     setLoading(true);
-
     try {
-      console.log('🔑 Attempting login for:', email);
       const { error } = await signIn(email, password);
-
       if (!error) {
-        console.log('✅ Login successful, auth state will handle redirect');
+        console.log("✅ Login success");
       }
     } catch (error) {
-      console.error('❌ Login error:', error);
+      console.error("❌ Login error:", error);
       toast({
         title: "Login failed",
-        description: "An unexpected error occurred. Please try again.",
+        description: "Unexpected error. Please try again.",
         variant: "destructive",
       });
     }
-
     setLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      console.log('🔍 Attempting Google sign in...');
+      console.log("🔍 Attempting Google sign in...");
       await signInWithGoogle();
     } catch (error) {
-      console.error('❌ Google sign in error:', error);
+      console.error("❌ Google sign in error:", error);
       toast({
         title: "Google sign in failed",
-        description: "Please try again or use email/password login.",
+        description: "Try again or use email/password.",
         variant: "destructive",
       });
     }
@@ -128,7 +140,7 @@ const Login = () => {
     if (!email) {
       toast({
         title: "Email required",
-        description: "Please enter your email address first.",
+        description: "Please enter your email first.",
         variant: "destructive",
       });
       return;
@@ -149,14 +161,14 @@ const Login = () => {
       } else {
         toast({
           title: "Password reset sent",
-          description: "Check your email for password reset instructions.",
+          description: "Check your email inbox.",
         });
       }
     } catch (error) {
-      console.error('❌ Password reset error:', error);
+      console.error("❌ Password reset error:", error);
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: "Something went wrong. Try again.",
         variant: "destructive",
       });
     }
@@ -179,7 +191,6 @@ const Login = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
                 required
                 disabled={loading}
                 autoComplete="email"
@@ -194,7 +205,6 @@ const Login = () => {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
                   required
                   disabled={loading}
                   autoComplete="current-password"
@@ -203,14 +213,10 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   disabled={loading}
                 >
-                  {showPassword ? (
-                    <Eye className="h-4 w-4" />
-                  ) : (
-                    <EyeOff className="h-4 w-4" />
-                  )}
+                  {showPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </button>
               </div>
             </div>
@@ -232,7 +238,7 @@ const Login = () => {
             <div className="text-center mt-4">
               <button
                 type="button"
-                onClick={() => handleForgotPassword()}
+                onClick={handleForgotPassword}
                 className="text-sm text-primary hover:underline"
                 disabled={loading}
               >
