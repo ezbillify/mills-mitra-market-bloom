@@ -1,17 +1,21 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Redirecting...</title>
-    <script>
-      // Redirect to your Android app using Intent URI
-      window.onload = () => {
-        window.location.href =
-          "intent://loginSuccess#Intent;scheme=millsmitra;package=com.ezbillify.millsmitra;end";
-      };
-    </script>
-  </head>
-  <body>
-    Redirecting to the app...
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OAuth Redirect Handler</title>
+</head>
+<body>
+  <h3>Processing redirect...</h3>
+
+  <script>
+    window.addEventListener('supabase-android-auth', (e) => {
+      const fragment = e.detail;
+      if (fragment) {
+        const fullUrl = `${window.location.origin}/#/callback${fragment}`;
+        window.location.href = fullUrl;
+      }
+    });
+  </script>
+</body>
 </html>
