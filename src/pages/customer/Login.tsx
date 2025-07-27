@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 // Component to handle profile-based redirect
 const ProfileRedirect = ({ userId }: { userId: string }) => {
   const [redirect, setRedirect] = useState<string | null>(null);
-  
+
   useEffect(() => {
     const checkProfile = async () => {
       try {
@@ -21,7 +21,7 @@ const ProfileRedirect = ({ userId }: { userId: string }) => {
           .select('first_name, last_name')
           .eq('id', userId)
           .single();
-        
+
         if (!profile?.first_name || !profile?.last_name) {
           setRedirect("/account");
         } else {
@@ -31,14 +31,14 @@ const ProfileRedirect = ({ userId }: { userId: string }) => {
         setRedirect("/account");
       }
     };
-    
+
     checkProfile();
   }, [userId]);
-  
+
   if (redirect) {
     return <Navigate to={redirect} replace />;
   }
-  
+
   return <div>Loading...</div>;
 };
 
@@ -51,25 +51,23 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // ✅ ADD THIS EFFECT for Android WebView Google Sign-In redirect
+  // ✅ Use deep link to open Chrome Custom Tab from Android WebView
   useEffect(() => {
     const isAndroidWebView =
       /Android/i.test(navigator.userAgent) &&
       /wv/.test(navigator.userAgent);
 
     if (isAndroidWebView) {
-      const supabaseUrl = "https://xtirnxassnqrgcyxvhum.supabase.co"; // 🔁 replace
-      const redirectTo = "https://www.millsmitra.com/oauth-android-redirect.html"; // 🔁 replace
-      const authUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
-      window.location.href = authUrl;
+      // This triggers MainActivity to open Chrome Custom Tab
+      window.location.href = "supabase-login://google";
     }
   }, []);
 
-  // Redirect if already logged in
+  // ✅ Already signed in → redirect
   if (user) {
     const adminEmails = ['admin@ezbillify.com', 'admin@millsmitra.com'];
     const isAdmin = adminEmails.includes(user.email || '');
-    
+
     if (isAdmin) {
       return <Navigate to="/admin" replace />;
     } else {
@@ -79,7 +77,7 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({
         title: "Error",
@@ -88,13 +86,13 @@ const Login = () => {
       });
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       console.log('🔑 Attempting login for:', email);
       const { error } = await signIn(email, password);
-      
+
       if (!error) {
         console.log('✅ Login successful, auth state will handle redirect');
       }
@@ -106,7 +104,7 @@ const Login = () => {
         variant: "destructive",
       });
     }
-    
+
     setLoading(false);
   };
 
@@ -187,7 +185,7 @@ const Login = () => {
                 autoComplete="email"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="password">Password</Label>
               <div className="relative">
@@ -216,21 +214,21 @@ const Login = () => {
                 </button>
               </div>
             </div>
-            
+
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in..." : "Sign In"}
             </Button>
-            
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full" 
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
               onClick={handleGoogleSignIn}
               disabled={loading}
             >
               Sign in with Google
             </Button>
-            
+
             <div className="text-center mt-4">
               <button
                 type="button"
@@ -242,7 +240,7 @@ const Login = () => {
               </button>
             </div>
           </form>
-          
+
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{" "}
