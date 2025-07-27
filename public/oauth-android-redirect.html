@@ -1,24 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Redirecting...</title>
-</head>
-<body>
-  <h3>Processing Google Login...</h3>
-  <script>
-    // Supabase sends tokens via hash fragment
-    const fragment = window.location.hash; // e.g. "#access_token=...&expires_in=...&refresh_token=..."
-
-    if (fragment) {
-      // Encode the full fragment and redirect to your app's deep link
-      const encodedFragment = encodeURIComponent(fragment);
-      const deepLink = `com.ezbillify.millsmitra://oauth2redirect#${encodedFragment}`;
-      window.location.href = deepLink;
-    } else {
-      document.body.innerHTML = '<p>❌ Something went wrong. No OAuth token found.</p>';
-    }
-  </script>
-</body>
+<html>
+  <head>
+    <title>Redirecting...</title>
+    <script>
+      // Extract the fragment and redirect to app
+      const fragment = window.location.hash; // "#access_token=..."
+      if (fragment) {
+        const customScheme = "com.ezbillify.millsmitra://oauth2redirect" + fragment;
+        window.location.href = customScheme;
+      } else {
+        document.body.innerText = "No session data found.";
+      }
+    </script>
+  </head>
+  <body>
+    Redirecting to app...
+  </body>
 </html>
