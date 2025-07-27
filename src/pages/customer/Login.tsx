@@ -22,15 +22,12 @@ const ProfileRedirect = ({ userId }: { userId: string }) => {
           .eq('id', userId)
           .single();
         
-        // If profile is incomplete (missing first_name or last_name), go to account page
         if (!profile?.first_name || !profile?.last_name) {
           setRedirect("/account");
         } else {
-          // Profile is complete, go to home page
           setRedirect("/");
         }
       } catch (error) {
-        // If there's an error checking profile, default to account page
         setRedirect("/account");
       }
     };
@@ -54,9 +51,22 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // ✅ ADD THIS EFFECT for Android WebView Google Sign-In redirect
+  useEffect(() => {
+    const isAndroidWebView =
+      /Android/i.test(navigator.userAgent) &&
+      /wv/.test(navigator.userAgent);
+
+    if (isAndroidWebView) {
+      const supabaseUrl = "https://xtirnxassnqrgcyxvhum.supabase.co"; // 🔁 replace
+      const redirectTo = "https://www.millsmitra.com/oauth-android-redirect.html"; // 🔁 replace
+      const authUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
+      window.location.href = authUrl;
+    }
+  }, []);
+
   // Redirect if already logged in
   if (user) {
-    // Check if user is admin and redirect accordingly
     const adminEmails = ['admin@ezbillify.com', 'admin@millsmitra.com'];
     const isAdmin = adminEmails.includes(user.email || '');
     
@@ -86,8 +96,6 @@ const Login = () => {
       const { error } = await signIn(email, password);
       
       if (!error) {
-        // We'll handle the redirect in the auth state change listener
-        // The ProfileRedirect component will handle the logic when user state updates
         console.log('✅ Login successful, auth state will handle redirect');
       }
     } catch (error) {
