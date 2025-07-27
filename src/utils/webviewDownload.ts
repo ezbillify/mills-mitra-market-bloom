@@ -46,24 +46,18 @@ function downloadInvoiceFlutter(invoiceData: InvoiceDataInput, fileName: string 
     let base64Data: string = '';
     let mimeType: string = 'application/pdf';
     
-    // Handle different input types
     if (typeof invoiceData === 'string') {
-      // If it's already base64 or a URL
       if (invoiceData.startsWith('data:')) {
-        // Data URL format
         const parts = invoiceData.split(',');
         base64Data = parts[1];
         mimeType = parts[0].split(';')[0].split(':')[1];
       } else if (invoiceData.startsWith('http')) {
-        // URL - need to fetch it
         fetchAndDownload(invoiceData, finalFileName);
         return;
       } else {
-        // Assume it's base64
         base64Data = invoiceData;
       }
     } else if (invoiceData instanceof Blob) {
-      // Blob object
       const reader = new FileReader();
       reader.onload = function(event: ProgressEvent<FileReader>): void {
         const result = event.target?.result as string;
@@ -73,7 +67,6 @@ function downloadInvoiceFlutter(invoiceData: InvoiceDataInput, fileName: string 
       reader.readAsDataURL(invoiceData);
       return;
     } else if (invoiceData instanceof ArrayBuffer) {
-      // ArrayBuffer
       const blob = new Blob([invoiceData], { type: mimeType });
       const reader = new FileReader();
       reader.onload = function(event: ProgressEvent<FileReader>): void {
@@ -84,12 +77,11 @@ function downloadInvoiceFlutter(invoiceData: InvoiceDataInput, fileName: string 
       reader.readAsDataURL(blob);
       return;
     }
-    
+
     sendToFlutter(base64Data, finalFileName, mimeType);
     
   } catch (error) {
     console.error('❌ Error in Flutter download:', error);
-    // Fallback to regular download
     downloadInvoiceRegular(invoiceData, fileName);
   }
 }
@@ -100,7 +92,7 @@ async function fetchAndDownload(url: string, fileName: string): Promise<void> {
     console.log('🌐 Fetching URL:', url);
     const response = await fetch(url);
     const blob = await response.blob();
-    
+
     const reader = new FileReader();
     reader.onload = function(event: ProgressEvent<FileReader>): void {
       const result = event.target?.result as string;
@@ -108,10 +100,9 @@ async function fetchAndDownload(url: string, fileName: string): Promise<void> {
       sendToFlutter(base64Data, fileName, blob.type);
     };
     reader.readAsDataURL(blob);
-    
+
   } catch (error) {
     console.error('❌ Error fetching URL:', error);
-    // Try regular download as fallback
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
@@ -119,50 +110,46 @@ async function fetchAndDownload(url: string, fileName: string): Promise<void> {
   }
 }
 
-// Send data to Flutter
+// ✅ UPDATED FUNCTION — Send data as expected by Android WebView
 function sendToFlutter(base64Data: string, fileName: string, mimeType: string): void {
-  const message: FlutterMessage = {
-    base64: base64Data,
-    fileName: fileName,
+  const dataUrl = `data:${mimeType};base64,${base64Data}`;
+  const message = {
+    url: dataUrl, // ✅ Kotlin expects "url"
+    filename: fileName,
     mimeType: mimeType
   };
-  
-  console.log('📤 Sending to Flutter:', {
-    fileName: fileName,
-    mimeType: mimeType,
+
+  console.log('📤 Sending to Flutter/Android WebView:', {
+    ...message,
     dataSize: base64Data.length
   });
-  
-  // Try both channels for better compatibility
+
   if (window.Downloader) {
     window.Downloader.postMessage(JSON.stringify(message));
   }
   if (window.FlutterDownload) {
     window.FlutterDownload.postMessage(JSON.stringify(message));
   }
-  
-  console.log('✅ Download request sent to Flutter');
+
+  console.log('✅ Download request sent to WebView');
 }
 
 // Regular download fallback for web browsers
 function downloadInvoiceRegular(invoiceData: InvoiceDataInput, fileName: string | null = null): void {
   console.log('🌐 Using regular browser download');
-  
+
   const finalFileName: string = fileName || `invoice_${Date.now()}.pdf`;
-  
+
   if (typeof invoiceData === 'string' && invoiceData.startsWith('http')) {
-    // URL download
     const link = document.createElement('a');
     link.href = invoiceData;
     link.download = finalFileName;
     link.click();
   } else {
-    // Data download
     let blob: Blob;
     if (invoiceData instanceof Blob) {
       blob = invoiceData;
     } else if (typeof invoiceData === 'string') {
-      // Assume base64
       const binaryString = atob(invoiceData);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
@@ -170,10 +157,9 @@ function downloadInvoiceRegular(invoiceData: InvoiceDataInput, fileName: string 
       }
       blob = new Blob([bytes], { type: 'application/pdf' });
     } else {
-      // ArrayBuffer
       blob = new Blob([invoiceData], { type: 'application/pdf' });
     }
-    
+
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -183,10 +169,9 @@ function downloadInvoiceRegular(invoiceData: InvoiceDataInput, fileName: string 
   }
 }
 
-// Main download function - automatically detects environment
 function downloadInvoice(invoiceData: InvoiceDataInput, fileName: string | null = null): void {
   console.log('📥 Download request received:', { fileName, isFlutterWebView: isFlutterWebView() });
-  
+
   if (isFlutterWebView()) {
     downloadInvoiceFlutter(invoiceData, fileName);
   } else {
@@ -194,31 +179,24 @@ function downloadInvoice(invoiceData: InvoiceDataInput, fileName: string | null 
   }
 }
 
-// Example usage functions for different scenarios:
+// Example usage functions
 
-// 1. Download PDF from base64 data
 function downloadPDFFromBase64(base64String: string, fileName: string = 'invoice.pdf'): void {
   downloadInvoice(base64String, fileName);
 }
 
-// 2. Download from URL
 function downloadFromURL(url: string, fileName: string = 'invoice.pdf'): void {
   downloadInvoice(url, fileName);
 }
 
-// 3. Download from Blob
 function downloadFromBlob(blob: Blob, fileName: string = 'invoice.pdf'): void {
   downloadInvoice(blob, fileName);
 }
 
-// Alias for backward compatibility
 const downloadBlob = downloadFromBlob;
 
-// 4. Generate and download invoice (example with jsPDF)
 function generateAndDownloadInvoice(invoiceData: InvoiceData): void {
-  // This is an example - replace with your actual PDF generation logic
   try {
-    // If using jsPDF
     if (typeof (window as any).jsPDF !== 'undefined') {
       const jsPDF = (window as any).jsPDF;
       const doc = new jsPDF();
@@ -226,7 +204,7 @@ function generateAndDownloadInvoice(invoiceData: InvoiceData): void {
       doc.text(`Invoice #: ${invoiceData.invoiceNumber}`, 20, 30);
       doc.text(`Date: ${invoiceData.date}`, 20, 40);
       doc.text(`Amount: ${invoiceData.amount}`, 20, 50);
-      
+
       const pdfBlob: Blob = doc.output('blob');
       downloadInvoice(pdfBlob, `invoice_${invoiceData.invoiceNumber}.pdf`);
     } else {
@@ -237,42 +215,40 @@ function generateAndDownloadInvoice(invoiceData: InvoiceData): void {
   }
 }
 
-// Override existing download buttons to use the new system
+// Hook for invoice buttons
 document.addEventListener('DOMContentLoaded', function(): void {
   console.log('🔧 Setting up download interceptors...');
-  
-  // Find and override existing download buttons
+
   const downloadButtons = document.querySelectorAll('[data-download], .download-btn, .invoice-download');
-  
+
   downloadButtons.forEach((button: Element) => {
     button.addEventListener('click', function(this: HTMLElement, e: Event): void {
       e.preventDefault();
-      
-      // Get download URL or data from button attributes
+
       const downloadUrl = this.getAttribute('data-url') || (this as HTMLAnchorElement).href;
       const fileName = this.getAttribute('data-filename') || 'invoice.pdf';
-      
+
       if (downloadUrl) {
         downloadInvoice(downloadUrl, fileName);
       }
     });
   });
-  
+
   console.log(`✅ Set up ${downloadButtons.length} download interceptors`);
 });
 
-// Export functions for use in other modules
-export { 
-  downloadInvoice, 
-  downloadPDFFromBase64, 
-  downloadFromURL, 
+// Export functions
+export {
+  downloadInvoice,
+  downloadPDFFromBase64,
+  downloadFromURL,
   downloadFromBlob,
-  downloadBlob, // Alias for backward compatibility
+  downloadBlob,
   generateAndDownloadInvoice,
   isFlutterWebView
 };
 
-// Global function to trigger download from anywhere in your code
+// Global access
 (window as any).downloadInvoice = downloadInvoice;
 (window as any).downloadPDFFromBase64 = downloadPDFFromBase64;
 (window as any).downloadFromURL = downloadFromURL;
