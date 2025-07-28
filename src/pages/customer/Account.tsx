@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -36,7 +35,7 @@ const profileFormSchema = z.object({
 });
 
 const Account = () => {
-  const { user, updateUser } = useAuth(); // updateUser is now in the context
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -61,6 +60,7 @@ const Account = () => {
   const onSubmit = async (values: z.infer<typeof profileFormSchema>) => {
     setLoading(true);
     try {
+      // Update user metadata (firstName, lastName, phone, address)
       const { error } = await supabase.auth.updateUser({
         data: {
           firstName: values.firstName,
@@ -68,7 +68,6 @@ const Account = () => {
           phone: values.phone,
           address: values.address,
         },
-        email: values.email,
       });
 
       if (error) {
@@ -78,12 +77,10 @@ const Account = () => {
           variant: "destructive",
         });
       } else {
-        await updateUser(); // Refresh user data
-        toast({
-          title: "Profile updated successfully!",
-        });
+        await updateUser(); // Refresh user context with latest data
+        toast({ title: "Profile updated successfully!" });
       }
-    } catch (error) {
+    } catch (err) {
       toast({
         title: "Something went wrong.",
         description: "Please try again later.",
@@ -107,7 +104,6 @@ const Account = () => {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {/* First Name */}
               <FormField
                 control={form.control}
                 name="firstName"
@@ -121,7 +117,6 @@ const Account = () => {
                   </FormItem>
                 )}
               />
-              {/* Last Name */}
               <FormField
                 control={form.control}
                 name="lastName"
@@ -135,7 +130,6 @@ const Account = () => {
                   </FormItem>
                 )}
               />
-              {/* Email */}
               <FormField
                 control={form.control}
                 name="email"
@@ -143,13 +137,12 @@ const Account = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="johndoe@example.com" {...field} />
+                      <Input placeholder="johndoe@example.com" {...field} disabled />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              {/* Phone */}
               <FormField
                 control={form.control}
                 name="phone"
@@ -163,7 +156,6 @@ const Account = () => {
                   </FormItem>
                 )}
               />
-              {/* Address */}
               <FormField
                 control={form.control}
                 name="address"
@@ -197,8 +189,8 @@ const Account = () => {
           <p className="text-gray-600 mb-4">
             Manage your saved addresses for faster checkout
           </p>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => navigate("/address-book")}
             className="flex items-center gap-2"
           >
