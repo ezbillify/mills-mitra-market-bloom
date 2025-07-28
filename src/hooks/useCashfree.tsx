@@ -43,17 +43,19 @@ export const useCashfree = () => {
     setLoading(true);
 
     try {
+      const trimmedPhone = options.customerInfo.phone?.trim();
+
       console.log('🔵 Initiating Cashfree payment with options:', {
         amount: options.amount,
         orderId: options.orderId,
         customerInfo: {
           name: options.customerInfo.name,
           email: options.customerInfo.email,
-          phone: options.customerInfo.phone ? '***' : 'missing'
-        }
+          phone: trimmedPhone ? '***' : 'missing',
+        },
       });
 
-      // Validate required fields
+      // ✅ Basic validations
       if (!options.amount || options.amount <= 0) {
         throw new Error('Invalid amount');
       }
@@ -66,11 +68,17 @@ export const useCashfree = () => {
         throw new Error('Customer name and email are required');
       }
 
-      if (!options.customerInfo.phone) {
-        throw new Error('Customer phone number is required');
+      if (!trimmedPhone || trimmedPhone.length < 10) {
+        throw new Error('Phone number is required for online payment');
       }
 
-      // Load Cashfree script
+      // Optional: Regex-based mobile number check (you can enable this)
+      // const phoneRegex = /^[6-9]\d{9}$/;
+      // if (!phoneRegex.test(trimmedPhone)) {
+      //   throw new Error('Please enter a valid 10-digit Indian phone number');
+      // }
+
+      // ✅ Load Cashfree script
       console.log('📜 Loading Cashfree script...');
       const scriptLoaded = await loadCashfreeScript();
       if (!scriptLoaded) {
@@ -78,14 +86,17 @@ export const useCashfree = () => {
       }
       console.log('✅ Cashfree script loaded successfully');
 
-      // Create Cashfree order via edge function
+      // ✅ Call edge function to create payment order
       console.log('📤 Calling cashfree-payment edge function...');
       const { data, error } = await supabase.functions.invoke('cashfree-payment', {
         body: {
           amount: options.amount,
           currency: 'INR',
           orderId: options.orderId,
-          customerInfo: options.customerInfo,
+          customerInfo: {
+            ...options.customerInfo,
+            phone: trimmedPhone, // ensure clean data
+          },
         },
       });
 
@@ -101,14 +112,7 @@ export const useCashfree = () => {
         throw new Error(data?.error || 'Failed to create payment order');
       }
 
-      console.log('✅ Payment order created successfully:', {
-        cfOrderId: data.cfOrderId,
-        paymentSessionId: data.paymentSessionId,
-        amount: data.amount,
-        currency: data.currency
-      });
-
-      // Fix z-index conflicts (the original working fix)
+      // ✅ Fix z-index conflicts (Cashfree modal display)
       document.querySelectorAll('*').forEach(el => {
         const zIndex = window.getComputedStyle(el).zIndex;
         if (parseInt(zIndex) > 9999) {
@@ -116,9 +120,8 @@ export const useCashfree = () => {
         }
       });
 
-      // Initialize Cashfree checkout
       const cashfree = window.Cashfree({
-        mode: data.environment || 'production'
+        mode: data.environment || 'production',
       });
 
       const checkoutOptions = {
@@ -143,10 +146,9 @@ export const useCashfree = () => {
           try {
             console.log('💳 Payment completed, verifying...', {
               orderId: result.paymentDetails.orderId,
-              paymentId: result.paymentDetails.paymentId
+              paymentId: result.paymentDetails.paymentId,
             });
 
-            // Verify payment via edge function
             const { data: verifyData, error: verifyError } = await supabase.functions.invoke('cashfree-verify', {
               body: {
                 cfOrderId: result.paymentDetails.orderId,
