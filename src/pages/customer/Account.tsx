@@ -3,7 +3,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, ArrowRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -20,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 
+// ✅ Updated validation schema with required phone number
 const profileFormSchema = z.object({
   firstName: z.string().min(2, {
     message: "First name must be at least 2 characters.",
@@ -32,16 +32,12 @@ const profileFormSchema = z.object({
   }),
   phone: z
     .string()
-    .optional()
-    .min(10, "Phone number is required")
-    .transform((val) => val?.trim() || "")
-    .refine(
-      (val) => val === "" || /^[6-9]\d{9}$/.test(val),
-      "Phone number must be a valid 10-digit Indian number"
-    ),
+    .min(10, { message: "Phone number must be at least 10 digits." })
+    .regex(/^[0-9]{10,15}$/, {
+      message: "Phone number must be digits only (10–15 digits).",
+    }),
   address: z.string().optional(),
 });
-
 
 const Account = () => {
   const { user, updateUser } = useAuth();
@@ -60,11 +56,10 @@ const Account = () => {
     mode: "onChange",
   });
 
-  // ✅ Redirect to login if not signed in
+  // ✅ Wait until user is fetched
   useEffect(() => {
-    if (!user) {
-      navigate("/login");
-    }
+    if (user === null) return; // Still loading auth
+    if (!user) navigate("/login");
   }, [user, navigate]);
 
   // ✅ Populate form with Supabase metadata once user is ready
@@ -87,8 +82,8 @@ const Account = () => {
         data: {
           first_name: values.firstName,
           last_name: values.lastName,
-          phone: values.phone || "",     // ✅ ensure phone is never undefined
-          address: values.address || "", // ✅ ensure address is never undefined
+          phone: values.phone,
+          address: values.address,
         },
       });
 
@@ -113,7 +108,8 @@ const Account = () => {
     }
   };
 
-  if (!user) return null;
+  // ✅ Show nothing until user is resolved
+  if (user === undefined) return null;
 
   return (
     <div className="container mx-auto py-10 space-y-6">
@@ -174,7 +170,7 @@ const Account = () => {
                   <FormItem>
                     <FormLabel>Phone Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="123-456-7890" {...field} />
+                      <Input placeholder="1234567890" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
