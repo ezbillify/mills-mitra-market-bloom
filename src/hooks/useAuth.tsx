@@ -185,9 +185,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const updateUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session }, error } = await supabase.auth.getSession();
+
+    if (error) {
+      console.error("❌ Error refreshing session:", error.message);
+    }
+
     setSession(session);
     setUser(session?.user ?? null);
+
+    // ✅ Optional: Log metadata in dev
+    if (process.env.NODE_ENV === "development") {
+      console.log("🔁 Updated user session:", session);
+      console.log("📦 Metadata:", session?.user?.user_metadata);
+    }
   };
 
   const updateUserProfile = async ({
@@ -204,33 +215,33 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     email?: string;
   }) => {
     try {
-      // 1. Update user_metadata
+      // 1. Update auth metadata
       const { error: authError } = await supabase.auth.updateUser({
         data: {
           first_name: firstName,
           last_name: lastName,
-          phone,
-          address,
+          phone: phone || "",       // ✅ Ensure phone is never undefined
+          address: address || "",
         },
         email,
       });
 
       if (authError) throw authError;
 
-      // 2. Update profiles table
+      // 2. Update database profile
       const { error: dbError } = await supabase
         .from('profiles')
         .update({
           first_name: firstName,
           last_name: lastName,
-          phone,
-          address,
+          phone: phone || "",       // ✅ Ensure not undefined
+          address: address || "",
         })
         .eq('id', user?.id);
 
       if (dbError) throw dbError;
 
-      await updateUser(); // Refresh user state
+      await updateUser(); // ✅ Refresh session with updated metadata
 
       toast({
         title: "Profile updated successfully",
