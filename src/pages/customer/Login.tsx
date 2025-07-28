@@ -54,27 +54,49 @@ const Login = () => {
 
   // ✅ Check for auth fragment when redirected back
   useEffect(() => {
-    const hash = window.location.hash;
-    if (navigator.userAgent.includes("Android") && hash.includes("access_token")) {
-      const hashParams = new URLSearchParams(hash.slice(1));
-      const access_token = hashParams.get("access_token");
-      const refresh_token = hashParams.get("refresh_token");
+  const hash = window.location.hash;
+  if (navigator.userAgent.includes("Android") && hash.includes("access_token")) {
+    const hashParams = new URLSearchParams(hash.slice(1));
+    const access_token = hashParams.get("access_token");
+    const refresh_token = hashParams.get("refresh_token");
+
+    if (access_token && refresh_token) {
+      supabase.auth.setSession({ access_token, refresh_token }).then(({ data, error }) => {
+        if (error) {
+          console.error("❌ Error setting session from redirect:", error);
+        } else {
+          window.dispatchEvent(new Event("SIGNED_IN"));
+          navigate("/account"); // ✅ You can redirect to /account or /#
+        }
+      });
+    }
+  }
+
+  // ✅ Handle injected session from MainActivity
+  const listener = (event: any) => {
+    const fragment = event.detail;
+    if (fragment && fragment.includes("access_token")) {
+      const params = new URLSearchParams(fragment.slice(1));
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
 
       if (access_token && refresh_token) {
-        supabase.auth
-          .setSession({ access_token, refresh_token })
-          .then(({ data, error }) => {
-            if (error) {
-              console.error("❌ Error setting session from redirect:", error);
-            } else {
-              // Optional: Dispatch sign-in event to refresh auth context
-              window.dispatchEvent(new Event("SIGNED_IN"));
-              navigate("/#"); // ✅ Redirect to home (or /account)
-            }
-          });
+        supabase.auth.setSession({ access_token, refresh_token }).then(({ data, error }) => {
+          if (error) {
+            console.error("❌ Error setting session via JS event:", error);
+          } else {
+            window.dispatchEvent(new Event("SIGNED_IN"));
+            navigate("/account"); // ✅ Auto-login redirect
+          }
+        });
       }
-    }    
-  }, []);
+    }
+  };
+
+  window.addEventListener("supabase-android-auth", listener);
+  return () => window.removeEventListener("supabase-android-auth", listener);
+}, []);
+
 
   // ✅ If already signed in, redirect based on role
   if (user) {
