@@ -39,32 +39,45 @@ const Account = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
+  const form = useForm<z.infer<typeof profileFormSchema>>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      address: "",
+    },
+    mode: "onChange",
+  });
+
+  // ✅ Redirect to login if not signed in
   useEffect(() => {
     if (!user) {
       navigate("/login");
     }
   }, [user, navigate]);
 
-  const form = useForm<z.infer<typeof profileFormSchema>>({
-    resolver: zodResolver(profileFormSchema),
-    defaultValues: {
-      firstName: user?.user_metadata?.firstName || "",
-      lastName: user?.user_metadata?.lastName || "",
-      email: user?.email || "",
-      phone: user?.user_metadata?.phone || "",
-      address: user?.user_metadata?.address || "",
-    },
-    mode: "onChange",
-  });
+  // ✅ Populate form with Supabase metadata once user is ready
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        firstName: user.user_metadata?.first_name || "",
+        lastName: user.user_metadata?.last_name || "",
+        email: user.email || "",
+        phone: user.user_metadata?.phone || "",
+        address: user.user_metadata?.address || "",
+      });
+    }
+  }, [user, form]);
 
   const onSubmit = async (values: z.infer<typeof profileFormSchema>) => {
     setLoading(true);
     try {
-      // Update user metadata (firstName, lastName, phone, address)
       const { error } = await supabase.auth.updateUser({
         data: {
-          firstName: values.firstName,
-          lastName: values.lastName,
+          first_name: values.firstName,
+          last_name: values.lastName,
           phone: values.phone,
           address: values.address,
         },
@@ -77,7 +90,7 @@ const Account = () => {
           variant: "destructive",
         });
       } else {
-        await updateUser(); // Refresh user context with latest data
+        await updateUser(); // Refresh user data from Supabase
         toast({ title: "Profile updated successfully!" });
       }
     } catch (err) {
@@ -91,9 +104,7 @@ const Account = () => {
     }
   };
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <div className="container mx-auto py-10 space-y-6">
@@ -137,7 +148,11 @@ const Account = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="johndoe@example.com" {...field} disabled />
+                      <Input
+                        placeholder="johndoe@example.com"
+                        {...field}
+                        disabled
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
