@@ -52,18 +52,6 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ Detect Android WebView and redirect only if not coming from callback
-  useEffect(() => {
-    const isAndroidWebView =
-      /Android/i.test(navigator.userAgent) &&
-      /wv/.test(navigator.userAgent) &&
-      !location.pathname.includes("callback");
-
-    if (isAndroidWebView) {
-      window.location.href = "supabase-login://google"; // Trigger Chrome Custom Tab
-    }
-  }, [location]);
-
   // ✅ Check for auth fragment when redirected back
   useEffect(() => {
     const hash = window.location.hash;
@@ -120,11 +108,20 @@ const Login = () => {
     setLoading(false);
   };
 
+  // ✅ Updated Google Sign-In: only trigger Chrome Custom Tab if Android WebView
   const handleGoogleSignIn = async () => {
+    const isAndroidWebView =
+      /Android/i.test(navigator.userAgent) && /wv/.test(navigator.userAgent);
+
     setLoading(true);
     try {
-      console.log("🔍 Attempting Google sign in...");
-      await signInWithGoogle();
+      if (isAndroidWebView) {
+        console.log("🔁 Redirecting to Chrome Custom Tab...");
+        window.location.href = "supabase-login://google";
+      } else {
+        console.log("🌐 Regular browser login...");
+        await signInWithGoogle();
+      }
     } catch (error) {
       console.error("❌ Google sign in error:", error);
       toast({
