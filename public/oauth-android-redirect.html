@@ -1,13 +1,29 @@
 <!DOCTYPE html>
 <html>
-  <head><title>Redirecting...</title></head>
-  <body>
+  <head>
+    <title>Redirecting...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
-      if (navigator.userAgent.includes("Android")) {
-        // Redirect to your app using the deep link and hash
+      (function () {
+        // Dispatch the event for Android app WebView
         const hash = window.location.hash;
-        window.location.href = "com.ezbillify.millsmitra://oauth2redirect" + hash;
-      }
+
+        // Notify the WebView inside the Android app (optional)
+        window.dispatchEvent(new CustomEvent("supabase-android-auth", { detail: hash }));
+
+        // Also notify native Android if Chrome Custom Tab was used
+        if (window.AndroidOAuthRedirect) {
+          window.AndroidOAuthRedirect.onRedirect(hash);
+        }
+
+        // Finally redirect to the home page after brief delay
+        setTimeout(() => {
+          window.location.replace("https://www.millsmitra.com/#");
+        }, 500); // small delay for event to dispatch
+      })();
     </script>
+  </head>
+  <body>
+    <p>Redirecting back to Mills Mitra...</p>
   </body>
 </html>
