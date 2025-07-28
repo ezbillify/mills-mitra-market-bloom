@@ -78,8 +78,8 @@ const Account = () => {
         data: {
           first_name: values.firstName,
           last_name: values.lastName,
-          phone: values.phone,
-          address: values.address,
+          phone: values.phone || "",     // ✅ ensure phone is never undefined
+          address: values.address || "", // ✅ ensure address is never undefined
         },
       });
 
