@@ -12,6 +12,15 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   updateUser: () => Promise<void>;
+  updateUserProfile: (
+    data: {
+      firstName: string;
+      lastName: string;
+      phone?: string;
+      address?: string;
+      email?: string;
+    }
+  ) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -23,6 +32,7 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   signInWithGoogle: async () => {},
   updateUser: async () => {},
+  updateUserProfile: async () => {},
 });
 
 export const useAuth = () => {
@@ -44,21 +54,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log('🔐 Setting up auth state listener...');
-    
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔄 Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Handle profile creation for new users
         if (event === 'SIGNED_IN' && session?.user) {
-          console.log('👤 User signed in, ensuring profile exists...');
-          
-          // Give the database trigger a moment to create the profile
+          // Ensure profile exists
           setTimeout(async () => {
             try {
               const { data: profile, error } = await supabase
@@ -68,9 +71,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 .single();
 
               if (error && error.code === 'PGRST116') {
-                console.log('📝 Profile not found, creating manually...');
-                // Create profile manually if trigger failed
-                const { error: insertError } = await supabase
+                await supabase
                   .from('profiles')
                   .insert({
                     id: session.user.id,
@@ -78,68 +79,55 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                     first_name: session.user.user_metadata?.first_name || '',
                     last_name: session.user.user_metadata?.last_name || '',
                   });
-
-                if (insertError) {
-                  console.error('❌ Error creating profile manually:', insertError);
-                } else {
-                  console.log('✅ Profile created manually');
-                }
-              } else if (profile) {
-                console.log('✅ Profile already exists:', profile);
               }
             } catch (error) {
-              console.error('❌ Error checking/creating profile:', error);
+              console.error('❌ Error ensuring profile:', error);
             }
           }, 1000);
         }
       }
     );
 
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('🔍 Initial session check:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
     return () => {
-      console.log('🧹 Cleaning up auth subscription...');
       subscription.unsubscribe();
     };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    console.log('🔑 Attempting sign in for:', email);
-    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
-      console.error('❌ Sign in error:', error);
       toast({
         title: "Sign in failed",
         description: error.message,
         variant: "destructive",
       });
     } else {
-      console.log('✅ Sign in successful');
       toast({
-        title: "Success",
-        description: "Signed in successfully",
+        title: "Signed in successfully",
       });
     }
 
     return { error };
   };
 
-  const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
-    console.log('📝 Attempting sign up for:', email);
-    
+  const signUp = async (
+    email: string,
+    password: string,
+    firstName?: string,
+    lastName?: string
+  ) => {
     const redirectUrl = `${window.location.origin}/`;
-    
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -153,50 +141,33 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     });
 
     if (error) {
-      console.error('❌ Sign up error:', error);
       toast({
         title: "Sign up failed",
         description: error.message,
         variant: "destructive",
       });
     } else {
-      console.log('✅ Sign up successful', data);
-      // With email confirmation disabled, user should be immediately signed in
-      if (data.user && !data.user.email_confirmed_at) {
-        toast({
-          title: "Success!",
-          description: "Account created successfully! You are now signed in.",
-        });
-      } else {
-        toast({
-          title: "Success!",
-          description: "Account created successfully! You are now signed in.",
-        });
-      }
+      toast({
+        title: "Account created",
+        description: "You are now signed in.",
+      });
     }
 
     return { error };
   };
 
   const signOut = async () => {
-    console.log('🚪 Signing out...');
-    
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error('❌ Sign out error:', error);
       toast({
         title: "Sign out failed",
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      console.log('✅ Sign out successful');
     }
   };
 
   const signInWithGoogle = async () => {
-    console.log('🔍 Attempting Google sign in...');
-    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -205,7 +176,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     });
 
     if (error) {
-      console.error('❌ Google sign in error:', error);
       toast({
         title: "Google sign in failed",
         description: error.message,
@@ -215,10 +185,63 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const updateUser = async () => {
-    // This function will refetch the user/session info from supabase
     const { data: { session } } = await supabase.auth.getSession();
     setSession(session);
     setUser(session?.user ?? null);
+  };
+
+  const updateUserProfile = async ({
+    firstName,
+    lastName,
+    phone,
+    address,
+    email,
+  }: {
+    firstName: string;
+    lastName: string;
+    phone?: string;
+    address?: string;
+    email?: string;
+  }) => {
+    try {
+      // 1. Update user_metadata
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          phone,
+          address,
+        },
+        email,
+      });
+
+      if (authError) throw authError;
+
+      // 2. Update profiles table
+      const { error: dbError } = await supabase
+        .from('profiles')
+        .update({
+          first_name: firstName,
+          last_name: lastName,
+          phone,
+          address,
+        })
+        .eq('id', user?.id);
+
+      if (dbError) throw dbError;
+
+      await updateUser(); // Refresh user state
+
+      toast({
+        title: "Profile updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to update profile",
+        description: error?.message || "Something went wrong",
+        variant: "destructive",
+      });
+    }
   };
 
   const value = {
@@ -230,11 +253,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signOut,
     signInWithGoogle,
     updateUser,
+    updateUserProfile,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
