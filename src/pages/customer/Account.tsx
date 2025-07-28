@@ -30,9 +30,18 @@ const profileFormSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address.",
   }),
-  phone: z.string().optional(),
+  phone: z
+    .string()
+    .optional()
+    .min(10, "Phone number is required")
+    .transform((val) => val?.trim() || "")
+    .refine(
+      (val) => val === "" || /^[6-9]\d{9}$/.test(val),
+      "Phone number must be a valid 10-digit Indian number"
+    ),
   address: z.string().optional(),
 });
+
 
 const Account = () => {
   const { user, updateUser } = useAuth();
