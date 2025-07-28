@@ -55,16 +55,25 @@ const Login = () => {
   // ✅ Check for auth fragment when redirected back
   useEffect(() => {
     const hash = window.location.hash;
-    if (hash && hash.includes("access_token")) {
-      supabase.auth
-        .getSession()
-        .then(({ data }) => {
-          if (data.session) {
-            navigate("/");
-          }
-        })
-        .catch(console.error);
-    }
+    if (navigator.userAgent.includes("Android") && hash.includes("access_token")) {
+      const hashParams = new URLSearchParams(hash.slice(1));
+      const access_token = hashParams.get("access_token");
+      const refresh_token = hashParams.get("refresh_token");
+
+      if (access_token && refresh_token) {
+        supabase.auth
+          .setSession({ access_token, refresh_token })
+          .then(({ data, error }) => {
+            if (error) {
+              console.error("❌ Error setting session from redirect:", error);
+            } else {
+              // Optional: Dispatch sign-in event to refresh auth context
+              window.dispatchEvent(new Event("SIGNED_IN"));
+              navigate("/#"); // ✅ Redirect to home (or /account)
+            }
+          });
+      }
+    }    
   }, []);
 
   // ✅ If already signed in, redirect based on role
