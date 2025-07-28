@@ -1,23 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Redirecting...</title>
-  </head>
+<html>
+  <head><title>Redirecting...</title></head>
   <body>
-    <h3>Redirecting back to the app...</h3>
-
     <script>
-      // Extract the fragment part from the URL
-      const fragment = window.location.hash;
-
-      if (fragment) {
-        // Construct the deep link back to the app with the auth fragment
-        const androidRedirectUrl = `com.ezbillify.millsmitra://oauth2redirect${fragment}`;
-        window.location.href = androidRedirectUrl;
-      } else {
-        document.body.innerHTML = "<h3>Failed to redirect: No session found.</h3>";
+      if (navigator.userAgent.includes("Android")) {
+        // Redirect to your app using the deep link and hash
+        const hash = window.location.hash;
+        window.location.href = "com.ezbillify.millsmitra://oauth2redirect" + hash;
       }
     </script>
   </body>
