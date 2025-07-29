@@ -42,8 +42,8 @@ serve(async (req) => {
       ? 'https://sandbox.cashfree.com/pg'
       : 'https://api.cashfree.com/pg'
 
-    // Verify payment with Cashfree
-    const paymentResponse = await fetch(`${baseUrl}/orders/${cfOrderId}/payments/${paymentId}`, {
+    // Verify payment with Cashfree - get latest payment for this order
+    const paymentResponse = await fetch(`${baseUrl}/orders/${cfOrderId}/payments`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -63,7 +63,15 @@ serve(async (req) => {
       throw new Error(`Payment verification failed: ${paymentResponse.status}`)
     }
 
-    const paymentData = await paymentResponse.json()
+    const paymentsData = await paymentResponse.json()
+
+    if (!paymentsData || !paymentsData.length) {
+      throw new Error('No payments found for this order')
+    }
+
+    // Get the latest payment (should be the successful one)
+    const paymentData = paymentsData[paymentsData.length - 1]
+    const actualPaymentId = paymentData.cf_payment_id || paymentData.payment_id
 
     if (!paymentData) {
       throw new Error('Invalid payment verification response')
@@ -90,7 +98,7 @@ serve(async (req) => {
       .from('orders')
       .update({
         status: 'accepted',
-        payment_id: paymentId,
+        payment_id: actualPaymentId,
         cashfree_order_id: cfOrderId,
         payment_status: 'completed',
         payment_verified_at: new Date().toISOString(),
@@ -113,7 +121,7 @@ serve(async (req) => {
         amount: paymentData.payment_amount,
         orderId: orderId,
         cfOrderId: cfOrderId,
-        paymentId: paymentId
+        paymentId: actualPaymentId
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

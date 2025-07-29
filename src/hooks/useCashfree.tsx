@@ -148,40 +148,14 @@ export const useCashfree = () => {
             console.log('💳 All available fields in paymentDetails:', Object.keys(result.paymentDetails));
             console.log('💳 Complete paymentDetails object:', JSON.stringify(result.paymentDetails, null, 2));
 
-            // Extract payment details - handle different possible field names  
-            const paymentId = result.paymentDetails.paymentId || 
-                             result.paymentDetails.payment_id || 
-                             result.paymentDetails.cf_payment_id ||
-                             result.paymentDetails.id;
-            const cfOrderId = result.paymentDetails.orderId || 
-                             result.paymentDetails.cf_order_id || 
-                             result.paymentDetails.order_id || 
-                             cashfreeOrderId;
-
-            console.log('🔍 Extracted payment info:', {
-              paymentId,
-              cfOrderId,
-              originalOrderId: options.orderId
-            });
-
-            if (!paymentId) {
-              throw new Error('Payment ID not found in response');
-            }
-
-            if (!cfOrderId) {
-              throw new Error('Cashfree Order ID not found in response');
-            }
-
-            console.log('🔍 Sending to verify function:', {
-              cfOrderId: cfOrderId,
-              paymentId: paymentId,
-              orderId: options.orderId,
-            });
+            // Cashfree modal checkout doesn't return payment ID in frontend
+            // We'll use the cfOrderId to verify and get payment details from their API
+            console.log('🔍 Using cfOrderId for verification:', cashfreeOrderId);
 
             const { data: verifyData, error: verifyError } = await supabase.functions.invoke('cashfree-verify', {
               body: {
-                cfOrderId: cfOrderId,
-                paymentId: paymentId,
+                cfOrderId: cashfreeOrderId,
+                paymentId: cashfreeOrderId, // Use cfOrderId as paymentId placeholder
                 orderId: options.orderId,
               },
             });
@@ -199,7 +173,9 @@ export const useCashfree = () => {
               description: 'Your order has been confirmed.',
             });
 
-            options.onSuccess(paymentId);
+            // Use the actual payment ID from verification response if available
+            const actualPaymentId = verifyData.paymentId || cashfreeOrderId;
+            options.onSuccess(actualPaymentId);
           } catch (error) {
             console.error('❌ Payment verification error:', error);
             toast({
