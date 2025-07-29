@@ -145,10 +145,18 @@ export const useCashfree = () => {
         if (result.paymentDetails) {
           try {
             console.log('💳 Payment completed, raw payment details:', result.paymentDetails);
+            console.log('💳 All available fields in paymentDetails:', Object.keys(result.paymentDetails));
+            console.log('💳 Complete paymentDetails object:', JSON.stringify(result.paymentDetails, null, 2));
 
-            // Extract payment details - handle different possible field names
-            const paymentId = result.paymentDetails.paymentId || result.paymentDetails.payment_id;
-            const cfOrderId = result.paymentDetails.orderId || result.paymentDetails.cf_order_id || cashfreeOrderId;
+            // Extract payment details - handle different possible field names  
+            const paymentId = result.paymentDetails.paymentId || 
+                             result.paymentDetails.payment_id || 
+                             result.paymentDetails.cf_payment_id ||
+                             result.paymentDetails.id;
+            const cfOrderId = result.paymentDetails.orderId || 
+                             result.paymentDetails.cf_order_id || 
+                             result.paymentDetails.order_id || 
+                             cashfreeOrderId;
 
             console.log('🔍 Extracted payment info:', {
               paymentId,
