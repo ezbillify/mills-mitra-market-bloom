@@ -18,13 +18,13 @@ serve(async (req) => {
     const { cfOrderId, paymentId, orderId } = await req.json()
 
     // Validate required fields
-    if (!cfOrderId || !paymentId || !orderId) {
+    if (!cfOrderId || !orderId) {
       throw new Error('Missing required fields for payment verification')
     }
 
     console.log('🔍 Verifying Cashfree payment:', {
       cfOrderId,
-      paymentId,
+      paymentId: paymentId ? paymentId.substring(0, 8) : 'not provided',
       orderId: orderId.substring(0, 8)
     })
 
@@ -42,8 +42,9 @@ serve(async (req) => {
       ? 'https://sandbox.cashfree.com/pg'
       : 'https://api.cashfree.com/pg'
 
-    // Verify payment with Cashfree - get latest payment for this order
-    const paymentResponse = await fetch(`${baseUrl}/orders/${cfOrderId}/payments`, {
+    // Get order status from Cashfree (this includes payment info)
+    console.log('🔍 Fetching order status from Cashfree...')
+    const orderResponse = await fetch(`${baseUrl}/orders/${cfOrderId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -53,45 +54,40 @@ serve(async (req) => {
       }
     })
 
-    if (!paymentResponse.ok) {
-      const errorText = await paymentResponse.text()
-      console.error('❌ Cashfree payment verification error:', {
-        status: paymentResponse.status,
-        statusText: paymentResponse.statusText,
+    if (!orderResponse.ok) {
+      const errorText = await orderResponse.text()
+      console.error('❌ Cashfree order status error:', {
+        status: orderResponse.status,
+        statusText: orderResponse.statusText,
         body: errorText
       })
-      throw new Error(`Payment verification failed: ${paymentResponse.status}`)
+      throw new Error(`Order verification failed: ${orderResponse.status}`)
     }
 
-    const paymentsData = await paymentResponse.json()
+    const orderData = await orderResponse.json()
 
-    if (!paymentsData || !paymentsData.length) {
-      throw new Error('No payments found for this order')
+    if (!orderData) {
+      throw new Error('Invalid order verification response')
     }
 
-    // Get the latest payment (should be the successful one)
-    const paymentData = paymentsData[paymentsData.length - 1]
-    const actualPaymentId = paymentData.cf_payment_id || paymentData.payment_id
-
-    if (!paymentData) {
-      throw new Error('Invalid payment verification response')
-    }
-
-    console.log('📋 Payment verification response:', {
-      paymentStatus: paymentData.payment_status,
-      paymentMethod: paymentData.payment_method,
-      amount: paymentData.payment_amount
+    console.log('📋 Order verification response:', {
+      orderStatus: orderData.order_status,
+      orderAmount: orderData.order_amount,
+      paymentMethod: orderData.payment_method || 'unknown'
     })
 
-    // Check if payment is successful
-    if (paymentData.payment_status !== 'SUCCESS') {
-      throw new Error(`Payment not successful. Status: ${paymentData.payment_status}`)
+    // Check if order payment is successful
+    if (orderData.order_status !== 'PAID') {
+      throw new Error(`Payment not successful. Order status: ${orderData.order_status}`)
     }
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
+
+    // Use cfOrderId as payment ID since we don't have the actual payment ID from frontend
+    const actualPaymentId = paymentId || cfOrderId
 
     // Update order status and payment details in database
     const { error: updateError } = await supabase
@@ -116,9 +112,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        paymentStatus: paymentData.payment_status,
-        paymentMethod: paymentData.payment_method,
-        amount: paymentData.payment_amount,
+        paymentStatus: orderData.order_status,
+        paymentMethod: orderData.payment_method || 'unknown',
+        amount: orderData.order_amount,
         orderId: orderId,
         cfOrderId: cfOrderId,
         paymentId: actualPaymentId
