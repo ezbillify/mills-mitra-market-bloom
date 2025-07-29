@@ -72,12 +72,6 @@ export const useCashfree = () => {
         throw new Error('Phone number is required for online payment');
       }
 
-      // Optional: Regex-based mobile number check (you can enable this)
-      // const phoneRegex = /^[6-9]\d{9}$/;
-      // if (!phoneRegex.test(trimmedPhone)) {
-      //   throw new Error('Please enter a valid 10-digit Indian phone number');
-      // }
-
       // ✅ Load Cashfree script
       console.log('📜 Loading Cashfree script...');
       const scriptLoaded = await loadCashfreeScript();
@@ -112,6 +106,10 @@ export const useCashfree = () => {
         throw new Error(data?.error || 'Failed to create payment order');
       }
 
+      // Store the Cashfree order ID for verification
+      const cashfreeOrderId = data.cfOrderId;
+      console.log('💾 Cashfree Order ID for verification:', cashfreeOrderId);
+
       // ✅ Fix z-index conflicts (Cashfree modal display)
       document.querySelectorAll('*').forEach(el => {
         const zIndex = window.getComputedStyle(el).zIndex;
@@ -132,6 +130,8 @@ export const useCashfree = () => {
       console.log('🎯 Opening Cashfree checkout...');
 
       cashfree.checkout(checkoutOptions).then(async (result: any) => {
+        console.log('🔍 Raw Cashfree result:', result);
+
         if (result.error) {
           console.error('❌ Cashfree checkout error:', result.error);
           options.onFailure(result.error);
@@ -144,22 +144,45 @@ export const useCashfree = () => {
 
         if (result.paymentDetails) {
           try {
-            console.log('💳 Payment completed, verifying...', {
-              orderId: result.paymentDetails.orderId,
-              paymentId: result.paymentDetails.paymentId,
+            console.log('💳 Payment completed, raw payment details:', result.paymentDetails);
+
+            // Extract payment details - handle different possible field names
+            const paymentId = result.paymentDetails.paymentId || result.paymentDetails.payment_id;
+            const cfOrderId = result.paymentDetails.orderId || result.paymentDetails.cf_order_id || cashfreeOrderId;
+
+            console.log('🔍 Extracted payment info:', {
+              paymentId,
+              cfOrderId,
+              originalOrderId: options.orderId
+            });
+
+            if (!paymentId) {
+              throw new Error('Payment ID not found in response');
+            }
+
+            if (!cfOrderId) {
+              throw new Error('Cashfree Order ID not found in response');
+            }
+
+            console.log('🔍 Sending to verify function:', {
+              cfOrderId: cfOrderId,
+              paymentId: paymentId,
+              orderId: options.orderId,
             });
 
             const { data: verifyData, error: verifyError } = await supabase.functions.invoke('cashfree-verify', {
               body: {
-                cfOrderId: result.paymentDetails.orderId,
-                paymentId: result.paymentDetails.paymentId,
+                cfOrderId: cfOrderId,
+                paymentId: paymentId,
                 orderId: options.orderId,
               },
             });
 
+            console.log('📥 Verify function response:', { verifyData, verifyError });
+
             if (verifyError || !verifyData?.success) {
               console.error('❌ Payment verification failed:', { verifyData, verifyError });
-              throw new Error('Payment verification failed');
+              throw new Error(verifyData?.error || verifyError?.message || 'Payment verification failed');
             }
 
             console.log('✅ Payment verified successfully');
@@ -168,12 +191,12 @@ export const useCashfree = () => {
               description: 'Your order has been confirmed.',
             });
 
-            options.onSuccess(result.paymentDetails.paymentId);
+            options.onSuccess(paymentId);
           } catch (error) {
             console.error('❌ Payment verification error:', error);
             toast({
               title: 'Payment Verification Failed',
-              description: 'There was an issue verifying your payment. Please contact support.',
+              description: error instanceof Error ? error.message : 'There was an issue verifying your payment. Please contact support.',
               variant: 'destructive',
             });
             options.onFailure(error);
