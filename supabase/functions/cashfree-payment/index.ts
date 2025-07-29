@@ -61,9 +61,9 @@ serve(async (req) => {
     const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase()
     const cashfreeOrderId = `CF${timestamp}${randomSuffix}`
 
-    // Create order payload for Cashfree
+    // Create order payload for Cashfree - REMOVED problematic URLs
     const orderPayload = {
-      order_id: cashfreeOrderId, // Fixed: Now under 50 characters
+      order_id: cashfreeOrderId,
       order_amount: amount,
       order_currency: currency,
       customer_details: {
@@ -72,11 +72,7 @@ serve(async (req) => {
         customer_email: customerInfo.email,
         customer_phone: customerInfo.phone,
       },
-      order_meta: {
-        return_url: `${req.headers.get('origin')}/payment/success`,
-        notify_url: `${req.headers.get('origin')}/api/cashfree/webhook`,
-        payment_methods: 'cc,dc,nb,upi,paylater,emi,wallet'
-      },
+      // REMOVED order_meta with invalid URLs - not required for modal checkout
       order_note: `Payment for Order #${orderId.substring(0, 8)}`
     }
 

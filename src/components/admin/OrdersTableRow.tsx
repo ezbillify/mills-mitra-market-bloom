@@ -1,8 +1,7 @@
-
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Truck, User, UserCheck, IndianRupee } from "lucide-react";
+import { Eye, Truck, User, UserCheck, IndianRupee, CreditCard, Banknote } from "lucide-react";
 import { Order } from "@/types/order";
 import { getStatusBadgeConfig, getShippingMethodInfo, getCustomerDisplayInfo } from "@/utils/orderDisplayUtils";
 
@@ -15,6 +14,54 @@ const OrdersTableRow = ({ order, onViewDetails }: OrdersTableRowProps) => {
   const customerInfo = getCustomerDisplayInfo(order);
   const shippingInfo = getShippingMethodInfo(order);
   const statusConfig = getStatusBadgeConfig(order.status);
+
+  // Payment status helper function with type checking
+  const getPaymentStatusBadge = () => {
+    // Handle legacy orders or missing payment_type
+    if (!order.payment_type || order.payment_type === 'cod') {
+      return (
+        <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300">
+          <Banknote className="h-3 w-3 mr-1" />
+          COD
+        </Badge>
+      );
+    }
+
+    if (order.payment_type === 'cashfree' || order.payment_type === 'razorpay') {
+      // Check payment_status field if available
+      if (order.payment_status === 'completed') {
+        return (
+          <Badge variant="default" className="bg-green-100 text-green-800 border-green-300">
+            <CreditCard className="h-3 w-3 mr-1" />
+            PAID
+          </Badge>
+        );
+      } else if (order.payment_status === 'failed') {
+        return (
+          <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-300">
+            <CreditCard className="h-3 w-3 mr-1" />
+            FAILED
+          </Badge>
+        );
+      } else {
+        // Default to pending for online payments without status
+        return (
+          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+            <CreditCard className="h-3 w-3 mr-1" />
+            PENDING
+          </Badge>
+        );
+      }
+    }
+
+    // Fallback for unknown payment types
+    return (
+      <Badge variant="outline" className="text-gray-600">
+        <CreditCard className="h-3 w-3 mr-1" />
+        UNKNOWN
+      </Badge>
+    );
+  };
 
   return (
     <TableRow className="border-gray-200 hover:bg-gray-50 transition-colors">
@@ -56,6 +103,9 @@ const OrdersTableRow = ({ order, onViewDetails }: OrdersTableRowProps) => {
         <Badge variant={statusConfig.variant} className={statusConfig.className}>
           {order.status.replace("_", " ").toUpperCase()}
         </Badge>
+      </TableCell>
+      <TableCell>
+        {getPaymentStatusBadge()}
       </TableCell>
       <TableCell className="text-gray-600">
         {new Date(order.created_at).toLocaleDateString('en-IN', {

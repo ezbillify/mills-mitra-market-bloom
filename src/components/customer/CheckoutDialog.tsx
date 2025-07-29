@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // ADD THIS IMPORT
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { IndianRupee, MapPin, Plus } from "lucide-react";
 import { PricingUtils } from "@/utils/pricingUtils";
-import { useCashfree } from "@/hooks/useCashfree"; // Updated import
+import { useCashfree } from "@/hooks/useCashfree";
 import AddressManager from "./AddressManager";
 
 interface CartItem {
@@ -52,7 +53,8 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   const [shippingOptions, setShippingOptions] = useState<DeliveryOption[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { initiatePayment, loading: cashfreeLoading } = useCashfree(); // Updated hook
+  const navigate = useNavigate(); // ADD THIS LINE
+  const { initiatePayment, loading: cashfreeLoading } = useCashfree();
   
   const [formData, setFormData] = useState({
     address: "",
@@ -184,7 +186,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           shipping_address: shippingAddress,
           delivery_option_id: formData.shippingOptionId,
           delivery_price: shippingPrice,
-          payment_type: formData.paymentMethod, // Updated to handle both 'cod' and 'cashfree'
+          payment_type: formData.paymentMethod,
         })
         .select()
         .single();
@@ -209,7 +211,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
       if (itemsError) throw itemsError;
 
       // Handle payment based on method
-      if (formData.paymentMethod === 'cashfree') { // Updated payment method check
+      if (formData.paymentMethod === 'cashfree') {
         // Get user profile for customer info
         const { data: profile } = await supabase
           .from('profiles')
@@ -239,13 +241,14 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             // Clear cart after successful payment
             await supabase.from('cart_items').delete().eq('user_id', user.id);
             
-            toast({
-              title: "Payment Successful!",
-              description: `Your order has been placed. Order ID: ${order.id.slice(0, 8)}`,
-            });
-
-            onOrderComplete();
+            // CLOSE DIALOG FIRST
             onOpenChange(false);
+            
+            // NAVIGATE TO SUCCESS PAGE
+            navigate('/payment-success');
+            
+            // Call onOrderComplete to refresh cart count
+            onOrderComplete();
           },
           onFailure: (error: any) => {
             console.error('Payment failed:', error);

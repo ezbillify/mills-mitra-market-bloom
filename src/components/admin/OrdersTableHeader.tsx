@@ -1,4 +1,3 @@
-
 import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const OrdersTableHeader = () => {
@@ -11,6 +10,7 @@ const OrdersTableHeader = () => {
         <TableHead className="text-gray-700 font-semibold">Shipping</TableHead>
         <TableHead className="text-gray-700 font-semibold">Total</TableHead>
         <TableHead className="text-gray-700 font-semibold">Status</TableHead>
+        <TableHead className="text-gray-700 font-semibold">Payment</TableHead>
         <TableHead className="text-gray-700 font-semibold">Date</TableHead>
         <TableHead className="text-gray-700 font-semibold">Actions</TableHead>
       </TableRow>

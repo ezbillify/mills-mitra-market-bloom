@@ -27,7 +27,11 @@ export interface Order {
     price: number;
   } | null;
   profiles?: OrderProfile | null;
-  payment_type?: string; // <- new field ("cod" or "razorpay")
+  payment_type?: string; // Keep as string to match database schema
+  payment_status?: string; // Keep as string to match database schema
+  payment_id?: string | null; // ADD THIS
+  cashfree_order_id?: string | null; // ADD THIS
+  payment_verified_at?: string | null; // ADD THIS
 }
 
 export type OrderStatus = 
@@ -39,3 +43,4 @@ export type OrderStatus =
   | "accepted"
   | "out_for_delivery"
   | "completed";
+  

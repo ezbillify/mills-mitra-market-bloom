@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -22,6 +21,7 @@ import Account from "@/pages/customer/Account";
 import AddressBook from "@/pages/customer/AddressBook";
 import Orders from "@/pages/customer/Orders";
 import OrderDetails from "@/pages/customer/OrderDetails";
+import PaymentSuccess from "@/pages/customer/PaymentSuccess"; // ADD THIS IMPORT
 import AboutUs from "@/pages/customer/AboutUs";
 import TermsAndConditions from "@/pages/customer/TermsAndConditions";
 import PrivacyPolicy from "@/pages/customer/PrivacyPolicy";
@@ -67,6 +67,7 @@ const App = () => {
                 <Route path="/address-book" element={<AddressBook />} />
                 <Route path="/orders" element={<Orders />} />
                 <Route path="/orders/:orderId" element={<OrderDetails />} />
+                <Route path="/payment-success" element={<PaymentSuccess />} /> {/* ADD THIS LINE */}
                 <Route path="/about-us" element={<AboutUs />} />
                 <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
