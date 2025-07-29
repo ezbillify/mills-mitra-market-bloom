@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // ADD THIS IMPORT
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,10 +8,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { IndianRupee, MapPin, Plus } from "lucide-react";
+import { IndianRupee, MapPin, Phone, AlertCircle } from "lucide-react";
 import { PricingUtils } from "@/utils/pricingUtils";
 import { useCashfree } from "@/hooks/useCashfree";
 import AddressManager from "./AddressManager";
@@ -51,9 +52,10 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [shippingOptions, setShippingOptions] = useState<DeliveryOption[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  const navigate = useNavigate(); // ADD THIS LINE
+  const navigate = useNavigate();
   const { initiatePayment, loading: cashfreeLoading } = useCashfree();
   
   const [formData, setFormData] = useState({
@@ -107,6 +109,19 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     
     setLoadingProfile(true);
     try {
+      // Fetch profile from database
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Error fetching profile:', profileError);
+      }
+
+      setUserProfile(profile);
+
       // Fetch default address from addresses table
       const { data: defaultAddress, error } = await supabase
         .from('addresses')
@@ -120,12 +135,6 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         setAddressTab("saved");
       } else {
         // Fallback to profile data if no saved addresses
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('address, city, state, postal_code, phone')
-          .eq('id', user.id)
-          .single();
-
         if (profile && (profile.address || profile.city || profile.postal_code)) {
           setFormData(prev => ({
             ...prev,
@@ -133,7 +142,15 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             city: profile.city || "",
             state: profile.state || "",
             postalCode: profile.postal_code || "",
-            phone: profile.phone || "",
+            phone: profile.phone || user.user_metadata?.phone || "",
+          }));
+          setAddressTab("manual");
+        } else {
+          // Use auth metadata as final fallback
+          setFormData(prev => ({
+            ...prev,
+            phone: user.user_metadata?.phone || "",
+            address: user.user_metadata?.address || "",
           }));
           setAddressTab("manual");
         }
@@ -168,6 +185,10 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     shippingAddress,
     shippingPrice
   );
+
+  // Check if user has phone number
+  const existingPhone = userProfile?.phone || user?.user_metadata?.phone || formData.phone;
+  const needsPhoneForOnlinePayment = formData.paymentMethod === 'cashfree' && !existingPhone;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,21 +233,30 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
 
       // Handle payment based on method
       if (formData.paymentMethod === 'cashfree') {
-        // Get user profile for customer info
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('first_name, last_name, email, phone')
-          .eq('id', user.id)
-          .single();
+        const customerName = userProfile?.first_name && userProfile?.last_name 
+          ? `${userProfile.first_name} ${userProfile.last_name}`
+          : userProfile?.email || user.email || 'Customer';
 
-        const customerName = profile?.first_name && profile?.last_name 
-          ? `${profile.first_name} ${profile.last_name}`
-          : profile?.email || 'Customer';
-
-        // Validate phone number for Cashfree (required)
-        const phoneNumber = formData.phone || profile?.phone;
+        // Use phone from form, profile, or auth metadata
+        const phoneNumber = formData.phone || userProfile?.phone || user?.user_metadata?.phone;
+        
         if (!phoneNumber) {
           throw new Error('Phone number is required for online payment');
+        }
+
+        // Update profile with phone number if provided in form
+        if (formData.phone && formData.phone !== (userProfile?.phone || user?.user_metadata?.phone)) {
+          try {
+            await supabase
+              .from('profiles')
+              .upsert({
+                id: user.id,
+                phone: formData.phone,
+                updated_at: new Date().toISOString(),
+              });
+          } catch (error) {
+            console.log('Non-critical: Could not update profile with phone');
+          }
         }
 
         await initiatePayment({
@@ -234,30 +264,23 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           orderId: order.id,
           customerInfo: {
             name: customerName,
-            email: profile?.email || user.email || '',
+            email: userProfile?.email || user.email || '',
             phone: phoneNumber,
           },
           onSuccess: async (paymentId: string) => {
             // Clear cart after successful payment
             await supabase.from('cart_items').delete().eq('user_id', user.id);
             
-            // CLOSE DIALOG FIRST
             onOpenChange(false);
-            
-            // NAVIGATE TO SUCCESS PAGE
             navigate('/payment-success');
-            
-            // Call onOrderComplete to refresh cart count
             onOrderComplete();
           },
           onFailure: (error: any) => {
             console.error('Payment failed:', error);
-            // Order remains in pending state for manual review
           },
         });
       } else {
         // COD - complete the order
-        // Clear cart
         const { error: cartError } = await supabase
           .from('cart_items')
           .delete()
@@ -288,7 +311,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
       console.error('Error creating order:', error);
       toast({
         title: "Error",
-        description: "Failed to place order. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to place order. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -486,6 +509,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                           required={addressTab === "manual"}
+                          placeholder={existingPhone || "Enter phone number"}
                         />
                       </div>
                     </div>
@@ -494,6 +518,16 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
               )}
             </CardContent>
           </Card>
+
+          {/* Phone Number Alert for Online Payment */}
+          {needsPhoneForOnlinePayment && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Phone number is required for online payment. Please provide your phone number in the address section above.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Payment Method */}
           <Card>
@@ -535,7 +569,8 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                 !formData.shippingOptionId || 
                 shippingOptions.length === 0 ||
                 (addressTab === "saved" && !selectedAddress) ||
-                (addressTab === "manual" && (!formData.address || !formData.city || !formData.state || !formData.postalCode || !formData.phone))
+                (addressTab === "manual" && (!formData.address || !formData.city || !formData.state || !formData.postalCode || !formData.phone)) ||
+                needsPhoneForOnlinePayment
               } 
               className="flex-1 bg-[#6A8A4E] hover:bg-[green] text-white"
             >
