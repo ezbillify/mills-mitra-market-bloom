@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 
 const CustomerFooter = () => {
@@ -54,6 +53,7 @@ const CustomerFooter = () => {
           <div className="text-center mb-6">
             <h4 className="font-semibold text-white mb-4">Follow Us</h4>
             <div className="flex justify-center space-x-6">
+              {/* Instagram */}
               <a 
                 href="https://www.instagram.com/millsmitra?utm_source=qr&igsh=MTRidDNiMW9jZnE0MQ%3D%3D" 
                 target="_blank" 
@@ -65,6 +65,7 @@ const CustomerFooter = () => {
                 </svg>
               </a>
               
+              {/* Facebook */}
               <a 
                 href="https://www.facebook.com/people/Millsmitra-organic-foods/61577179922860/?rdid=HLQBafPl0KXAKE43&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1AriggszjY%2F" 
                 target="_blank" 
@@ -76,6 +77,7 @@ const CustomerFooter = () => {
                 </svg>
               </a>
               
+              {/* WhatsApp */}
               <a 
                 href="https://wa.me/918861923747" 
                 target="_blank" 
@@ -91,7 +93,17 @@ const CustomerFooter = () => {
           
           <div className="text-center text-gray-300">
             <p>&copy; 2025 Mills Mitra. All rights reserved.</p>
-            <p className="text-sm text-gray-400 mt-2">Powered and maintained by EzBillify Tech</p>
+            <p className="text-sm text-gray-400 mt-2">
+              Powered and maintained by{" "}
+              <a 
+                href="https://www.ezbillify.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:underline"
+              >
+                EzBillify
+              </a>
+            </p>
           </div>
         </div>
       </div>
