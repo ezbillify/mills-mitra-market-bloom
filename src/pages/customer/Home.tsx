@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Info, Leaf, Heart, Shield, Star, ShoppingCart, Eye, Truck, Award, Users } from "lucide-react";
@@ -68,8 +67,8 @@ const Home = () => {
         <HeroBanner />
       </section>
 
-      {/* Featured Products */}
-      <section className="py-16 bg-white">
+      {/* Featured Products - Removed top padding to eliminate gap */}
+      <section className="pb-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Featured Products</h2>
