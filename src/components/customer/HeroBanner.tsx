@@ -86,9 +86,9 @@ const HeroBanner = () => {
 
   if (loading) {
     return (
-      <section className="relative bg-gradient-to-r from-primary to-primary/80 text-white py-20">
-        <div className="container mx-auto px-4 text-center">
-          <div className="animate-pulse">
+      <section className="relative bg-gradient-to-r from-primary to-primary/80 text-white">
+        <div className="w-full aspect-[16/9] md:aspect-[16/5] flex items-center justify-center">
+          <div className="animate-pulse text-center">
             <div className="h-12 bg-white/20 rounded mb-6 mx-auto max-w-md"></div>
             <div className="h-6 bg-white/20 rounded mb-8 mx-auto max-w-lg"></div>
             <div className="h-10 bg-white/20 rounded mx-auto max-w-32"></div>
@@ -100,17 +100,19 @@ const HeroBanner = () => {
 
   if (banners.length === 0) {
     return (
-      <section className="relative bg-gradient-to-r from-primary to-primary/80 text-white py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">
-            Premium Fabrics & Materials
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 opacity-90">
-            Discover our exclusive collection of high-quality fabrics
-          </p>
-          <Button size="lg" variant="secondary" asChild>
-            <Link to="/products">Shop Now</Link>
-          </Button>
+      <section className="relative bg-gradient-to-r from-primary to-primary/80 text-white">
+        <div className="w-full aspect-[16/9] md:aspect-[16/5] flex items-center justify-center">
+          <div className="container mx-auto px-4 text-center">
+            <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold mb-4 md:mb-6">
+              Premium Fabrics & Materials
+            </h1>
+            <p className="text-lg sm:text-xl md:text-2xl mb-6 md:mb-8 opacity-90 max-w-4xl mx-auto">
+              Discover our exclusive collection of high-quality fabrics
+            </p>
+            <Button size={isMobile ? "default" : "lg"} variant="secondary" asChild>
+              <Link to="/products">Shop Now</Link>
+            </Button>
+          </div>
         </div>
       </section>
     );
@@ -120,74 +122,77 @@ const HeroBanner = () => {
   const currentImageUrl = getCurrentImageUrl(currentBanner);
 
   return (
-    <section className="relative h-[400px] md:h-[600px] overflow-hidden">
-      {/* Background Image with responsive sizing */}
-      <div
-        className="absolute inset-0 bg-cover bg-center transition-all duration-1000"
-        style={{
-          backgroundImage: `url(${currentImageUrl})`,
-        }}
-      >
-        <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-      </div>
-      
-      {/* Content Overlay */}
-      <div className="relative z-10 flex items-center justify-center h-full">
-        <div className="container mx-auto px-4 text-center text-white">
-          <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold mb-4 md:mb-6">
-            {currentBanner.title}
-          </h1>
-          {currentBanner.subtitle && (
-            <p className="text-lg sm:text-xl md:text-2xl mb-6 md:mb-8 opacity-90 max-w-4xl mx-auto">
-              {currentBanner.subtitle}
-            </p>
-          )}
-          {currentBanner.link_url && (
-            <Button size={isMobile ? "default" : "lg"} variant="secondary" asChild>
-              <Link to={currentBanner.link_url}>Shop Now</Link>
-            </Button>
-          )}
+    <section className="relative overflow-hidden bg-gray-100">
+      {/* Fixed aspect ratio container */}
+      <div className="w-full aspect-[16/9] md:aspect-[16/5] relative">
+        {/* Background Image with proper containment */}
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-all duration-1000"
+          style={{
+            backgroundImage: `url(${currentImageUrl})`,
+          }}
+        >
+          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
         </div>
-      </div>
-
-      {/* Navigation Controls - Only show if multiple banners */}
-      {banners.length > 1 && (
-        <>
-          <button
-            onClick={prevSlide}
-            className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition-colors"
-            aria-label="Previous banner"
-          >
-            <ChevronLeft className="h-4 w-4 md:h-6 md:w-6" />
-          </button>
-          <button
-            onClick={nextSlide}
-            className="absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition-colors"
-            aria-label="Next banner"
-          >
-            <ChevronRight className="h-4 w-4 md:h-6 md:w-6" />
-          </button>
-
-          {/* Dots Indicator */}
-          <div className="absolute bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2">
-            {banners.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentSlide(index)}
-                className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-colors ${
-                  index === currentSlide ? 'bg-white' : 'bg-white/50'
-                }`}
-                aria-label={`Go to banner ${index + 1}`}
-              />
-            ))}
+        
+        {/* Content Overlay */}
+        <div className="relative z-10 flex items-center justify-center h-full">
+          <div className="container mx-auto px-4 text-center text-white">
+            <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold mb-4 md:mb-6">
+              {currentBanner.title}
+            </h1>
+            {currentBanner.subtitle && (
+              <p className="text-lg sm:text-xl md:text-2xl mb-6 md:mb-8 opacity-90 max-w-4xl mx-auto">
+                {currentBanner.subtitle}
+              </p>
+            )}
+            {currentBanner.link_url && (
+              <Button size={isMobile ? "default" : "lg"} variant="secondary" asChild>
+                <Link to={currentBanner.link_url}>Shop Now</Link>
+              </Button>
+            )}
           </div>
-        </>
-      )}
+        </div>
 
-      {/* Image Loading Indicator */}
-      <div className="absolute bottom-2 right-2 z-20">
-        <div className="text-xs text-white/70 bg-black/30 px-2 py-1 rounded">
-          {isMobile ? 'Mobile' : 'Desktop'} View
+        {/* Navigation Controls - Only show if multiple banners */}
+        {banners.length > 1 && (
+          <>
+            <button
+              onClick={prevSlide}
+              className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition-colors"
+              aria-label="Previous banner"
+            >
+              <ChevronLeft className="h-4 w-4 md:h-6 md:w-6" />
+            </button>
+            <button
+              onClick={nextSlide}
+              className="absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition-colors"
+              aria-label="Next banner"
+            >
+              <ChevronRight className="h-4 w-4 md:h-6 md:w-6" />
+            </button>
+
+            {/* Dots Indicator */}
+            <div className="absolute bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2">
+              {banners.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSlide(index)}
+                  className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-colors ${
+                    index === currentSlide ? 'bg-white' : 'bg-white/50'
+                  }`}
+                  aria-label={`Go to banner ${index + 1}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* View type indicator */}
+        <div className="absolute bottom-2 right-2 z-20">
+          <div className="text-xs text-white/70 bg-black/30 px-2 py-1 rounded">
+            {isMobile ? 'Mobile' : 'Desktop'} View
+          </div>
         </div>
       </div>
     </section>
