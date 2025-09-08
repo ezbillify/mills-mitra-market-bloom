@@ -40,6 +40,11 @@ interface DeliveryOption {
   is_active: boolean;
 }
 
+interface CODSettings {
+  amount: number;
+  enabled: boolean;
+}
+
 interface CheckoutDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -53,6 +58,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [shippingOptions, setShippingOptions] = useState<DeliveryOption[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [codSettings, setCodSettings] = useState<CODSettings>({ amount: 0, enabled: false });
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -71,11 +77,12 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
   const [addressTab, setAddressTab] = useState("saved");
 
-  // Fetch user profile and shipping options when dialog opens
+  // Fetch user profile, shipping options, and COD settings when dialog opens
   useEffect(() => {
     if (open && user) {
       fetchUserProfile();
       fetchShippingOptions();
+      fetchCODSettings();
     }
   }, [open, user]);
 
@@ -101,6 +108,31 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
       }
     } catch (error) {
       console.error('Error fetching shipping options:', error);
+    }
+  };
+
+  const fetchCODSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'cod_charges')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching COD settings:', error);
+        return;
+      }
+
+      if (data && data.value) {
+        // Properly cast Json to CODSettings with type checking
+        const settings = data.value as unknown;
+        if (typeof settings === 'object' && settings !== null && 'amount' in settings && 'enabled' in settings) {
+          setCodSettings(settings as CODSettings);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching COD settings:', error);
     }
   };
 
@@ -177,6 +209,9 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   const selectedShippingOption = shippingOptions.find(option => option.id === formData.shippingOptionId);
   const shippingPrice = selectedShippingOption?.price || 0;
   
+  // Calculate COD charges
+  const codCharges = formData.paymentMethod === 'cod' && codSettings.enabled ? codSettings.amount : 0;
+  
   const orderTotals = PricingUtils.calculateOrderTotals(
     cartItems.map(item => ({
       product: item.products,
@@ -185,6 +220,9 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     shippingAddress,
     shippingPrice
   );
+
+  // Add COD charges to grand total
+  const finalTotal = orderTotals.grandTotal + codCharges;
 
   // Check if user has phone number
   const existingPhone = userProfile?.phone || user?.user_metadata?.phone || formData.phone;
@@ -202,7 +240,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         .from('orders')
         .insert({
           user_id: user.id,
-          total: orderTotals.grandTotal,
+          total: finalTotal,
           status: 'pending',
           shipping_address: shippingAddress,
           delivery_option_id: formData.shippingOptionId,
@@ -260,7 +298,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         }
 
         await initiatePayment({
-          amount: orderTotals.grandTotal,
+          amount: finalTotal,
           orderId: order.id,
           customerInfo: {
             name: customerName,
@@ -290,7 +328,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
 
         toast({
           title: "Order placed successfully!",
-          description: `Your order has been placed. Order ID: ${order.id.slice(0, 8)}`,
+          description: `Your order has been placed. Order ID: ${order.id.slice(0, 8)}${codCharges > 0 ? ` (COD charges: ₹${codCharges.toFixed(2)})` : ''}`,
         });
 
         onOrderComplete();
@@ -362,11 +400,20 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                     </span>
                   </div>
                 )}
+                {codCharges > 0 && (
+                  <div className="flex justify-between text-sm text-orange-600">
+                    <span>COD Charges:</span>
+                    <span className="flex items-center gap-1">
+                      <IndianRupee className="h-3 w-3" />
+                      {codCharges.toFixed(2)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between font-semibold text-lg border-t pt-2">
                   <span>Total:</span>
                   <span className="flex items-center gap-1">
                     <IndianRupee className="h-4 w-4" />
-                    {orderTotals.grandTotal.toFixed(2)}
+                    {finalTotal.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -541,13 +588,31 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="cod" id="cod" />
-                  <Label htmlFor="cod">Cash on Delivery (COD)</Label>
+                  <Label htmlFor="cod" className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <span>Cash on Delivery (COD)</span>
+                      {codSettings.enabled && codSettings.amount > 0 && (
+                        <span className="text-sm text-orange-600">
+                          +₹{codSettings.amount.toFixed(2)} charges
+                        </span>
+                      )}
+                    </div>
+                  </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="cashfree" id="cashfree" />
                   <Label htmlFor="cashfree">Online Payment via Cashfree</Label>
                 </div>
               </RadioGroup>
+              
+              {codSettings.enabled && codCharges > 0 && formData.paymentMethod === 'cod' && (
+                <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md">
+                  <p className="text-sm text-orange-700">
+                    <span className="font-medium">COD Charges: </span>
+                    ₹{codSettings.amount.toFixed(2)} will be added to your order total
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -576,7 +641,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             >
               {loading || cashfreeLoading ? "Processing..." : (
                 <span className="flex items-center gap-1">
-                  {formData.paymentMethod === 'cashfree' ? 'Pay Now' : 'Place Order'} (<IndianRupee className="h-3 w-3" />{orderTotals.grandTotal.toFixed(2)})
+                  {formData.paymentMethod === 'cashfree' ? 'Pay Now' : 'Place Order'} (<IndianRupee className="h-3 w-3" />{finalTotal.toFixed(2)})
                 </span>
               )}
             </Button>

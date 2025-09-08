@@ -1,11 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Product } from "@/types/product";
+import { Product, ProductImage } from "@/types/product";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +12,8 @@ import AddToCartButton from "@/components/customer/AddToCartButton";
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
+  const [productImages, setProductImages] = useState<ProductImage[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -27,23 +27,51 @@ const ProductDetail = () => {
       }
 
       try {
-        const { data, error } = await supabase
+        // Fetch product details
+        const { data: productData, error: productError } = await supabase
           .from("products")
           .select("*")
           .eq("id", id)
           .single();
 
-        if (error) {
-          console.error("Error fetching product:", error);
+        if (productError) {
+          console.error("Error fetching product:", productError);
           toast({
             title: "Error",
             description: "Failed to load product details.",
             variant: "destructive",
           });
+          return;
         }
 
-        if (data) {
-          setProduct(data);
+        setProduct(productData);
+
+        // Fetch product images
+        const { data: imagesData, error: imagesError } = await supabase
+          .from("product_images")
+          .select("*")
+          .eq("product_id", id)
+          .order("display_order", { ascending: true });
+
+        if (imagesError) {
+          console.error("Error fetching product images:", imagesError);
+          // Don't show error for images, just use fallback
+        }
+
+        // Use product images if available, otherwise fallback to single image
+        if (imagesData && imagesData.length > 0) {
+          setProductImages(imagesData);
+        } else if (productData.image) {
+          // Create a fallback image object for backward compatibility
+          setProductImages([{
+            id: 'fallback',
+            product_id: id,
+            image_url: productData.image,
+            display_order: 0,
+            is_primary: true,
+            created_at: '',
+            updated_at: ''
+          }]);
         }
       } finally {
         setLoading(false);
@@ -52,6 +80,18 @@ const ProductDetail = () => {
 
     fetchProduct();
   }, [id, toast]);
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % productImages.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
+  };
+
+  const goToImage = (index: number) => {
+    setCurrentImageIndex(index);
+  };
 
   if (loading) {
     return <div className="text-center py-10">Loading product details...</div>;
@@ -79,16 +119,69 @@ const ProductDetail = () => {
   const gstAmount = getGSTAmount(product);
   const finalPrice = product.selling_price_with_tax || (basePrice + gstAmount);
 
+  const currentImage = productImages[currentImageIndex];
+
   return (
     <div className="container mx-auto mt-8 p-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Product Image */}
-        <div>
-          <img
-            src={product.image || "/placeholder.svg"}
-            alt={product.name}
-            className="w-full h-auto rounded-lg shadow-md"
-          />
+        {/* Product Images */}
+        <div className="space-y-4">
+          {/* Main Image */}
+          <div className="relative bg-gray-100 rounded-lg overflow-hidden shadow-md">
+            <div className="aspect-square w-full">
+              <img
+                src={currentImage?.image_url || "/placeholder.svg"}
+                alt={product.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            
+            {/* Navigation arrows for multiple images */}
+            {productImages.length > 1 && (
+              <>
+                <button
+                  onClick={prevImage}
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md transition-colors"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md transition-colors"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+                
+                {/* Image counter */}
+                <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
+                  {currentImageIndex + 1} / {productImages.length}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Thumbnail Images */}
+          {productImages.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {productImages.map((image, index) => (
+                <button
+                  key={image.id}
+                  onClick={() => goToImage(index)}
+                  className={`flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-colors ${
+                    index === currentImageIndex ? 'border-primary' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <img
+                    src={image.image_url}
+                    alt={`${product.name} - Image ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Product Details */}

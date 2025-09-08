@@ -1,11 +1,12 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit, Trash2, Search, Truck } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Edit, Trash2, Search, Truck, CreditCard, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AddShippingDialog from "@/components/admin/AddShippingDialog";
@@ -22,6 +23,11 @@ interface ShippingOption {
   created_at: string;
 }
 
+interface CODSettings {
+  amount: number;
+  enabled: boolean;
+}
+
 const AdminShippingSettings = () => {
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
   const [filteredOptions, setFilteredOptions] = useState<ShippingOption[]>([]);
@@ -29,10 +35,13 @@ const AdminShippingSettings = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingOption, setEditingOption] = useState<ShippingOption | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [codSettings, setCodSettings] = useState<CODSettings>({ amount: 50, enabled: true });
+  const [codLoading, setCodLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchShippingOptions();
+    fetchCODSettings();
   }, []);
 
   useEffect(() => {
@@ -66,6 +75,59 @@ const AdminShippingSettings = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCODSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'cod_charges')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching COD settings:', error);
+        return;
+      }
+
+      if (data && data.value) {
+        // Properly cast Json to CODSettings with type checking
+        const settings = data.value as unknown;
+        if (typeof settings === 'object' && settings !== null && 'amount' in settings && 'enabled' in settings) {
+          setCodSettings(settings as CODSettings);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching COD settings:', error);
+    }
+  };
+
+  const saveCODSettings = async () => {
+    setCodLoading(true);
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .upsert({
+          key: 'cod_charges',
+          value: codSettings as any // Cast to any to satisfy Json type
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "COD charges settings updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating COD settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update COD charges settings",
+        variant: "destructive",
+      });
+    } finally {
+      setCodLoading(false);
     }
   };
 
@@ -167,10 +229,83 @@ const AdminShippingSettings = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold text-warm-brown">Shipping Settings</h1>
-          <p className="text-earth-brown/70 mt-1">Manage shipping options and pricing</p>
+          <p className="text-earth-brown/70 mt-1">Manage shipping options, COD charges, and pricing</p>
         </div>
         <AddShippingDialog onShippingAdded={fetchShippingOptions} />
       </div>
+
+      {/* COD Charges Configuration */}
+      <Card className="border-l-4 border-l-orange-500 bg-white shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-warm-brown">
+            <CreditCard className="h-5 w-5 text-orange-500" />
+            Cash on Delivery (COD) Charges
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div className="space-y-2">
+              <Label htmlFor="cod-amount">COD Charges (₹)</Label>
+              <Input
+                id="cod-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                value={codSettings.amount}
+                onChange={(e) => setCodSettings(prev => ({ 
+                  ...prev, 
+                  amount: parseFloat(e.target.value) || 0 
+                }))}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-gray-500">
+                Fixed amount charged for Cash on Delivery orders
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <div className="flex items-center space-x-2 h-10">
+                <Switch
+                  id="cod-enabled"
+                  checked={codSettings.enabled}
+                  onCheckedChange={(checked) => setCodSettings(prev => ({ 
+                    ...prev, 
+                    enabled: checked 
+                  }))}
+                />
+                <Label htmlFor="cod-enabled" className="text-sm">
+                  {codSettings.enabled ? 'Enabled' : 'Disabled'}
+                </Label>
+              </div>
+            </div>
+
+            <div>
+              <Button 
+                onClick={saveCODSettings}
+                disabled={codLoading}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {codLoading ? "Saving..." : "Save COD Settings"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="p-3 bg-orange-50 border border-orange-200 rounded-md">
+            <p className="text-sm text-orange-700">
+              <span className="font-medium">Current COD Setup: </span>
+              {codSettings.enabled ? (
+                <>
+                  ₹{codSettings.amount.toFixed(2)} will be added to all Cash on Delivery orders
+                </>
+              ) : (
+                "COD charges are currently disabled"
+              )}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +15,8 @@ import { Switch } from "@/components/ui/switch";
 import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import ProductImageUpload from "./ProductImageUpload";
+import MultipleImageUpload from "./MultipleImageUpload";
+import { ProductImage } from "@/types/product";
 
 interface Category {
   id: string;
@@ -32,6 +32,7 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [productImages, setProductImages] = useState<ProductImage[]>([]);
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -43,7 +44,6 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
     priceIncludesTax: true,
     category: "",
     stock: "",
-    image: "",
     featured: false,
     hsnCode: "",
   });
@@ -93,7 +93,11 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
         return;
       }
 
-      const { error } = await supabase
+      // Get primary image for backward compatibility
+      const primaryImage = productImages.find(img => img.is_primary)?.image_url || productImages[0]?.image_url || null;
+
+      // Create product first
+      const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
           name: formData.name,
@@ -104,18 +108,40 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
           price_includes_tax: formData.priceIncludesTax,
           category: formData.category,
           stock: parseInt(formData.stock) || 0,
-          image: formData.image || null,
+          image: primaryImage, // Backward compatibility
           featured: formData.featured,
           hsn_code: formData.hsnCode || null,
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (productError) throw productError;
+
+      // Save product images to database if any
+      if (productImages.length > 0) {
+        const imageInserts = productImages.map((img, index) => ({
+          product_id: product.id,
+          image_url: img.image_url,
+          display_order: index,
+          is_primary: img.is_primary || index === 0
+        }));
+
+        const { error: imagesError } = await supabase
+          .from('product_images')
+          .insert(imageInserts);
+
+        if (imagesError) {
+          console.error('Error saving product images:', imagesError);
+          // Don't fail the whole operation, just log the error
+        }
+      }
 
       toast({
         title: "Success",
         description: "Product added successfully",
       });
 
+      // Reset form
       setFormData({
         name: "",
         description: "",
@@ -125,10 +151,10 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
         priceIncludesTax: true,
         category: "",
         stock: "",
-        image: "",
         featured: false,
         hsnCode: "",
       });
+      setProductImages([]);
       
       setOpen(false);
       onProductAdded();
@@ -154,7 +180,7 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
           Add New Product
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Add New Product</DialogTitle>
         </DialogHeader>
@@ -306,9 +332,11 @@ const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
             </div>
           </div>
 
-          <ProductImageUpload
-            currentImage={formData.image}
-            onImageChange={(imageUrl) => setFormData(prev => ({ ...prev, image: imageUrl }))}
+          {/* Multiple Image Upload */}
+          <MultipleImageUpload
+            images={productImages}
+            onImagesChange={setProductImages}
+            maxImages={5}
           />
 
           <div className="flex items-center space-x-2 pt-2">

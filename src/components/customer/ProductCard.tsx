@@ -1,9 +1,10 @@
-
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Info } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import AddToCartButton from "./AddToCartButton";
 
 interface Product {
@@ -24,6 +25,45 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
+  const [primaryImage, setPrimaryImage] = useState<string | null>(product.image);
+
+  useEffect(() => {
+    const fetchPrimaryImage = async () => {
+      try {
+        // Fetch primary image from product_images table
+        const { data, error } = await supabase
+          .from('product_images')
+          .select('image_url')
+          .eq('product_id', product.id)
+          .eq('is_primary', true)
+          .single();
+
+        if (!error && data) {
+          setPrimaryImage(data.image_url);
+        } else {
+          // Fallback to first image if no primary image
+          const { data: firstImage, error: firstError } = await supabase
+            .from('product_images')
+            .select('image_url')
+            .eq('product_id', product.id)
+            .order('display_order', { ascending: true })
+            .limit(1)
+            .single();
+
+          if (!firstError && firstImage) {
+            setPrimaryImage(firstImage.image_url);
+          }
+          // If no images in product_images table, keep the fallback product.image
+        }
+      } catch (error) {
+        console.error('Error fetching primary image:', error);
+        // Keep the fallback product.image
+      }
+    };
+
+    fetchPrimaryImage();
+  }, [product.id, product.image]);
+
   const calculateDiscountPercentage = (originalPrice: number, discountedPrice: number) => {
     return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
   };
@@ -47,7 +87,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       <CardContent className="p-0">
         <div className="relative">
           <img
-            src={product.image || "/placeholder.svg"}
+            src={primaryImage || "/placeholder.svg"}
             alt={product.name}
             // Responsive: ensures image is visible and sized right on mobile
             className="w-full h-40 sm:h-48 object-cover rounded-t-lg group-hover:scale-105 transition-transform duration-300 block"

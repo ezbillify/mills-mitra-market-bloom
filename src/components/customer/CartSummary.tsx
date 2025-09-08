@@ -1,9 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { PricingUtils } from '@/utils/pricingUtils';
+import { supabase } from '@/integrations/supabase/client';
 import CheckoutDialog from './CheckoutDialog';
 
 interface CartItem {
@@ -27,8 +27,43 @@ interface CartSummaryProps {
   onOrderComplete?: () => void;
 }
 
+interface CODSettings {
+  amount: number;
+  enabled: boolean;
+}
+
 const CartSummary = ({ items, onOrderComplete }: CartSummaryProps) => {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [codSettings, setCodSettings] = useState<CODSettings>({ amount: 0, enabled: false });
+
+  useEffect(() => {
+    fetchCODSettings();
+  }, []);
+
+  const fetchCODSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'cod_charges')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching COD settings:', error);
+        return;
+      }
+
+      if (data && data.value) {
+        // Properly cast Json to CODSettings with type checking
+        const settings = data.value as unknown;
+        if (typeof settings === 'object' && settings !== null && 'amount' in settings && 'enabled' in settings) {
+          setCodSettings(settings as CODSettings);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching COD settings:', error);
+    }
+  };
 
   const orderTotals = PricingUtils.calculateOrderTotals(
     items.map(item => ({
@@ -70,14 +105,21 @@ const CartSummary = ({ items, onOrderComplete }: CartSummaryProps) => {
           <Separator />
 
           <div className="flex justify-between font-semibold text-lg">
-            <span>Total</span>
+            <span>Subtotal</span>
             <span className="text-warm-brown">
               {PricingUtils.formatPrice(orderTotals.totalFinalPrice)}
             </span>
           </div>
 
+          {codSettings.enabled && codSettings.amount > 0 && (
+            <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+              <span className="font-medium">Note: </span>
+              COD charges of ₹{codSettings.amount.toFixed(2)} will be added at checkout
+            </div>
+          )}
+
           <div className="text-xs text-muted-foreground text-center">
-            *All prices include applicable taxes
+            *All prices include applicable taxes. Shipping & COD charges calculated at checkout.
           </div>
         </div>
 
@@ -105,6 +147,9 @@ const CartSummary = ({ items, onOrderComplete }: CartSummaryProps) => {
             <div>Items: {items.reduce((sum, item) => sum + item.quantity, 0)}</div>
             <div>Taxable Amount: {PricingUtils.formatPrice(orderTotals.totalTaxableAmount)}</div>
             <div>Tax Amount: {PricingUtils.formatPrice(orderTotals.totalTaxAmount)}</div>
+            {codSettings.enabled && (
+              <div className="text-orange-600">COD Available: +₹{codSettings.amount.toFixed(2)}</div>
+            )}
           </div>
         </div>
       </Card>
