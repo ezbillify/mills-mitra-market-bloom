@@ -122,7 +122,7 @@ const HeroBanner = () => {
   const currentImageUrl = getCurrentImageUrl(currentBanner);
 
   return (
-    <section className="relative overflow-hidden bg-gray-100 mb-0">
+    <section className="relative overflow-hidden bg-gray-100 -mb-1">
       {/* Fixed aspect ratio container */}
       <div className="w-full aspect-[16/9] md:aspect-[16/5] relative">
         {/* Background Image with proper containment */}
@@ -138,19 +138,24 @@ const HeroBanner = () => {
         {/* Content Overlay - Made Optional/Subtle */}
         <div className="relative z-10 flex items-center justify-center h-full">
           <div className="container mx-auto px-4 text-center text-white">
-            {/* Optional title - smaller and more subtle */}
-            <h1 className="text-lg sm:text-2xl md:text-4xl font-medium mb-2 md:mb-4 opacity-90">
-              {currentBanner.title}
-            </h1>
-            {currentBanner.subtitle && (
-              <p className="text-sm sm:text-base md:text-xl mb-4 md:mb-6 opacity-80 max-w-3xl mx-auto">
+            {/* Only show title OR subtitle, not both to avoid overlap */}
+            {currentBanner.subtitle ? (
+              <p className="text-sm sm:text-base md:text-xl font-medium opacity-90 max-w-3xl mx-auto">
                 {currentBanner.subtitle}
               </p>
+            ) : (
+              <h1 className="text-lg sm:text-2xl md:text-4xl font-medium opacity-90">
+                {currentBanner.title}
+              </h1>
             )}
-            {currentBanner.link_url && (
-              <Button size="sm" variant="secondary" asChild className="opacity-90">
-                <Link to={currentBanner.link_url}>Shop Now</Link>
-              </Button>
+            
+            {/* Only show button if there's a link and we have space */}
+            {currentBanner.link_url && !isMobile && (
+              <div className="mt-4">
+                <Button size="sm" variant="secondary" asChild className="opacity-90">
+                  <Link to={currentBanner.link_url}>Shop Now</Link>
+                </Button>
+              </div>
             )}
           </div>
         </div>
