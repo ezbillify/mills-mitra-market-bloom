@@ -122,7 +122,7 @@ const HeroBanner = () => {
   const currentImageUrl = getCurrentImageUrl(currentBanner);
 
   return (
-    <section className="relative overflow-hidden bg-gray-100">
+    <section className="relative overflow-hidden bg-gray-100 mb-0">
       {/* Fixed aspect ratio container */}
       <div className="w-full aspect-[16/9] md:aspect-[16/5] relative">
         {/* Background Image with proper containment */}
@@ -132,22 +132,23 @@ const HeroBanner = () => {
             backgroundImage: `url(${currentImageUrl})`,
           }}
         >
-          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+          <div className="absolute inset-0 bg-black bg-opacity-50"></div>
         </div>
         
-        {/* Content Overlay */}
+        {/* Content Overlay - Made Optional/Subtle */}
         <div className="relative z-10 flex items-center justify-center h-full">
           <div className="container mx-auto px-4 text-center text-white">
-            <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold mb-4 md:mb-6">
+            {/* Optional title - smaller and more subtle */}
+            <h1 className="text-lg sm:text-2xl md:text-4xl font-medium mb-2 md:mb-4 opacity-90">
               {currentBanner.title}
             </h1>
             {currentBanner.subtitle && (
-              <p className="text-lg sm:text-xl md:text-2xl mb-6 md:mb-8 opacity-90 max-w-4xl mx-auto">
+              <p className="text-sm sm:text-base md:text-xl mb-4 md:mb-6 opacity-80 max-w-3xl mx-auto">
                 {currentBanner.subtitle}
               </p>
             )}
             {currentBanner.link_url && (
-              <Button size={isMobile ? "default" : "lg"} variant="secondary" asChild>
+              <Button size="sm" variant="secondary" asChild className="opacity-90">
                 <Link to={currentBanner.link_url}>Shop Now</Link>
               </Button>
             )}
