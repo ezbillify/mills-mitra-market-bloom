@@ -180,7 +180,7 @@ const Home = () => {
             <div className="flex flex-col items-center">
               <Truck className="h-8 w-8 mb-2" />
               <span className="font-semibold text-sm md:text-base">Free Shipping</span>
-              <span className="text-xs opacity-80">On orders ₹999+</span>
+              <span className="text-xs opacity-80">On orders ₹798+</span>
             </div>
             <div className="flex flex-col items-center">
               <Award className="h-8 w-8 mb-2" />

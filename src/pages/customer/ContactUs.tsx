@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Phone, Mail, MapPin, Clock } from 'lucide-react';
+import { Phone, Mail, MapPin } from 'lucide-react';
 
 const ContactUs = () => {
   return (
@@ -28,7 +28,6 @@ const ContactUs = () => {
               <CardContent>
                 <p className="text-gray-600 mb-2">Call us for immediate assistance</p>
                 <p className="font-semibold text-lg">+91 88619 23747</p>
-                <p className="text-sm text-gray-500">Mon-Sat: 9:00 AM - 7:00 PM</p>
               </CardContent>
             </Card>
 
@@ -54,35 +53,11 @@ const ContactUs = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 mb-2">Visit our store</p>
-                <p className="font-semibold">123 Health Street</p>
-                <p className="text-gray-600">Millet Market, Nutrition City</p>
-                <p className="text-gray-600">Karnataka, India - 560001</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-lg">
-                  <Clock className="h-5 w-5 text-primary" />
-                  Business Hours
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Monday - Friday:</span>
-                    <span className="font-medium">9:00 AM - 7:00 PM</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Saturday:</span>
-                    <span className="font-medium">9:00 AM - 5:00 PM</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Sunday:</span>
-                    <span className="font-medium">Closed</span>
-                  </div>
-                </div>
+                <p className="text-gray-600 mb-2">Visit our manufacturing facility</p>
+                <p className="font-semibold">CHAMUNDESHWARI ENTERPRISES</p>
+                <p className="text-gray-600">Hadli Village, Kasaba Hobli</p>
+                <p className="text-gray-600">Malavalli (tq), Mandya (dist)</p>
+                <p className="text-gray-600">Karnataka - 571430</p>
               </CardContent>
             </Card>
           </div>
@@ -100,7 +75,7 @@ const ContactUs = () => {
                 </div>
                 <div>
                   <h4 className="font-medium text-primary mb-2">Fast Shipping</h4>
-                  <p className="text-gray-600">Free delivery on orders above ₹999 across India</p>
+                  <p className="text-gray-600">Free delivery on orders above ₹798 across India</p>
                 </div>
                 <div>
                   <h4 className="font-medium text-primary mb-2">Expert Support</h4>

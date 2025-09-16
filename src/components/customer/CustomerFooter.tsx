@@ -43,7 +43,6 @@ const CustomerFooter = () => {
             <div className="text-gray-300 space-y-2">
               <p>Email: support@millsmitra.com</p>
               <p>Phone: +91 88619 23747</p>
-              <p>Hours: Mon-Sat 9AM-6PM</p>
             </div>
           </div>
         </div>
