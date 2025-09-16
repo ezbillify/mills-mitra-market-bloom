@@ -35,7 +35,7 @@ const AboutUs = () => {
         <div className="relative container mx-auto px-6 py-24 text-center">
           <div className="inline-flex items-center justify-center w-24 h-24 bg-white rounded-full mb-6 p-2">
             <img 
-              src="public/lovable-uploads/15f592d4-1f27-4123-b5d7-dcf05b8463c7.png" 
+              src="lovable-uploads/15f592d4-1f27-4123-b5d7-dcf05b8463c7.png" 
               alt="Mills Mitra Logo" 
               className="w-full h-full object-contain rounded-full"
               onError={(e) => {
