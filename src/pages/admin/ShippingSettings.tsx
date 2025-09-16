@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit, Trash2, Search, Truck, CreditCard, Save } from "lucide-react";
+import { Plus, Edit, Trash2, Search, Truck, CreditCard, Save, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AddShippingDialog from "@/components/admin/AddShippingDialog";
@@ -28,6 +28,11 @@ interface CODSettings {
   enabled: boolean;
 }
 
+interface FreeShippingSettings {
+  minimum_amount: number;
+  enabled: boolean;
+}
+
 const AdminShippingSettings = () => {
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
   const [filteredOptions, setFilteredOptions] = useState<ShippingOption[]>([]);
@@ -37,11 +42,14 @@ const AdminShippingSettings = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [codSettings, setCodSettings] = useState<CODSettings>({ amount: 50, enabled: true });
   const [codLoading, setCodLoading] = useState(false);
+  const [freeShippingSettings, setFreeShippingSettings] = useState<FreeShippingSettings>({ minimum_amount: 798, enabled: true });
+  const [freeShippingLoading, setFreeShippingLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchShippingOptions();
     fetchCODSettings();
+    fetchFreeShippingSettings();
   }, []);
 
   useEffect(() => {
@@ -103,6 +111,31 @@ const AdminShippingSettings = () => {
     }
   };
 
+  const fetchFreeShippingSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'free_shipping')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching free shipping settings:', error);
+        return;
+      }
+
+      if (data && data.value) {
+        // Properly cast Json to FreeShippingSettings with type checking
+        const settings = data.value as unknown;
+        if (typeof settings === 'object' && settings !== null && 'minimum_amount' in settings && 'enabled' in settings) {
+          setFreeShippingSettings(settings as FreeShippingSettings);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching free shipping settings:', error);
+    }
+  };
+
   const saveCODSettings = async () => {
     setCodLoading(true);
     try {
@@ -128,6 +161,34 @@ const AdminShippingSettings = () => {
       });
     } finally {
       setCodLoading(false);
+    }
+  };
+
+  const saveFreeShippingSettings = async () => {
+    setFreeShippingLoading(true);
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .upsert({
+          key: 'free_shipping',
+          value: freeShippingSettings as any // Cast to any to satisfy Json type
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Free shipping settings updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating free shipping settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update free shipping settings",
+        variant: "destructive",
+      });
+    } finally {
+      setFreeShippingLoading(false);
     }
   };
 
@@ -229,10 +290,83 @@ const AdminShippingSettings = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold text-warm-brown">Shipping Settings</h1>
-          <p className="text-earth-brown/70 mt-1">Manage shipping options, COD charges, and pricing</p>
+          <p className="text-earth-brown/70 mt-1">Manage shipping options, COD charges, free shipping, and pricing</p>
         </div>
         <AddShippingDialog onShippingAdded={fetchShippingOptions} />
       </div>
+
+      {/* Free Shipping Configuration */}
+      <Card className="border-l-4 border-l-green-500 bg-white shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-warm-brown">
+            <Gift className="h-5 w-5 text-green-500" />
+            Free Shipping Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div className="space-y-2">
+              <Label htmlFor="free-shipping-amount">Minimum Order Amount (₹)</Label>
+              <Input
+                id="free-shipping-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                value={freeShippingSettings.minimum_amount}
+                onChange={(e) => setFreeShippingSettings(prev => ({ 
+                  ...prev, 
+                  minimum_amount: parseFloat(e.target.value) || 0 
+                }))}
+                placeholder="798.00"
+              />
+              <p className="text-xs text-gray-500">
+                Orders above this amount will get free shipping
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <div className="flex items-center space-x-2 h-10">
+                <Switch
+                  id="free-shipping-enabled"
+                  checked={freeShippingSettings.enabled}
+                  onCheckedChange={(checked) => setFreeShippingSettings(prev => ({ 
+                    ...prev, 
+                    enabled: checked 
+                  }))}
+                />
+                <Label htmlFor="free-shipping-enabled" className="text-sm">
+                  {freeShippingSettings.enabled ? 'Enabled' : 'Disabled'}
+                </Label>
+              </div>
+            </div>
+
+            <div>
+              <Button 
+                onClick={saveFreeShippingSettings}
+                disabled={freeShippingLoading}
+                className="w-full bg-green-500 hover:bg-green-600 text-white"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {freeShippingLoading ? "Saving..." : "Save Free Shipping"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+            <p className="text-sm text-green-700">
+              <span className="font-medium">Current Free Shipping Setup: </span>
+              {freeShippingSettings.enabled ? (
+                <>
+                  Orders above ₹{freeShippingSettings.minimum_amount.toFixed(2)} will get free shipping
+                </>
+              ) : (
+                "Free shipping is currently disabled"
+              )}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* COD Charges Configuration */}
       <Card className="border-l-4 border-l-orange-500 bg-white shadow-lg">
@@ -308,7 +442,7 @@ const AdminShippingSettings = () => {
       </Card>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="border-l-4 border-l-olive-leaf bg-white shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-earth-brown">Total Options</CardTitle>
@@ -336,6 +470,16 @@ const AdminShippingSettings = () => {
               ₹{shippingOptions.length > 0 
                 ? (shippingOptions.reduce((sum, o) => sum + Number(o.price), 0) / shippingOptions.length).toFixed(0)
                 : '0'}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-green-500 bg-white shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-earth-brown">Free Shipping</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg font-bold text-warm-brown">
+              {freeShippingSettings.enabled ? `₹${freeShippingSettings.minimum_amount}+` : 'Disabled'}
             </div>
           </CardContent>
         </Card>

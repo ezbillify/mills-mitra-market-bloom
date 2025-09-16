@@ -1,18 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { IndianRupee, MapPin, Phone, AlertCircle } from "lucide-react";
+import { IndianRupee, MapPin, AlertCircle } from "lucide-react";
 import { PricingUtils } from "@/utils/pricingUtils";
 import { useCashfree } from "@/hooks/useCashfree";
 import AddressManager from "./AddressManager";
@@ -45,6 +42,11 @@ interface CODSettings {
   enabled: boolean;
 }
 
+interface FreeShippingSettings {
+  minimum_amount: number;
+  enabled: boolean;
+}
+
 interface CheckoutDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -59,30 +61,26 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   const [shippingOptions, setShippingOptions] = useState<DeliveryOption[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [codSettings, setCodSettings] = useState<CODSettings>({ amount: 0, enabled: false });
+  const [freeShippingSettings, setFreeShippingSettings] = useState<FreeShippingSettings>({ minimum_amount: 0, enabled: false });
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { initiatePayment, loading: cashfreeLoading } = useCashfree();
   
   const [formData, setFormData] = useState({
-    address: "",
-    city: "",
-    state: "",
-    postalCode: "",
-    phone: "",
     paymentMethod: "cod",
     shippingOptionId: "",
   });
 
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
-  const [addressTab, setAddressTab] = useState("saved");
 
-  // Fetch user profile, shipping options, and COD settings when dialog opens
+  // Fetch user profile, shipping options, COD settings, and free shipping settings when dialog opens
   useEffect(() => {
     if (open && user) {
       fetchUserProfile();
       fetchShippingOptions();
       fetchCODSettings();
+      fetchFreeShippingSettings();
     }
   }, [open, user]);
 
@@ -125,7 +123,6 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
       }
 
       if (data && data.value) {
-        // Properly cast Json to CODSettings with type checking
         const settings = data.value as unknown;
         if (typeof settings === 'object' && settings !== null && 'amount' in settings && 'enabled' in settings) {
           setCodSettings(settings as CODSettings);
@@ -133,6 +130,30 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
       }
     } catch (error) {
       console.error('Error fetching COD settings:', error);
+    }
+  };
+
+  const fetchFreeShippingSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'free_shipping')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching free shipping settings:', error);
+        return;
+      }
+
+      if (data && data.value) {
+        const settings = data.value as unknown;
+        if (typeof settings === 'object' && settings !== null && 'minimum_amount' in settings && 'enabled' in settings) {
+          setFreeShippingSettings(settings as FreeShippingSettings);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching free shipping settings:', error);
     }
   };
 
@@ -164,28 +185,6 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
 
       if (!error && defaultAddress) {
         setSelectedAddress(defaultAddress);
-        setAddressTab("saved");
-      } else {
-        // Fallback to profile data if no saved addresses
-        if (profile && (profile.address || profile.city || profile.postal_code)) {
-          setFormData(prev => ({
-            ...prev,
-            address: profile.address || "",
-            city: profile.city || "",
-            state: profile.state || "",
-            postalCode: profile.postal_code || "",
-            phone: profile.phone || user.user_metadata?.phone || "",
-          }));
-          setAddressTab("manual");
-        } else {
-          // Use auth metadata as final fallback
-          setFormData(prev => ({
-            ...prev,
-            phone: user.user_metadata?.phone || "",
-            address: user.user_metadata?.address || "",
-          }));
-          setAddressTab("manual");
-        }
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -196,41 +195,51 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
 
   // Calculate order totals using centralized pricing
   const getShippingAddress = () => {
-    if (selectedAddress && addressTab === "saved") {
+    if (selectedAddress) {
       const parts = [selectedAddress.address_line_1];
       if (selectedAddress.address_line_2) parts.push(selectedAddress.address_line_2);
       parts.push(`${selectedAddress.city}, ${selectedAddress.state} ${selectedAddress.postal_code}`);
       return parts.join(', ');
     }
-    return `${formData.address}, ${formData.city}, ${formData.state} - ${formData.postalCode}`;
+    return "";
   };
   
   const shippingAddress = getShippingAddress();
   const selectedShippingOption = shippingOptions.find(option => option.id === formData.shippingOptionId);
-  const shippingPrice = selectedShippingOption?.price || 0;
   
-  // Calculate COD charges
-  const codCharges = formData.paymentMethod === 'cod' && codSettings.enabled ? codSettings.amount : 0;
+  // Calculate base shipping price
+  const baseShippingPrice = selectedShippingOption?.price || 0;
   
+  // Calculate subtotal for free shipping check
   const orderTotals = PricingUtils.calculateOrderTotals(
     cartItems.map(item => ({
       product: item.products,
       quantity: item.quantity
     })),
     shippingAddress,
-    shippingPrice
+    0 // Pass 0 for shipping to calculate subtotal first
   );
 
-  // Add COD charges to grand total
-  const finalTotal = orderTotals.grandTotal + codCharges;
+  // Check if eligible for free shipping
+  const isEligibleForFreeShipping = freeShippingSettings.enabled && 
+    orderTotals.totalFinalPrice >= freeShippingSettings.minimum_amount;
+  
+  // Apply free shipping if eligible
+  const finalShippingPrice = isEligibleForFreeShipping ? 0 : baseShippingPrice;
+  
+  // Calculate COD charges
+  const codCharges = formData.paymentMethod === 'cod' && codSettings.enabled ? codSettings.amount : 0;
+  
+  // Calculate final total with actual shipping price
+  const finalTotal = orderTotals.totalFinalPrice + finalShippingPrice + codCharges;
 
-  // Check if user has phone number
-  const existingPhone = userProfile?.phone || user?.user_metadata?.phone || formData.phone;
+  // Check if user has phone number from selected address or profile
+  const existingPhone = selectedAddress?.phone || userProfile?.phone || user?.user_metadata?.phone;
   const needsPhoneForOnlinePayment = formData.paymentMethod === 'cashfree' && !existingPhone;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !selectedAddress) return;
     
     setLoading(true);
 
@@ -244,7 +253,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           status: 'pending',
           shipping_address: shippingAddress,
           delivery_option_id: formData.shippingOptionId,
-          delivery_price: shippingPrice,
+          delivery_price: finalShippingPrice,
           payment_type: formData.paymentMethod,
         })
         .select()
@@ -275,26 +284,10 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           ? `${userProfile.first_name} ${userProfile.last_name}`
           : userProfile?.email || user.email || 'Customer';
 
-        // Use phone from form, profile, or auth metadata
-        const phoneNumber = formData.phone || userProfile?.phone || user?.user_metadata?.phone;
+        const phoneNumber = existingPhone;
         
         if (!phoneNumber) {
           throw new Error('Phone number is required for online payment');
-        }
-
-        // Update profile with phone number if provided in form
-        if (formData.phone && formData.phone !== (userProfile?.phone || user?.user_metadata?.phone)) {
-          try {
-            await supabase
-              .from('profiles')
-              .upsert({
-                id: user.id,
-                phone: formData.phone,
-                updated_at: new Date().toISOString(),
-              });
-          } catch (error) {
-            console.log('Non-critical: Could not update profile with phone');
-          }
         }
 
         await initiatePayment({
@@ -337,11 +330,6 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
       
       // Reset form
       setFormData({
-        address: "",
-        city: "",
-        state: "",
-        postalCode: "",
-        phone: "",
         paymentMethod: "cod",
         shippingOptionId: "",
       });
@@ -355,6 +343,11 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     } finally {
       setLoading(false);
     }
+  };
+
+  const getRemainingAmountForFreeShipping = () => {
+    if (!freeShippingSettings.enabled || isEligibleForFreeShipping) return 0;
+    return freeShippingSettings.minimum_amount - orderTotals.totalFinalPrice;
   };
 
   return (
@@ -393,10 +386,18 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                 </div>
                 {selectedShippingOption && (
                   <div className="flex justify-between text-sm">
-                    <span>Shipping ({selectedShippingOption.name}):</span>
+                    <span>
+                      Shipping ({selectedShippingOption.name})
+                      {isEligibleForFreeShipping && (
+                        <span className="text-green-600 ml-1">(FREE)</span>
+                      )}:
+                    </span>
                     <span className="flex items-center gap-1">
+                      {isEligibleForFreeShipping ? (
+                        <span className="text-green-600 line-through text-xs mr-1">₹{baseShippingPrice.toFixed(2)}</span>
+                      ) : null}
                       <IndianRupee className="h-3 w-3" />
-                      {shippingPrice.toFixed(2)}
+                      {finalShippingPrice.toFixed(2)}
                     </span>
                   </div>
                 )}
@@ -407,6 +408,16 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                       <IndianRupee className="h-3 w-3" />
                       {codCharges.toFixed(2)}
                     </span>
+                  </div>
+                )}
+                {freeShippingSettings.enabled && !isEligibleForFreeShipping && getRemainingAmountForFreeShipping() > 0 && (
+                  <div className="text-xs text-blue-600 mt-2 p-2 bg-blue-50 rounded">
+                    Add ₹{getRemainingAmountForFreeShipping().toFixed(2)} more to get free shipping!
+                  </div>
+                )}
+                {isEligibleForFreeShipping && (
+                  <div className="text-xs text-green-600 mt-2 p-2 bg-green-50 rounded">
+                    🎉 You've qualified for free shipping!
                   </div>
                 )}
                 <div className="flex justify-between font-semibold text-lg border-t pt-2">
@@ -455,10 +466,13 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                             )}
                           </div>
                           <div className="font-semibold flex items-center gap-1">
-                            {option.price === 0 ? 'Free' : (
+                            {(isEligibleForFreeShipping ? 0 : option.price) === 0 ? 'Free' : (
                               <>
+                                {isEligibleForFreeShipping && option.price > 0 && (
+                                  <span className="text-green-600 line-through text-xs mr-1">₹{option.price.toFixed(2)}</span>
+                                )}
                                 <IndianRupee className="h-3 w-3" />
-                                {Number(option.price).toFixed(2)}
+                                {(isEligibleForFreeShipping ? 0 : Number(option.price)).toFixed(2)}
                               </>
                             )}
                           </div>
@@ -471,7 +485,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             </CardContent>
           </Card>
 
-          {/* Shipping Address */}
+          {/* Shipping Address - Only Saved Addresses */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -483,85 +497,19 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
               {loadingProfile ? (
                 <div className="text-center py-4">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                  <p className="text-sm text-gray-600 mt-2">Loading your address...</p>
+                  <p className="text-sm text-gray-600 mt-2">Loading your addresses...</p>
                 </div>
               ) : (
-                <Tabs value={addressTab} onValueChange={setAddressTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="saved">Saved Addresses</TabsTrigger>
-                    <TabsTrigger value="manual">New Address</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="saved" className="space-y-4">
-                    <AddressManager 
-                      onAddressSelect={setSelectedAddress}
-                      selectedAddressId={selectedAddress?.id}
-                      showSelection={true}
-                    />
-                    {!selectedAddress && (
-                      <p className="text-sm text-gray-500 text-center py-4">
-                        Please select an address or create a new one
-                      </p>
-                    )}
-                  </TabsContent>
-                  
-                  <TabsContent value="manual" className="space-y-4">
-                    <div>
-                      <Label htmlFor="address">Address</Label>
-                      <Textarea
-                        id="address"
-                        value={formData.address}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        required={addressTab === "manual"}
-                        rows={3}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="city">City</Label>
-                        <Input
-                          id="city"
-                          value={formData.city}
-                          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                          required={addressTab === "manual"}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="state">State</Label>
-                        <Input
-                          id="state"
-                          value={formData.state}
-                          onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                          required={addressTab === "manual"}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="postalCode">Postal Code</Label>
-                        <Input
-                          id="postalCode"
-                          value={formData.postalCode}
-                          onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                          required={addressTab === "manual"}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          required={addressTab === "manual"}
-                          placeholder={existingPhone || "Enter phone number"}
-                        />
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                <AddressManager 
+                  onAddressSelect={setSelectedAddress}
+                  selectedAddressId={selectedAddress?.id}
+                  showSelection={true}
+                />
+              )}
+              {!selectedAddress && !loadingProfile && (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  Please select or add a delivery address to continue
+                </p>
               )}
             </CardContent>
           </Card>
@@ -571,7 +519,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Phone number is required for online payment. Please provide your phone number in the address section above.
+                Phone number is required for online payment. Please add a phone number to your selected address or choose a different address.
               </AlertDescription>
             </Alert>
           )}
@@ -633,8 +581,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                 cashfreeLoading || 
                 !formData.shippingOptionId || 
                 shippingOptions.length === 0 ||
-                (addressTab === "saved" && !selectedAddress) ||
-                (addressTab === "manual" && (!formData.address || !formData.city || !formData.state || !formData.postalCode || !formData.phone)) ||
+                !selectedAddress ||
                 needsPhoneForOnlinePayment
               } 
               className="flex-1 bg-[#6A8A4E] hover:bg-[green] text-white"
