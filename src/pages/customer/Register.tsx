@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
+import AuthRedirectHandler from "@/components/customer/AuthRedirectHandler";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -19,15 +19,23 @@ const Register = () => {
   const { signUp, signInWithGoogle, user } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already logged in
+  // Redirect if already logged in - use smart routing
   if (user) {
-    return <Navigate to="/account" replace />;
+    const adminEmails = ["admin@ezbillify.com", "admin@millsmitra.com"];
+    const isAdmin = adminEmails.includes(user.email || "");
+    
+    if (isAdmin) {
+      return <Navigate to="/admin" replace />;
+    } else {
+      return <AuthRedirectHandler user={user} />;
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
+      // You might want to add error handling here
       return;
     }
     
@@ -42,9 +50,9 @@ const Register = () => {
       );
       
       if (!error) {
-        // With email confirmation disabled, user is immediately signed in
-        // Navigate to account page instead of login
-        navigate("/account");
+        // The useAuth signUp function will handle the redirect to /account
+        // No need for manual navigation here
+        console.log("Registration successful");
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -64,6 +72,7 @@ const Register = () => {
     setLoading(true);
     try {
       await signInWithGoogle();
+      // Google OAuth will handle the redirect through the OAuth flow
     } catch (error) {
       console.error('Google sign in error:', error);
     }

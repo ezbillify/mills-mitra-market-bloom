@@ -7,7 +7,6 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  needsPhoneNumber: boolean;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
@@ -22,21 +21,18 @@ interface AuthContextType {
       email?: string;
     }
   ) => Promise<void>;
-  checkProfileCompleteness: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   loading: true,
-  needsPhoneNumber: false,
   signIn: async () => ({ error: null }),
   signUp: async () => ({ error: null }),
   signOut: async () => {},
   signInWithGoogle: async () => {},
   updateUser: async () => {},
   updateUserProfile: async () => {},
-  checkProfileCompleteness: async () => false,
 });
 
 export const useAuth = () => {
@@ -55,7 +51,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [needsPhoneNumber, setNeedsPhoneNumber] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -66,7 +61,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setLoading(false);
 
         if (event === 'SIGNED_IN' && session?.user) {
-          // Ensure profile exists and check completeness
+          // Ensure profile exists and handle new Google users
           setTimeout(async () => {
             try {
               const { data: profile, error } = await supabase
@@ -75,32 +70,44 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 .eq('id', session.user.id)
                 .single();
 
+              const isGoogleUser = session.user.app_metadata?.providers?.includes('google');
+
               if (error && error.code === 'PGRST116') {
-                // Profile doesn't exist, create it
+                // Profile doesn't exist - create it
+                const newProfile = {
+                  id: session.user.id,
+                  email: session.user.email,
+                  first_name: session.user.user_metadata?.first_name || 
+                             session.user.user_metadata?.full_name?.split(' ')[0] || '',
+                  last_name: session.user.user_metadata?.last_name || 
+                            session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+                };
+
                 await supabase
                   .from('profiles')
-                  .insert({
-                    id: session.user.id,
-                    email: session.user.email,
-                    first_name: session.user.user_metadata?.first_name || '',
-                    last_name: session.user.user_metadata?.last_name || '',
-                  });
+                  .insert(newProfile);
+
+                console.log('✅ Created new profile for user:', session.user.id);
                 
-                // New users (especially Google OAuth) need phone number
-                setNeedsPhoneNumber(true);
-              } else if (profile && !profile.phone) {
-                // Existing users without phone number
-                setNeedsPhoneNumber(true);
-              } else {
-                setNeedsPhoneNumber(false);
+                // For Google users, this is like their first registration
+                // They should go to /account just like normal registration users
+                if (isGoogleUser) {
+                  console.log('🔄 New Google user - redirecting to account page');
+                }
+              } else if (profile) {
+                // Profile exists - check if it's complete
+                const isProfileComplete = profile.first_name && 
+                                        profile.last_name && 
+                                        profile.phone;
+                
+                if (isGoogleUser && !isProfileComplete) {
+                  console.log('🔄 Existing Google user with incomplete profile');
+                }
               }
             } catch (error) {
               console.error('❌ Error ensuring profile:', error);
             }
           }, 1000);
-        } else {
-          // User signed out
-          setNeedsPhoneNumber(false);
         }
       }
     );
@@ -143,7 +150,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     firstName?: string,
     lastName?: string
   ) => {
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${window.location.origin}/account`; // New users go to account
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -182,14 +189,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         variant: "destructive",
       });
     }
-    setNeedsPhoneNumber(false);
   };
 
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${window.location.origin}/`, // Google users go to home initially
+        // The auth state change will check if they need to complete profile
       },
     });
 
@@ -259,12 +266,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (dbError) throw dbError;
 
-      // 3. If phone was provided, user no longer needs phone number
-      if (phone) {
-        setNeedsPhoneNumber(false);
-      }
-
-      await updateUser(); // ✅ Refresh session with updated metadata
+      await updateUser();
 
       toast({
         title: "Profile updated successfully",
@@ -278,37 +280,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const checkProfileCompleteness = async (): Promise<boolean> => {
-    if (!user) return false;
-
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('phone, first_name, last_name')
-        .eq('id', user.id)
-        .single();
-
-      const isComplete = profile?.phone && profile?.first_name && profile?.last_name;
-      setNeedsPhoneNumber(!isComplete);
-      return !!isComplete;
-    } catch (error) {
-      console.error('Error checking profile completeness:', error);
-      return false;
-    }
-  };
-
   const value = {
     user,
     session,
     loading,
-    needsPhoneNumber,
     signIn,
     signUp,
     signOut,
     signInWithGoogle,
     updateUser,
     updateUserProfile,
-    checkProfileCompleteness,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

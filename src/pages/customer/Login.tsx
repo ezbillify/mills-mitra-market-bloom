@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, Navigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,41 +8,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
-// Simple component to handle profile-based redirect
-const ProfileRedirect = ({ userId }: { userId: string }) => {
-  const [redirect, setRedirect] = useState<string | null>(null);
-
-  useEffect(() => {
-    const checkProfile = async () => {
-      try {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("first_name, last_name, phone")
-          .eq("id", userId)
-          .single();
-
-        // Always redirect incomplete profiles to account page
-        // Let the Account.tsx page handle the form logic
-        if (!profile?.first_name || !profile?.last_name || !profile?.phone) {
-          setRedirect("/account");
-        } else {
-          setRedirect("/");
-        }
-      } catch (error) {
-        setRedirect("/account");
-      }
-    };
-
-    checkProfile();
-  }, [userId]);
-
-  if (redirect) {
-    return <Navigate to={redirect} replace />;
-  }
-
-  return <div>Loading...</div>;
-};
+import AuthRedirectHandler from "@/components/customer/AuthRedirectHandler";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -52,9 +18,8 @@ const Login = () => {
   const { signIn, signInWithGoogle, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // ✅ Check for auth fragment when redirected back
+  // Handle auth fragments from redirects
   useEffect(() => {
     const hash = window.location.hash;
     if (navigator.userAgent.includes("Android") && hash.includes("access_token")) {
@@ -67,13 +32,14 @@ const Login = () => {
           if (error) {
             console.error("❌ Error setting session from redirect:", error);
           } else {
+            // Auth state change will handle the redirect
             window.dispatchEvent(new Event("SIGNED_IN"));
           }
         });
       }
     }
 
-    // ✅ Handle injected session from MainActivity
+    // Handle injected session from MainActivity
     const listener = (event: any) => {
       const fragment = event.detail;
       if (fragment && fragment.includes("access_token")) {
@@ -97,16 +63,17 @@ const Login = () => {
     return () => window.removeEventListener("supabase-android-auth", listener);
   }, []);
 
-  // ✅ If already signed in, redirect based on role
+  // Redirect authenticated users
   if (user) {
     const adminEmails = ["admin@ezbillify.com", "admin@millsmitra.com"];
     const isAdmin = adminEmails.includes(user.email || "");
-
-    return isAdmin ? (
-      <Navigate to="/admin" replace />
-    ) : (
-      <ProfileRedirect userId={user.id} />
-    );
+    
+    if (isAdmin) {
+      return <Navigate to="/admin" replace />;
+    } else {
+      // Use smart routing for regular users
+      return <AuthRedirectHandler user={user} />;
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -125,6 +92,7 @@ const Login = () => {
     try {
       const { error } = await signIn(email, password);
       if (!error) {
+        // Will redirect to /account automatically
         console.log("✅ Login success");
       }
     } catch (error) {
@@ -138,7 +106,6 @@ const Login = () => {
     setLoading(false);
   };
 
-  // ✅ Updated Google Sign-In: only trigger Chrome Custom Tab if Android WebView
   const handleGoogleSignIn = async () => {
     const isAndroidWebView =
       /Android/i.test(navigator.userAgent) && /wv/.test(navigator.userAgent);
@@ -149,8 +116,9 @@ const Login = () => {
         console.log("🔁 Redirecting to Chrome Custom Tab...");
         window.location.href = "supabase-login://google";
       } else {
-        console.log("🌐 Regular browser login...");
+        console.log("🌐 Regular browser Google login...");
         await signInWithGoogle();
+        // Will redirect to /account automatically via OAuth redirectTo
       }
     } catch (error) {
       console.error("❌ Google sign in error:", error);
@@ -259,7 +227,7 @@ const Login = () => {
               onClick={handleGoogleSignIn}
               disabled={loading}
             >
-              Sign in with Google
+              {loading ? "Signing in..." : "Sign in with Google"}
             </Button>
 
             <div className="text-center mt-4">
