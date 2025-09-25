@@ -18,11 +18,12 @@ export class OrderService {
       const isActualAdmin = user.email === 'admin@ezbillify.com' || user.email === 'admin@millsmitra.com';
       console.log(`👤 User ${user.email} is admin: ${isActualAdmin}`);
 
+      // Updated query with proper profile join
       let query = supabase
         .from("orders")
         .select(`
           *,
-          profiles!orders_user_id_profiles_fkey(
+          profiles(
             first_name,
             last_name,
             email,
@@ -30,7 +31,8 @@ export class OrderService {
             address,
             city,
             postal_code,
-            country
+            country,
+            state
           )
         `)
         .order("created_at", { ascending: false });
@@ -50,8 +52,51 @@ export class OrderService {
         throw new Error(`Failed to fetch orders: ${error.message}`);
       }
 
-      console.log(`✅ Successfully fetched ${orders?.length || 0} orders`);
-      return orders || [];
+      // Enhance orders with address data fallback (similar to useOrderDetails)
+      const enhancedOrders = await Promise.all(
+        (orders || []).map(async (order) => {
+          // If profile data is missing key info, try to get address data as fallback
+          if (!order.profiles || (!order.profiles.phone || !order.profiles.first_name)) {
+            try {
+              const { data: addressData } = await supabase
+                .from("addresses")
+                .select("*")
+                .eq("user_id", order.user_id)
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+              if (addressData) {
+                return {
+                  ...order,
+                  profiles: {
+                    ...(order.profiles || {}),
+                    // Use address data if profile data is missing
+                    first_name: order.profiles?.first_name || addressData.first_name,
+                    last_name: order.profiles?.last_name || addressData.last_name,
+                    phone: order.profiles?.phone || addressData.phone,
+                    address: order.profiles?.address || addressData.address_line_1,
+                    city: order.profiles?.city || addressData.city,
+                    postal_code: order.profiles?.postal_code || addressData.postal_code,
+                    country: order.profiles?.country || addressData.country,
+                    state: (order.profiles as any)?.state || addressData.state,
+                    email: order.profiles?.email || null, // Keep original email logic
+                  },
+                  // Store address data separately for reference
+                  address_data: addressData
+                };
+              }
+            } catch (addressError) {
+              console.warn(`Could not fetch address data for order ${order.id}:`, addressError);
+            }
+          }
+          
+          return order;
+        })
+      );
+
+      console.log(`✅ Successfully fetched and enhanced ${enhancedOrders?.length || 0} orders`);
+      return enhancedOrders || [];
     } catch (error) {
       console.error("💥 Unexpected error in fetchOrders:", error);
       throw error;
@@ -170,11 +215,12 @@ export class OrderService {
 
       const isAdmin = user.email === 'admin@ezbillify.com' || user.email === 'admin@millsmitra.com';
 
+      // Updated query with proper profile join
       let query = supabase
         .from("orders")
         .select(`
           *,
-          profiles!orders_user_id_profiles_fkey(
+          profiles(
             first_name,
             last_name,
             email,
@@ -182,7 +228,8 @@ export class OrderService {
             address,
             city,
             postal_code,
-            country
+            country,
+            state
           )
         `)
         .eq("id", orderId);

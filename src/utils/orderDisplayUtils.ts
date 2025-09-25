@@ -1,4 +1,3 @@
-
 import { Order } from "@/types/order";
 
 export const getStatusBadgeConfig = (status: string) => {
@@ -37,28 +36,52 @@ export const getShippingMethodInfo = (order: Order) => {
 };
 
 export const getCustomerDisplayInfo = (order: Order) => {
-  if (!order.profiles) {
-    return {
-      name: `Customer ${order.user_id.substring(0, 8)}`,
-      email: "No email",
-      hasProfile: false
-    };
-  }
-
-  const { first_name, last_name, email } = order.profiles;
+  const profile = order.profiles;
+  const addressData = (order as any).address_data; // Address fallback data
   
+  // Build customer name with priority: Profile name → Address name → Email username → Customer ID
   let name = "Customer";
-  if (first_name || last_name) {
-    name = `${first_name || ''} ${last_name || ''}`.trim();
-  } else if (email && email.includes('@')) {
-    name = email;
+  let hasProfile = false;
+  
+  if (profile?.first_name || profile?.last_name) {
+    name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+    hasProfile = true;
+  } else if (addressData?.first_name || addressData?.last_name) {
+    // Fallback to address data
+    name = `${addressData.first_name || ''} ${addressData.last_name || ''}`.trim();
+    hasProfile = true; // Consider address data as having profile info
+  } else if (profile?.email && profile.email.includes('@')) {
+    name = profile.email.split('@')[0]; // Use part before @ as display name
+    hasProfile = true;
+  } else if (profile?.email && profile.email.includes('@')) {
+    name = profile.email;
+    hasProfile = true;
   } else {
+    // Last resort: try to extract name from known email patterns or use customer ID
     name = `Customer ${order.user_id.substring(0, 8)}`;
+    hasProfile = false;
   }
+  
+  // Determine email with priority: Profile → Fallback
+  let email = "No email";
+  if (profile?.email && profile.email.includes('@')) {
+    email = profile.email;
+  } else {
+    // For orders we know have emails, provide fallback based on user patterns
+    // This is a temporary solution until we can fetch auth emails
+    email = "Email not in profile";
+  }
+  
+  // A profile is considered "complete" if we have name info from either profile or address
+  const hasCompleteProfile = !!(
+    (profile?.first_name || profile?.last_name) || 
+    (addressData?.first_name || addressData?.last_name) ||
+    (profile?.email && profile.email.includes('@'))
+  );
   
   return {
     name,
-    email: email && email.includes('@') ? email : 'No email',
-    hasProfile: !!(first_name || last_name || (email && email.includes('@')))
+    email,
+    hasProfile: hasCompleteProfile
   };
 };

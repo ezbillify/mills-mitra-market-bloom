@@ -63,7 +63,7 @@ const CustomerHeader = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4 text-xs sm:text-sm">
-              <span className="hidden md:inline">Free Shipping on Orders ₹798+</span>
+              <span className="hidden md:inline">Free Shipping on Orders ₹700+</span>
               <Link to="/orders" className="hover:underline">Track Your Order</Link>
             </div>
           </div>

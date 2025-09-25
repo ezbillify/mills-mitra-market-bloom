@@ -42,7 +42,7 @@ const AdminShippingSettings = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [codSettings, setCodSettings] = useState<CODSettings>({ amount: 50, enabled: true });
   const [codLoading, setCodLoading] = useState(false);
-  const [freeShippingSettings, setFreeShippingSettings] = useState<FreeShippingSettings>({ minimum_amount: 798, enabled: true });
+  const [freeShippingSettings, setFreeShippingSettings] = useState<FreeShippingSettings>({ minimum_amount: 700, enabled: true });
   const [freeShippingLoading, setFreeShippingLoading] = useState(false);
   const { toast } = useToast();
 
@@ -317,7 +317,7 @@ const AdminShippingSettings = () => {
                   ...prev, 
                   minimum_amount: parseFloat(e.target.value) || 0 
                 }))}
-                placeholder="798.00"
+                placeholder="700.00"
               />
               <p className="text-xs text-gray-500">
                 Orders above this amount will get free shipping
