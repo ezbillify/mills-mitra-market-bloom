@@ -4,110 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-// Phone Collection Modal Component
-const PhoneCollectionModal = ({ isOpen, onComplete }: { isOpen: boolean; onComplete: () => void }) => {
-  const [phone, setPhone] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { user, updateUserProfile } = useAuth();
-  const { toast } = useToast();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!phone.trim()) {
-      toast({
-        title: "Phone number required",
-        description: "Please enter your phone number to continue.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Indian phone number validation (adjust as needed)
-    const phoneRegex = /^[+]?[6-9]\d{9}$/;
-    if (!phoneRegex.test(phone.replace(/\s+/g, ''))) {
-      toast({
-        title: "Invalid phone number",
-        description: "Please enter a valid 10-digit Indian mobile number.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await updateUserProfile({
-        firstName: user?.user_metadata?.first_name || user?.user_metadata?.full_name?.split(' ')[0] || "",
-        lastName: user?.user_metadata?.last_name || user?.user_metadata?.full_name?.split(' ').slice(1).join(' ') || "",
-        phone: phone.trim(),
-      });
-
-      toast({
-        title: "Profile completed!",
-        description: "Your phone number has been saved.",
-      });
-
-      onComplete();
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save phone number. Please try again.",
-        variant: "destructive",
-      });
-    }
-    setLoading(false);
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={() => {}} modal={true}>
-      <DialogContent className="sm:max-w-md [&>button]:hidden">
-        <DialogHeader>
-          <DialogTitle>Complete Your Profile</DialogTitle>
-        </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number *</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="Enter 10-digit mobile number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              disabled={loading}
-              autoFocus
-              maxLength={10}
-            />
-            <p className="text-sm text-gray-500">
-              We need your phone number to process orders and send updates.
-            </p>
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={loading || !phone.trim()}
-          >
-            {loading ? "Saving..." : "Save & Continue"}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// Component to handle profile-based redirect with phone check
+// Simple component to handle profile-based redirect
 const ProfileRedirect = ({ userId }: { userId: string }) => {
   const [redirect, setRedirect] = useState<string | null>(null);
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkProfile = async () => {
@@ -118,93 +22,26 @@ const ProfileRedirect = ({ userId }: { userId: string }) => {
           .eq("id", userId)
           .single();
 
-        // Check if phone number is missing (most critical)
-        if (!profile?.phone) {
-          setShowPhoneModal(true);
-          setLoading(false);
-          return;
-        }
-
-        // Check if name is missing
-        if (!profile?.first_name || !profile?.last_name) {
+        // Always redirect incomplete profiles to account page
+        // Let the Account.tsx page handle the form logic
+        if (!profile?.first_name || !profile?.last_name || !profile?.phone) {
           setRedirect("/account");
         } else {
           setRedirect("/");
         }
       } catch (error) {
-        console.error("Error checking profile:", error);
         setRedirect("/account");
       }
-      setLoading(false);
     };
 
     checkProfile();
   }, [userId]);
 
-  const handlePhoneComplete = async () => {
-    setShowPhoneModal(false);
-    setLoading(true);
-    
-    // Re-check profile after phone is added
-    try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("first_name, last_name")
-        .eq("id", userId)
-        .single();
-
-      if (!profile?.first_name || !profile?.last_name) {
-        setRedirect("/account");
-      } else {
-        setRedirect("/");
-      }
-    } catch (error) {
-      setRedirect("/account");
-    }
-    setLoading(false);
-  };
-
-  if (loading) {
-    return (
-      <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Setting up your profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (showPhoneModal) {
-    return (
-      <>
-        <PhoneCollectionModal 
-          isOpen={true} 
-          onComplete={handlePhoneComplete}
-        />
-        <div className="fixed inset-0 bg-white z-40 flex items-center justify-center">
-          <div className="text-center max-w-md px-4">
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome to Mills Mitra!</h2>
-              <p className="text-gray-600">
-                We need just one more detail to complete your registration.
-              </p>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
   if (redirect) {
     return <Navigate to={redirect} replace />;
   }
 
-  return (
-    <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    </div>
-  );
+  return <div>Loading...</div>;
 };
 
 const Login = () => {
@@ -231,7 +68,6 @@ const Login = () => {
             console.error("❌ Error setting session from redirect:", error);
           } else {
             window.dispatchEvent(new Event("SIGNED_IN"));
-            // Let ProfileRedirect handle the phone number check
           }
         });
       }
@@ -251,7 +87,6 @@ const Login = () => {
               console.error("❌ Error setting session via JS event:", error);
             } else {
               window.dispatchEvent(new Event("SIGNED_IN"));
-              // Let ProfileRedirect handle the phone number check
             }
           });
         }
@@ -262,7 +97,7 @@ const Login = () => {
     return () => window.removeEventListener("supabase-android-auth", listener);
   }, []);
 
-  // ✅ If already signed in, redirect based on role and profile completeness
+  // ✅ If already signed in, redirect based on role
   if (user) {
     const adminEmails = ["admin@ezbillify.com", "admin@millsmitra.com"];
     const isAdmin = adminEmails.includes(user.email || "");
@@ -291,7 +126,6 @@ const Login = () => {
       const { error } = await signIn(email, password);
       if (!error) {
         console.log("✅ Login success");
-        // ProfileRedirect will handle routing based on profile completeness
       }
     } catch (error) {
       console.error("❌ Login error:", error);
@@ -317,7 +151,6 @@ const Login = () => {
       } else {
         console.log("🌐 Regular browser login...");
         await signInWithGoogle();
-        // ProfileRedirect will handle the phone number collection
       }
     } catch (error) {
       console.error("❌ Google sign in error:", error);
@@ -426,7 +259,7 @@ const Login = () => {
               onClick={handleGoogleSignIn}
               disabled={loading}
             >
-              {loading ? "Signing in..." : "Sign in with Google"}
+              Sign in with Google
             </Button>
 
             <div className="text-center mt-4">

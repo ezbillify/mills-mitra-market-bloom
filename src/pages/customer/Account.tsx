@@ -20,6 +20,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 
+// Updated schema with required phone number
 const profileFormSchema = z.object({
   firstName: z.string().min(2, {
     message: "First name must be at least 2 characters.",
@@ -32,8 +33,8 @@ const profileFormSchema = z.object({
   }),
   phone: z
     .string()
-    .optional()
-    .refine((val) => !val || (val.length >= 10 && /^[0-9]{10,15}$/.test(val)), {
+    .min(1, { message: "Phone number is required." })
+    .refine((val) => val.length >= 10 && /^[0-9]{10,15}$/.test(val), {
       message: "Phone number must be 10-15 digits only.",
     }),
   address: z.string().optional(),
@@ -93,8 +94,8 @@ const Account = () => {
 
         // Populate form with database data (priority) or auth metadata (fallback)
         form.reset({
-          firstName: data?.first_name || user.user_metadata?.first_name || "",
-          lastName: data?.last_name || user.user_metadata?.last_name || "",
+          firstName: data?.first_name || user.user_metadata?.first_name || user.user_metadata?.full_name?.split(' ')[0] || "",
+          lastName: data?.last_name || user.user_metadata?.last_name || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || "",
           email: user.email || "",
           phone: data?.phone || user.user_metadata?.phone || "",
           address: data?.address || user.user_metadata?.address || "",
@@ -147,8 +148,15 @@ const Account = () => {
 
       toast({
         title: "Profile updated successfully!",
-        description: values.phone ? "Your phone number has been saved for faster checkout." : undefined,
+        description: isGoogleUser && values.phone ? "Your phone number has been saved. You can now proceed to shop!" : "Your profile has been updated.",
       });
+
+      // If this was a Google user completing their profile, redirect to home
+      if (isGoogleUser && values.phone && !profile?.phone) {
+        setTimeout(() => {
+          navigate("/");
+        }, 1500);
+      }
 
     } catch (error: any) {
       console.error('Profile update error:', error);
@@ -165,25 +173,30 @@ const Account = () => {
   if (user === undefined) return null;
 
   const hasPhone = profile?.phone || user?.user_metadata?.phone;
+  const isProfileIncomplete = isGoogleUser && !hasPhone;
 
   return (
     <div className="container mx-auto py-10 space-y-6">
-      {/* Google user phone number alert */}
-      {isGoogleUser && !hasPhone && (
-        <Alert className="w-full max-w-2xl mx-auto">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Add your phone number</strong> to enable online payments during checkout. 
-            Phone numbers are required for secure payment processing.
+      {/* Enhanced Google user phone number alert */}
+      {isProfileIncomplete && (
+        <Alert className="w-full max-w-2xl mx-auto border-orange-500 bg-orange-50">
+          <AlertCircle className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="text-orange-800">
+            <strong>Complete your registration:</strong> Please add your phone number below to finish setting up your account and enable online payments.
           </AlertDescription>
         </Alert>
       )}
 
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Account Settings</CardTitle>
+          <CardTitle>
+            {isProfileIncomplete ? "Complete Your Profile" : "Account Settings"}
+          </CardTitle>
           <p className="text-sm text-gray-600">
-            Update your personal information and contact details
+            {isProfileIncomplete 
+              ? "Add your phone number to complete registration"
+              : "Update your personal information and contact details"
+            }
           </p>
         </CardHeader>
         <CardContent>
@@ -242,8 +255,7 @@ const Account = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Phone Number 
-                      {!hasPhone && <span className="text-red-500 ml-1">*</span>}
+                      Phone Number <span className="text-red-500">*</span>
                       <span className="text-sm text-gray-500 ml-2">
                         (Required for online payments)
                       </span>
@@ -252,10 +264,21 @@ const Account = () => {
                       <Input 
                         placeholder="1234567890" 
                         {...field}
-                        className={!hasPhone ? "border-orange-300 focus:border-orange-500" : ""}
+                        className={isProfileIncomplete ? "border-orange-300 focus:border-orange-500" : ""}
+                        maxLength={15}
+                        onInput={(e) => {
+                          // Only allow numbers
+                          const target = e.target as HTMLInputElement;
+                          target.value = target.value.replace(/[^0-9]/g, '');
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
+                    {isProfileIncomplete && (
+                      <p className="text-sm text-orange-600">
+                        Enter your 10-digit mobile number to continue
+                      </p>
+                    )}
                   </FormItem>
                 )}
               />
@@ -277,37 +300,44 @@ const Account = () => {
               <Button 
                 type="submit" 
                 disabled={loading}
-                className="w-full"
+                className={`w-full ${isProfileIncomplete ? 'bg-orange-600 hover:bg-orange-700' : ''}`}
               >
-                {loading ? "Updating..." : "Update Profile"}
+                {loading 
+                  ? "Updating..." 
+                  : isProfileIncomplete 
+                    ? "Complete Registration" 
+                    : "Update Profile"
+                }
               </Button>
             </form>
           </Form>
         </CardContent>
       </Card>
 
-      {/* Address Management */}
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Address Management
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-600 mb-4">
-            Manage your saved addresses for faster checkout
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => navigate("/address-book")}
-            className="flex items-center gap-2"
-          >
-            Manage Addresses
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Address Management - only show if profile is complete */}
+      {!isProfileIncomplete && (
+        <Card className="w-full max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Address Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 mb-4">
+              Manage your saved addresses for faster checkout
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/address-book")}
+              className="flex items-center gap-2"
+            >
+              Manage Addresses
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
