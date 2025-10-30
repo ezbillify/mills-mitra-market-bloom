@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +37,7 @@ const AddressManager = ({ onAddressSelect, selectedAddressId, showSelection = fa
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [isEditing, setIsEditing] = useState(false); // Add isEditing state
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -89,6 +90,22 @@ const AddressManager = ({ onAddressSelect, selectedAddressId, showSelection = fa
   const saveAddress = async () => {
     if (!user) return;
 
+    // Validate phone number if provided
+    if (formData.phone) {
+      const cleanPhone = formData.phone.replace(/[^0-9]/g, '');
+      if (cleanPhone.length !== 10) {
+        toast({
+          title: "Invalid Phone Number",
+          description: "Phone number must be exactly 10 digits.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Update formData with cleaned phone number
+      setFormData(prev => ({ ...prev, phone: cleanPhone }));
+    }
+
     setLoading(true);
     try {
       const addressData = {
@@ -139,6 +156,7 @@ const AddressManager = ({ onAddressSelect, selectedAddressId, showSelection = fa
       });
     } finally {
       setLoading(false);
+      setIsEditing(false); // Reset editing state after save
     }
   };
 
@@ -203,24 +221,6 @@ const AddressManager = ({ onAddressSelect, selectedAddressId, showSelection = fa
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      label: "",
-      first_name: "",
-      last_name: "",
-      phone: "",
-      address_line_1: "",
-      address_line_2: "",
-      city: "",
-      state: "",
-      postal_code: "",
-      country: "India",
-      is_default: false,
-    });
-    setEditingAddress(null);
-    setShowAddForm(false);
-  };
-
   const startEdit = (address: Address) => {
     setFormData({
       label: address.label,
@@ -237,6 +237,26 @@ const AddressManager = ({ onAddressSelect, selectedAddressId, showSelection = fa
     });
     setEditingAddress(address);
     setShowAddForm(true);
+    setIsEditing(true); // Set editing state
+  };
+
+  const resetForm = () => {
+    setFormData({
+      label: "",
+      first_name: "",
+      last_name: "",
+      phone: "",
+      address_line_1: "",
+      address_line_2: "",
+      city: "",
+      state: "",
+      postal_code: "",
+      country: "India",
+      is_default: false,
+    });
+    setEditingAddress(null);
+    setShowAddForm(false);
+    setIsEditing(false); // Reset editing state
   };
 
   const formatAddress = (address: Address) => {
@@ -301,8 +321,15 @@ const AddressManager = ({ onAddressSelect, selectedAddressId, showSelection = fa
                   id="phone"
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => {
+                    // Only allow numbers and limit to 10 digits
+                    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+                    setFormData({ ...formData, phone: value });
+                  }}
+                  maxLength={10}
+                  placeholder="1234567890"
                 />
+                <p className="text-xs text-gray-500 mt-1">Enter exactly 10 digits</p>
               </div>
 
               <div>
@@ -401,7 +428,19 @@ const AddressManager = ({ onAddressSelect, selectedAddressId, showSelection = fa
                   ? "border-primary bg-primary/5"
                   : "hover:bg-gray-50"
               }`}
-              onClick={() => showSelection && onAddressSelect?.(address)}
+              onClick={(e) => {
+                // Only select address if not currently editing and showSelection is true
+                if (showSelection && !isEditing) {
+                  // Check if the click target is a button or within a button
+                  const clickedElement = e.target as HTMLElement;
+                  const isButtonClick = clickedElement.closest('button') !== null;
+                  
+                  // Only select address if it wasn't a button click
+                  if (!isButtonClick) {
+                    onAddressSelect?.(address);
+                  }
+                }
+              }}
             >
               <CardContent className="p-4">
                 <div className="flex justify-between items-start">
@@ -458,6 +497,18 @@ const AddressManager = ({ onAddressSelect, selectedAddressId, showSelection = fa
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
+                  )}
+                  {showSelection && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEdit(address);
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
               </CardContent>

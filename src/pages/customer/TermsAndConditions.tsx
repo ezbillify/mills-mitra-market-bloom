@@ -6,7 +6,7 @@ const TermsAndConditions = () => {
       <h1 className="text-2xl font-bold mb-4">Terms and Conditions</h1>
       
       <p className="mb-4">
-        Welcome to our website. If you continue to browse and use this website, you are agreeing to comply with and be bound by the following terms and conditions of use, which together with our privacy policy govern our relationship with you in relation to this website.
+        Welcome to our website. If you continue to browse and use this website, you are agreeing to comply with and be bound by the following terms and conditions of use, which together with our privacy policy govern our relationship with you in relation to this website. The Platform is owned by MAHADEVA SWAMY.
       </p>
 
       <h2 className="text-xl font-semibold mb-2">1. Acceptance of Terms</h2>
@@ -36,12 +36,16 @@ const TermsAndConditions = () => {
 
       <h2 className="text-xl font-semibold mb-2">6. Governing Law</h2>
       <p className="mb-4">
-        These Terms and Conditions are governed by and construed in accordance with the laws of [Your Country/State], and any disputes relating to these terms will be subject to the exclusive jurisdiction of the courts of [Your Country/State].
+        These Terms and Conditions are governed by and construed in accordance with the laws of India, and any disputes relating to these terms will be subject to the exclusive jurisdiction of the courts of India.
       </p>
 
       <h2 className="text-xl font-semibold mb-2">7. Contact Information</h2>
       <p className="mb-4">
-        If you have any questions about these Terms and Conditions, please contact us at [Your Contact Information].
+        If you have any questions about these Terms and Conditions, please contact us at:
+      </p>
+      <p className="mb-4">
+        Phone: 9113570074<br />
+        Email: <a href="mailto:millsmitramilletmix@gmail.com">millsmitramilletmix@gmail.com</a>
       </p>
     </div>
   );

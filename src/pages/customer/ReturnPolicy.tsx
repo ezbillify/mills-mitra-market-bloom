@@ -6,6 +6,7 @@ const ReturnPolicy = () => {
       <h1 className="text-2xl font-bold mb-4">Return Policy</h1>
       
       <p className="mb-4">
+        The Platform is owned by MAHADEVA SWAMY,
         Thank you for shopping at Mills Mitra. We want to ensure you are completely satisfied with your purchase. If you are not satisfied, you may return the product for a full refund or exchange, subject to the following conditions:
       </p>
 
@@ -26,12 +27,13 @@ const ReturnPolicy = () => {
 
       <h2 className="text-xl font-semibold mb-2">Refund Process:</h2>
       <p className="mb-4">
-        Once we receive the returned product and verify that it meets the return conditions, we will process your refund within 7-10 business days. The refund will be issued to the original payment method used for the purchase.
+        Once we receive the returned product and verify that it meets the return conditions, the refund will be credited within 7-10 business days. The refund will be issued to the original payment method used for the purchase.
       </p>
 
       <h2 className="text-xl font-semibold mb-2">Exchanges:</h2>
       <p className="mb-4">
         If you would like to exchange a product, please indicate the desired replacement product when contacting our customer support team. Exchanges are subject to product availability.
+        The exchanged products will be deliverd in 7-10 business days.
       </p>
 
       <h2 className="text-xl font-semibold mb-2">Shipping Costs:</h2>
@@ -42,11 +44,12 @@ const ReturnPolicy = () => {
       <h2 className="text-xl font-semibold mb-2">Damaged or Defective Products:</h2>
       <p className="mb-4">
         If you receive a damaged or defective product, please contact us immediately. We will arrange for a replacement or refund, and we will cover the return shipping costs.
+        Damage or defective product will be deliverd in 7-10 business days.
       </p>
 
       <h2 className="text-xl font-semibold mb-2">Contact Us:</h2>
       <p className="mb-4">
-        If you have any questions or concerns about our return policy, please contact our customer support team at support@millsmitra.com.
+        If you have any questions or concerns about our return policy, please contact our customer support team at millsmitramilletmix@gmail.com.
       </p>
     </div>
   );

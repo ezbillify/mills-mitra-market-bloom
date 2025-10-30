@@ -44,6 +44,7 @@ export const useCashfree = () => {
 
     try {
       const trimmedPhone = options.customerInfo.phone?.trim();
+      const cleanPhone = trimmedPhone ? trimmedPhone.replace(/[^0-9]/g, '') : '';
 
       console.log('🔵 Initiating Cashfree payment with options:', {
         amount: options.amount,
@@ -51,7 +52,7 @@ export const useCashfree = () => {
         customerInfo: {
           name: options.customerInfo.name,
           email: options.customerInfo.email,
-          phone: trimmedPhone ? '***' : 'missing',
+          phone: cleanPhone ? '***' : 'missing',
         },
       });
 
@@ -68,8 +69,8 @@ export const useCashfree = () => {
         throw new Error('Customer name and email are required');
       }
 
-      if (!trimmedPhone || trimmedPhone.length < 10) {
-        throw new Error('Phone number is required for online payment');
+      if (!cleanPhone || cleanPhone.length !== 10) {
+        throw new Error('Phone number must be exactly 10 digits for online payment');
       }
 
       // ✅ Load Cashfree script
@@ -89,7 +90,7 @@ export const useCashfree = () => {
           orderId: options.orderId,
           customerInfo: {
             ...options.customerInfo,
-            phone: trimmedPhone, // ensure clean data
+            phone: cleanPhone, // ensure clean data
           },
         },
       });

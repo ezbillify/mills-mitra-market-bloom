@@ -235,7 +235,16 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
 
   // Check if user has phone number from selected address or profile
   const existingPhone = selectedAddress?.phone || userProfile?.phone || user?.user_metadata?.phone;
-  const needsPhoneForOnlinePayment = formData.paymentMethod === 'cashfree' && !existingPhone;
+  
+  // Validate phone number format (10 digits minimum)
+  const isValidPhoneNumber = (phone: string) => {
+    if (!phone) return false;
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    return cleanPhone.length === 10;
+  };
+  
+  const hasValidPhone = isValidPhoneNumber(existingPhone);
+  const needsPhoneForOnlinePayment = formData.paymentMethod === 'cashfree' && !hasValidPhone;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -289,6 +298,12 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         if (!phoneNumber) {
           throw new Error('Phone number is required for online payment');
         }
+        
+        // Validate phone number is exactly 10 digits
+        const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+        if (cleanPhone.length !== 10) {
+          throw new Error('Phone number must be exactly 10 digits');
+        }
 
         await initiatePayment({
           amount: finalTotal,
@@ -296,7 +311,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           customerInfo: {
             name: customerName,
             email: userProfile?.email || user.email || '',
-            phone: phoneNumber,
+            phone: cleanPhone, // Use cleaned phone number
           },
           onSuccess: async (paymentId: string) => {
             // Clear cart after successful payment

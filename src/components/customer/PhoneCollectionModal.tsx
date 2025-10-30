@@ -23,18 +23,18 @@ export const PhoneCollectionModal = ({ isOpen, onComplete }: PhoneCollectionModa
     if (!phone.trim()) {
       toast({
         title: "Phone number required",
-        description: "Please enter your phone number to continue.",
+        description: "Please enter your 10-digit phone number to continue.",
         variant: "destructive",
       });
       return;
     }
 
-    // Basic phone validation (adjust regex based on your needs)
-    const phoneRegex = /^[+]?[\d\s\-\(\)]{10,}$/;
-    if (!phoneRegex.test(phone)) {
+    // Enforce exactly 10 digits for phone number
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.length !== 10) {
       toast({
         title: "Invalid phone number",
-        description: "Please enter a valid phone number.",
+        description: "Phone number must be exactly 10 digits.",
         variant: "destructive",
       });
       return;
@@ -42,10 +42,13 @@ export const PhoneCollectionModal = ({ isOpen, onComplete }: PhoneCollectionModa
 
     setLoading(true);
     try {
+      // Clean phone number to ensure exactly 10 digits
+      const cleanPhone = phone.replace(/[^0-9]/g, '');
+      
       await updateUserProfile({
         firstName: user?.user_metadata?.first_name || "",
         lastName: user?.user_metadata?.last_name || "",
-        phone: phone.trim(),
+        phone: cleanPhone, // Use cleaned phone number
       });
 
       toast({
