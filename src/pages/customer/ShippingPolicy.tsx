@@ -6,7 +6,7 @@ const ShippingPolicy = () => {
       <h1 className="text-2xl font-bold mb-4">Shipping Policy</h1>
       
       <p className="mb-4">
-        Thank you for shopping at Mills Mitra. This Shipping Policy outlines our procedures for shipping your orders.
+        Thank you for shopping at Mills Mitra.The Platform is owned by MAHADEVA SWAMY, This Shipping Policy outlines our procedures for shipping your orders.
       </p>
 
       <section className="mb-6">
@@ -20,6 +20,7 @@ const ShippingPolicy = () => {
         <h2 className="text-xl font-semibold mb-2">Shipping Rates & Delivery Estimates</h2>
         <p>
           Shipping rates are calculated at checkout based on the weight of your order and the destination. Delivery estimates are provided at checkout and are estimates only.
+          Generaly products will be delivered within 7-10 working days.
         </p>
       </section>
 

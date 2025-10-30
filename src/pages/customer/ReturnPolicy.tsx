@@ -11,7 +11,7 @@ const ReturnPolicy = () => {
       </p>
 
       <ul className="list-disc pl-5 mb-4">
-        <li>Returns must be initiated within 30 days of the delivery date.</li>
+        <li>Returns must be initiated within 7 days of the delivery date.</li>
         <li>The product must be in its original condition, unused, and with all original packaging and tags.</li>
         <li>You must provide proof of purchase, such as the order number or receipt.</li>
         <li>Certain products are not eligible for return, including perishable goods, personalized items, and products marked as non-returnable.</li>
