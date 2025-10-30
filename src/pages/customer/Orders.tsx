@@ -155,63 +155,63 @@ const Orders = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl sm:text-3xl font-bold text-warm-brown mb-6">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-warm-brown mb-4 sm:mb-6">
           My Orders
         </h1>
 
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {orders.map((order) => (
             <Card key={order.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2 sm:pb-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <CardTitle className="text-lg">
+                  <CardTitle className="text-base sm:text-lg">
                     Order #{order.id.slice(0, 8)}
                   </CardTitle>
-                  <Badge className={getStatusColor(order.status)}>
+                  <Badge className={`${getStatusColor(order.status)} text-[10px] sm:text-xs`}>
                     {formatStatus(order.status)}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-xs text-muted-foreground">Order Date</p>
-                      <p className="text-sm font-medium">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Order Date</p>
+                      <p className="text-xs sm:text-sm font-medium">
                         {new Date(order.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-xs text-muted-foreground">Total</p>
-                      <p className="text-sm font-medium">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Total</p>
+                      <p className="text-xs sm:text-sm font-medium">
                         {formatPrice(order.total)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-xs text-muted-foreground">Payment</p>
-                      <p className="text-sm font-medium capitalize">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Payment</p>
+                      <p className="text-xs sm:text-sm font-medium capitalize">
                         {order.payment_type || 'N/A'}
                       </p>
                     </div>
                   </div>
 
                   {order.tracking_number && (
-                    <div className="flex items-center gap-2">
-                      <Truck className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-xs text-muted-foreground">Tracking</p>
-                        <p className="text-sm font-medium">
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">Tracking</p>
+                        <p className="text-xs sm:text-sm font-medium">
                           {order.tracking_number}
                         </p>
                       </div>
@@ -219,13 +219,13 @@ const Orders = () => {
                   )}
                 </div>
 
-                <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="text-sm text-muted-foreground">
+                <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t flex flex-col gap-2 sm:gap-3">
+                  <div className="text-xs sm:text-sm text-muted-foreground">
                     <strong>Delivery Address:</strong> {order.shipping_address}
                   </div>
                   <Link to={`/orders/${order.id}`}>
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                      <Eye className="h-4 w-4 mr-2" />
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9">
+                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                       View Details
                     </Button>
                   </Link>

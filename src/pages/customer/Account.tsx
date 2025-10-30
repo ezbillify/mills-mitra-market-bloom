@@ -176,12 +176,12 @@ const Account = () => {
   const isProfileIncomplete = isGoogleUser && !hasPhone;
 
   return (
-    <div className="container mx-auto py-10 space-y-6">
+    <div className="container mx-auto py-4 sm:py-6 md:py-10 space-y-4 sm:space-y-6">
       {/* Enhanced Google user phone number alert */}
       {isProfileIncomplete && (
         <Alert className="w-full max-w-2xl mx-auto border-orange-500 bg-orange-50">
-          <AlertCircle className="h-4 w-4 text-orange-600" />
-          <AlertDescription className="text-orange-800">
+          <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-600" />
+          <AlertDescription className="text-xs sm:text-sm text-orange-800">
             <strong>Complete your registration:</strong> Please add your phone number below to finish setting up your account and enable online payments.
           </AlertDescription>
         </Alert>
@@ -189,10 +189,10 @@ const Account = () => {
 
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="text-lg sm:text-xl md:text-2xl">
             {isProfileIncomplete ? "Complete Your Profile" : "Account Settings"}
           </CardTitle>
-          <p className="text-sm text-gray-600">
+          <p className="text-xs sm:text-sm text-gray-600">
             {isProfileIncomplete 
               ? "Add your phone number to complete registration"
               : "Update your personal information and contact details"

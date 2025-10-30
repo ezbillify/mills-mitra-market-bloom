@@ -8,7 +8,9 @@ import CartSummary from '@/components/customer/CartSummary';
 import EmptyCart from '@/components/customer/EmptyCart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ShoppingCart as CartIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 const Cart = () => {
   const { user } = useAuth();
@@ -60,7 +62,7 @@ const Cart = () => {
 
   if (!user) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
         <div className="max-w-4xl mx-auto">
           <Alert>
             <AlertCircle className="h-4 w-4" />
@@ -75,10 +77,10 @@ const Cart = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
         <div className="max-w-4xl mx-auto">
           <Skeleton className="h-8 w-48 mb-6" />
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-4">
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-32 w-full" />
@@ -95,7 +97,7 @@ const Cart = () => {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
         <div className="max-w-4xl mx-auto">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -113,18 +115,26 @@ const Cart = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-warm-brown">
-            Shopping Cart
-          </h1>
-          <div className="text-sm text-muted-foreground">
-            {cartCount} {cartCount === 1 ? 'item' : 'items'}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">
+              Shopping Cart
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+              {cartCount} {cartCount === 1 ? 'item' : 'items'} in your cart
+            </p>
           </div>
+          <Button variant="outline" size="sm" asChild className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9">
+            <Link to="/products">
+              <CartIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+              Continue Shopping
+            </Link>
+          </Button>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 md:gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <CartItems items={cartItems} onUpdate={refetch} />
           </div>

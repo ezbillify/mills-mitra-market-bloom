@@ -235,6 +235,38 @@ const AdminProducts = () => {
     );
   };
 
+  // New function to render product placement preview
+  const renderProductPlacementPreview = (product: Product) => {
+    return (
+      <div className="bg-white rounded-lg border p-3 shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-start gap-3">
+          <img 
+            src={product.image || '/placeholder.svg'} 
+            alt={product.name}
+            className="w-16 h-16 rounded-lg object-cover border"
+          />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-gray-900 truncate">{product.name}</h3>
+            <div className="flex items-center gap-2 mt-1">
+              {product.featured && (
+                <Badge variant="default" className="bg-yellow-500 text-xs">Featured</Badge>
+              )}
+              {getStockBadge(product.stock)}
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              <div className="text-sm font-medium text-green-600">
+                ₹{product.discounted_price ? Number(product.discounted_price).toFixed(2) : Number(product.price).toFixed(2)}
+              </div>
+              <div className="text-xs text-gray-500">
+                {product.stock} in stock
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -256,7 +288,7 @@ const AdminProducts = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Total Products</CardTitle>
           </CardHeader>
@@ -264,7 +296,7 @@ const AdminProducts = () => {
             <div className="text-2xl font-bold text-gray-900">{products.length}</div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-yellow-500 hover:shadow-md transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Featured Products</CardTitle>
           </CardHeader>
@@ -274,7 +306,7 @@ const AdminProducts = () => {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-orange-500">
+        <Card className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Low Stock</CardTitle>
           </CardHeader>
@@ -284,7 +316,7 @@ const AdminProducts = () => {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-red-500">
+        <Card className="border-l-4 border-l-red-500 hover:shadow-md transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Out of Stock</CardTitle>
           </CardHeader>
@@ -297,7 +329,7 @@ const AdminProducts = () => {
       </div>
 
       {/* Filters Section */}
-      <Card>
+      <Card className="hover:shadow-md transition-shadow">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
@@ -343,7 +375,7 @@ const AdminProducts = () => {
       </Card>
 
       {/* Products Table */}
-      <Card>
+      <Card className="hover:shadow-md transition-shadow">
         <CardHeader>
           <CardTitle>Product Inventory ({filteredProducts.length} products)</CardTitle>
         </CardHeader>
@@ -351,8 +383,8 @@ const AdminProducts = () => {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="font-semibold">Product</TableHead>
+                <TableRow className="bg-gray-50 hover:bg-gray-50">
+                  <TableHead className="font-semibold">Product Preview</TableHead>
                   <TableHead className="font-semibold">Category & HSN</TableHead>
                   <TableHead className="font-semibold">Price & GST</TableHead>
                   <TableHead className="font-semibold">Stock</TableHead>
@@ -363,20 +395,8 @@ const AdminProducts = () => {
               <TableBody>
                 {filteredProducts.map((product) => (
                   <TableRow key={product.id} className="hover:bg-gray-50">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <img 
-                          src={product.image || '/placeholder.svg'} 
-                          alt={product.name}
-                          className="w-12 h-12 rounded-lg object-cover border"
-                        />
-                        <div>
-                          <div className="font-medium text-gray-900">{product.name}</div>
-                          <div className="text-sm text-gray-500 truncate max-w-[200px]">
-                            {product.description || "No description"}
-                          </div>
-                        </div>
-                      </div>
+                    <TableCell className="w-1/3">
+                      {renderProductPlacementPreview(product)}
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
@@ -384,8 +404,8 @@ const AdminProducts = () => {
                           {product.category}
                         </Badge>
                         {product.hsn_code && (
-                          <div className="text-xs text-gray-600">
-                            HSN: {product.hsn_code}
+                          <div className="text-xs text-gray-600 mt-1">
+                            <span className="font-medium">HSN:</span> {product.hsn_code}
                           </div>
                         )}
                       </div>
@@ -401,7 +421,7 @@ const AdminProducts = () => {
                     </TableCell>
                     <TableCell>{getStatusBadge(product.featured)}</TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
+                      <div className="flex flex-wrap gap-1">
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -435,8 +455,12 @@ const AdminProducts = () => {
           </div>
           
           {filteredProducts.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <p>No products found matching your filters.</p>
+            <div className="text-center py-12 text-gray-500">
+              <div className="mx-auto h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                <Search className="h-8 w-8 text-gray-400" />
+              </div>
+              <p className="text-lg font-medium mb-1">No products found</p>
+              <p>No products match your current filters. Try adjusting your search or filter criteria.</p>
             </div>
           )}
         </CardContent>

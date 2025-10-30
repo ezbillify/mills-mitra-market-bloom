@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -37,9 +36,9 @@ const AdminAccessButton = () => {
   return (
     <Link to="/admin">
       <Button 
-        variant="outline" 
+        variant="default" 
         size="sm" 
-        className="border-2 border-white/80 text-white bg-transparent hover:bg-white hover:text-primary transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+        className="bg-primary text-white font-medium shadow-sm"
       >
         <Shield className="h-4 w-4 mr-2" />
         Admin Panel

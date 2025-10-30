@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import CartItemCard from './CartItemCard';
@@ -27,7 +26,7 @@ interface CartItemsProps {
 const CartItems = ({ items, onUpdate }: CartItemsProps) => {
   return (
     <Card className="p-4 sm:p-6">
-      <h2 className="text-lg font-semibold mb-4 text-warm-brown">Cart Items</h2>
+      <h2 className="text-lg sm:text-xl font-semibold mb-4 text-primary">Cart Items</h2>
       <div className="space-y-4">
         {items.map((item) => (
           <CartItemCard

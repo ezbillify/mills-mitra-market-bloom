@@ -81,51 +81,51 @@ const CartSummary = ({ items, onOrderComplete }: CartSummaryProps) => {
 
   return (
     <>
-      <Card className="p-4 sm:p-6 sticky top-4">
-        <h2 className="text-lg font-semibold mb-4 text-warm-brown">Order Summary</h2>
+      <Card className="p-3 sm:p-4 md:p-6 sticky top-4">
+        <h2 className="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4 text-primary">Order Summary</h2>
         
-        <div className="space-y-3">
-          <div className="flex justify-between text-sm">
+        <div className="space-y-2 sm:space-y-3">
+          <div className="flex justify-between text-xs sm:text-sm">
             <span>Subtotal ({items.length} items)</span>
             <span>{PricingUtils.formatPrice(orderTotals.totalBaseAmount)}</span>
           </div>
 
           {orderTotals.totalDiscountAmount > 0 && (
-            <div className="flex justify-between text-sm text-green-600">
+            <div className="flex justify-between text-xs sm:text-sm text-green-600">
               <span>Discount</span>
               <span>-{PricingUtils.formatPrice(orderTotals.totalDiscountAmount)}</span>
             </div>
           )}
 
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between text-xs sm:text-sm">
             <span>Tax (GST)</span>
             <span>{PricingUtils.formatPrice(orderTotals.totalTaxAmount)}</span>
           </div>
 
           <Separator />
 
-          <div className="flex justify-between font-semibold text-lg">
-            <span>Subtotal</span>
-            <span className="text-warm-brown">
+          <div className="flex justify-between font-semibold text-base sm:text-lg md:text-xl">
+            <span>Total</span>
+            <span className="text-primary">
               {PricingUtils.formatPrice(orderTotals.totalFinalPrice)}
             </span>
           </div>
 
           {codSettings.enabled && codSettings.amount > 0 && (
-            <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+            <div className="text-[10px] sm:text-xs text-orange-600 bg-orange-50 p-2 sm:p-2.5 rounded">
               <span className="font-medium">Note: </span>
               COD charges of ₹{codSettings.amount.toFixed(2)} will be added at checkout
             </div>
           )}
 
-          <div className="text-xs text-muted-foreground text-center">
+          <div className="text-[10px] sm:text-xs text-muted-foreground text-center mt-2">
             *All prices include applicable taxes. Shipping & COD charges calculated at checkout.
           </div>
         </div>
 
-        <div className="mt-6 space-y-3">
+        <div className="mt-4 sm:mt-6 space-y-2 sm:space-y-3">
           <Button 
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-medium"
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-medium h-9 sm:h-10 md:h-11 text-sm sm:text-base"
             onClick={() => setCheckoutOpen(true)}
             disabled={items.length === 0}
           >
@@ -134,16 +134,16 @@ const CartSummary = ({ items, onOrderComplete }: CartSummaryProps) => {
           
           <Button 
             variant="outline" 
-            className="w-full"
+            className="w-full h-9 sm:h-10 md:h-11 text-sm sm:text-base"
             onClick={() => window.location.href = '/products'}
           >
             Continue Shopping
           </Button>
         </div>
 
-        <div className="mt-4 p-3 bg-muted rounded-lg">
-          <h3 className="font-medium text-sm mb-2">Order Details:</h3>
-          <div className="space-y-1 text-xs text-muted-foreground">
+        <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-muted rounded-lg">
+          <h3 className="font-medium text-xs sm:text-sm mb-1.5 sm:mb-2">Order Details:</h3>
+          <div className="space-y-1 text-[10px] sm:text-xs text-muted-foreground">
             <div>Items: {items.reduce((sum, item) => sum + item.quantity, 0)}</div>
             <div>Taxable Amount: {PricingUtils.formatPrice(orderTotals.totalTaxableAmount)}</div>
             <div>Tax Amount: {PricingUtils.formatPrice(orderTotals.totalTaxAmount)}</div>

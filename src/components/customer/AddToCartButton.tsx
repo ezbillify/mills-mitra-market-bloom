@@ -11,9 +11,10 @@ interface AddToCartButtonProps {
   productId: string;
   productName: string;
   disabled?: boolean;
+  showBuyNow?: boolean;
 }
 
-const AddToCartButton = ({ productId, productName, disabled }: AddToCartButtonProps) => {
+const AddToCartButton = ({ productId, productName, disabled, showBuyNow = false }: AddToCartButtonProps) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -88,12 +89,65 @@ const AddToCartButton = ({ productId, productName, disabled }: AddToCartButtonPr
     }
   };
 
+  const handleBuyNow = async () => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to purchase items",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
+    setLoading(true);
+    console.log('🛒 Adding product to cart for immediate purchase:', productId);
+    
+    try {
+      // Add item to cart first
+      await handleAddToCart();
+      
+      // Then navigate to checkout
+      navigate("/cart");
+    } catch (error) {
+      console.error('Error with buy now:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process buy now request",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (showBuyNow) {
+    return (
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Button 
+          onClick={handleAddToCart}
+          disabled={disabled || loading}
+          className="flex-1 h-10 organic-button bg-millet-gold hover:bg-warm-beige text-warm-brown"
+        >
+          <ShoppingCart className="h-4 w-4 mr-2" />
+          {loading ? "Adding..." : "Add to Cart"}
+        </Button>
+        <Button 
+          onClick={handleBuyNow}
+          disabled={disabled || loading}
+          className="flex-1 h-10 bg-green-600 hover:bg-green-700 text-white"
+        >
+          Buy Now
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <Button 
       onClick={handleAddToCart}
       disabled={disabled || loading}
-      className="w-full h-9 sm:h-10 organic-button bg-millet-gold hover:bg-warm-beige text-warm-brown"
-      size="sm"
+      className="w-full h-10 organic-button bg-millet-gold hover:bg-warm-beige text-warm-brown"
     >
       <ShoppingCart className="h-4 w-4 mr-2" />
       {loading ? "Adding..." : "Add to Cart"}
