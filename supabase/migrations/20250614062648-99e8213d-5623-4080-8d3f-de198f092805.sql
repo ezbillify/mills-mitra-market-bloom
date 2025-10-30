@@ -52,7 +52,7 @@ SELECT
   AVG(total) as avg_order_value,
   COUNT(DISTINCT user_id) as unique_customers
 FROM public.orders 
-WHERE status != 'cancelled'
+WHERE status IN ('out_for_delivery', 'delivered', 'completed')
 GROUP BY DATE(created_at)
 ORDER BY date DESC;
 

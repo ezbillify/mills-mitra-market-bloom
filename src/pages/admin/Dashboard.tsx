@@ -66,8 +66,10 @@ const AdminDashboard = () => {
       
       if (salesError) throw salesError;
 
-      // Calculate stats
-      const totalRevenue = orders?.reduce((sum, order) => sum + Number(order.total), 0) || 0;
+      // Calculate stats - only include orders that are out_for_delivery or beyond
+      const fulfilledOrderStatuses = ['out_for_delivery', 'delivered', 'completed'];
+      const totalRevenue = orders?.filter(order => fulfilledOrderStatuses.includes(order.status))
+        .reduce((sum, order) => sum + Number(order.total), 0) || 0;
       const pendingOrders = orders?.filter(order => order.status === 'pending').length || 0;
       const recentOrders = orders?.slice(0, 5) || [];
 
@@ -83,7 +85,7 @@ const AdminDashboard = () => {
 
       setStats({
         totalRevenue,
-        totalOrders: orders?.length || 0,
+        totalOrders: orders?.filter(order => fulfilledOrderStatuses.includes(order.status)).length || 0,
         totalCustomers: customersCount || 0,
         totalProducts: productsCount || 0,
         recentOrders,
