@@ -300,31 +300,82 @@ const BannerSlider = () => {
         {banners.map((banner) => (
           <Card key={banner.id}>
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <img
-                    src={banner.image_url}
-                    alt={banner.title}
-                    className="w-20 h-12 object-cover rounded"
-                  />
-                  <div>
-                    <h3 className="font-semibold">{banner.title}</h3>
-                    <p className="text-sm text-gray-600">{banner.subtitle}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-xs px-2 py-1 rounded ${banner.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {banner.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                      <span className="text-xs text-gray-500">Order: {banner.display_order}</span>
+              <div className="flex flex-col md:flex-row items-start gap-4">
+                {/* Banner Preview with Proper Aspect Ratios */}
+                <div className="flex flex-col gap-2">
+                  {/* Desktop Preview */}
+                  <div className="bg-gray-100 p-2 rounded">
+                    <p className="text-xs text-gray-600 mb-1">Desktop Preview</p>
+                    <div className="w-48 h-15 bg-gray-200 rounded overflow-hidden relative">
+                      <img
+                        src={banner.image_url}
+                        alt={banner.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 border border-dashed border-gray-400 rounded pointer-events-none"></div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">16:5 aspect ratio</p>
+                  </div>
+                  
+                  {/* Mobile Preview */}
+                  {banner.mobile_image_url && (
+                    <div className="bg-gray-100 p-2 rounded">
+                      <p className="text-xs text-gray-600 mb-1">Mobile Preview</p>
+                      <div className="w-32 h-18 bg-gray-200 rounded overflow-hidden relative">
+                        <img
+                          src={banner.mobile_image_url}
+                          alt={`${banner.title} mobile`}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 border border-dashed border-gray-400 rounded pointer-events-none"></div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">16:9 aspect ratio</p>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-semibold">{banner.title}</h3>
+                      <p className="text-sm text-gray-600">{banner.subtitle}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className={`text-xs px-2 py-1 rounded ${banner.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {banner.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                        <span className="text-xs text-gray-500">Order: {banner.display_order}</span>
+                      </div>
+                      {banner.link_url && (
+                        <p className="text-xs text-blue-600 mt-1 truncate max-w-xs">
+                          Link: {banner.link_url}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(banner)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(banner.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(banner)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleDelete(banner.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  
+                  {/* Banner Optimization Tips */}
+                  <div className="mt-3 text-xs bg-blue-50 p-2 rounded border border-blue-100">
+                    <p className="font-medium text-blue-800 mb-1">Optimization Tips:</p>
+                    <ul className="space-y-1 text-blue-700">
+                      <li>• Use high-quality images (1920x600px for desktop)</li>
+                      <li>• Keep important content within center area</li>
+                      <li>• Add mobile-specific version for better mobile experience</li>
+                      {banner.subtitle && (
+                        <li>• Text will appear with subtle background for readability</li>
+                      )}
+                      {!banner.subtitle && (
+                        <li>• Banner displays beautifully without text overlay</li>
+                      )}
+                    </ul>
+                  </div>
                 </div>
               </div>
             </CardContent>

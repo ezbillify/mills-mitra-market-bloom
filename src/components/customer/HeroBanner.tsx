@@ -86,12 +86,21 @@ const HeroBanner = () => {
 
   if (loading) {
     return (
-      <section className="relative bg-gradient-to-r from-primary to-primary/80 text-white">
+      <section className="relative bg-gradient-to-r from-primary to-primary/80 text-white overflow-hidden">
         <div className="w-full aspect-[16/9] md:aspect-[16/5] flex items-center justify-center">
-          <div className="animate-pulse text-center">
-            <div className="h-12 bg-white/20 rounded mb-6 mx-auto max-w-md"></div>
-            <div className="h-6 bg-white/20 rounded mb-8 mx-auto max-w-lg"></div>
-            <div className="h-10 bg-white/20 rounded mx-auto max-w-32"></div>
+          <div className="animate-pulse text-center relative z-10">
+            <div className="inline-block bg-black/20 backdrop-blur-sm px-6 py-4 rounded-xl">
+              <div className="h-8 bg-white/20 rounded mb-4 mx-auto max-w-md"></div>
+              <div className="h-6 bg-white/20 rounded mb-6 mx-auto max-w-lg"></div>
+            </div>
+            <div className="h-10 bg-white/20 rounded mx-auto max-w-32 mt-4"></div>
+          </div>
+          
+          {/* Decorative elements for visual interest */}
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute top-10 left-10 w-20 h-20 rounded-full bg-white"></div>
+            <div className="absolute bottom-10 right-10 w-32 h-32 rounded-full bg-white"></div>
+            <div className="absolute top-1/3 right-20 w-16 h-16 rounded-full bg-white"></div>
           </div>
         </div>
       </section>
@@ -100,18 +109,27 @@ const HeroBanner = () => {
 
   if (banners.length === 0) {
     return (
-      <section className="relative bg-gradient-to-r from-primary to-primary/80 text-white">
+      <section className="relative bg-gradient-to-r from-primary to-primary/80 text-white overflow-hidden">
         <div className="w-full aspect-[16/9] md:aspect-[16/5] flex items-center justify-center">
-          <div className="container mx-auto px-4 text-center">
-            <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold mb-4 md:mb-6">
-              Premium Fabrics & Materials
-            </h1>
-            <p className="text-lg sm:text-xl md:text-2xl mb-6 md:mb-8 opacity-90 max-w-4xl mx-auto">
-              Discover our exclusive collection of high-quality fabrics
-            </p>
-            <Button size={isMobile ? "default" : "lg"} variant="secondary" asChild>
+          <div className="container mx-auto px-4 text-center relative z-10">
+            <div className="inline-block bg-black/30 backdrop-blur-sm px-6 py-4 rounded-xl">
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-3 md:mb-4 text-white">
+                Premium Organic Millets
+              </h1>
+              <p className="text-lg sm:text-xl md:text-2xl mb-5 md:mb-6 opacity-90 text-white max-w-4xl mx-auto">
+                Discover our exclusive collection of high-quality organic millets
+              </p>
+            </div>
+            <Button size={isMobile ? "default" : "lg"} variant="secondary" asChild className="mt-2">
               <Link to="/products">Shop Now</Link>
             </Button>
+          </div>
+          
+          {/* Decorative elements for visual interest */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-10 left-10 w-20 h-20 rounded-full bg-white"></div>
+            <div className="absolute bottom-10 right-10 w-32 h-32 rounded-full bg-white"></div>
+            <div className="absolute top-1/3 right-20 w-16 h-16 rounded-full bg-white"></div>
           </div>
         </div>
       </section>
@@ -125,34 +143,37 @@ const HeroBanner = () => {
     <section className="relative overflow-hidden bg-gray-100 -mb-1">
       {/* Fixed aspect ratio container */}
       <div className="w-full aspect-[16/9] md:aspect-[16/5] relative">
-        {/* Background Image with proper containment */}
+        {/* Background Image with proper containment - No overlay by default */}
         <div
           className="absolute inset-0 bg-cover bg-center transition-all duration-1000"
           style={{
             backgroundImage: `url(${currentImageUrl})`,
           }}
         >
-          <div className="absolute inset-0 bg-black bg-opacity-50"></div>
         </div>
         
-        {/* Content Overlay - Made Optional/Subtle */}
+        {/* Content Overlay - Only shown when there's content */}
         <div className="relative z-10 flex items-center justify-center h-full">
-          <div className="container mx-auto px-4 text-center text-white">
-            {/* Only show title OR subtitle, not both to avoid overlap */}
-            {currentBanner.subtitle ? (
-              <p className="text-sm sm:text-base md:text-xl font-medium opacity-90 max-w-3xl mx-auto">
-                {currentBanner.subtitle}
-              </p>
-            ) : (
-              <h1 className="text-lg sm:text-2xl md:text-4xl font-medium opacity-90">
-                {currentBanner.title}
-              </h1>
+          <div className="container mx-auto px-4 text-center">
+            {/* Only show text container if there's content */}
+            {(currentBanner.title || currentBanner.subtitle) && (
+              <div className="inline-block bg-black/30 backdrop-blur-sm px-4 py-2 rounded-lg">
+                {currentBanner.subtitle ? (
+                  <p className="text-sm sm:text-base md:text-xl font-medium text-white max-w-3xl mx-auto">
+                    {currentBanner.subtitle}
+                  </p>
+                ) : (
+                  <h1 className="text-lg sm:text-2xl md:text-4xl font-medium text-white">
+                    {currentBanner.title}
+                  </h1>
+                )}
+              </div>
             )}
             
-            {/* Only show button if there's a link and we have space */}
-            {currentBanner.link_url && !isMobile && (
-              <div className="mt-4">
-                <Button size="sm" variant="secondary" asChild className="opacity-90">
+            {/* Show button if there's a link */}
+            {currentBanner.link_url && (
+              <div className="mt-4 md:mt-6">
+                <Button size={isMobile ? "sm" : "default"} variant="secondary" asChild>
                   <Link to={currentBanner.link_url}>Shop Now</Link>
                 </Button>
               </div>
@@ -165,14 +186,14 @@ const HeroBanner = () => {
           <>
             <button
               onClick={prevSlide}
-              className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition-colors"
+              className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full transition-colors shadow-md"
               aria-label="Previous banner"
             >
               <ChevronLeft className="h-4 w-4 md:h-6 md:w-6" />
             </button>
             <button
               onClick={nextSlide}
-              className="absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition-colors"
+              className="absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full transition-colors shadow-md"
               aria-label="Next banner"
             >
               <ChevronRight className="h-4 w-4 md:h-6 md:w-6" />
@@ -193,13 +214,6 @@ const HeroBanner = () => {
             </div>
           </>
         )}
-
-        {/* View type indicator */}
-        <div className="absolute bottom-2 right-2 z-20">
-          <div className="text-xs text-white/70 bg-black/30 px-2 py-1 rounded">
-            {isMobile ? 'Mobile' : 'Desktop'} View
-          </div>
-        </div>
       </div>
     </section>
   );
