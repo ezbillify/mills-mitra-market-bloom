@@ -83,14 +83,14 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const finalPrice = product.selling_price_with_tax || (basePrice + gstAmount);
 
   return (
-    <Card className="group hover:shadow-md transition-all duration-200 bg-white flex flex-col h-full">
+    <Card className="group hover:shadow-md transition-all duration-200 bg-white flex flex-col h-full rounded-xl overflow-hidden">
       {/* Make the entire image area clickable */}
       <Link to={`/products/${product.id}`} className="block">
-        <div className="relative">
+        <div className="relative bg-gray-50 flex items-center justify-center aspect-square">
           <img
             src={primaryImage || "/placeholder.svg"}
             alt={product.name}
-            className="w-full h-32 sm:h-40 md:h-48 object-contain rounded-t-lg group-hover:scale-105 transition-transform duration-300 block p-1 sm:p-2"
+            className="w-full h-full object-contain p-3 transition-transform duration-300 group-hover:scale-105"
           />
           {product.stock === 0 && (
             <Badge className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-red-500 text-[8px] sm:text-xs">Out of Stock</Badge>
@@ -106,19 +106,19 @@ const ProductCard = ({ product }: ProductCardProps) => {
         </div>
       </Link>
       
-      <CardContent className="p-2 sm:p-3 md:p-4 flex flex-col flex-grow">
+      <CardContent className="p-3 sm:p-4 flex flex-col flex-grow">
         {/* Make the product name clickable */}
         <Link to={`/products/${product.id}`} className="block">
           <h3 className="font-semibold text-sm md:text-base mb-1 line-clamp-2 hover:text-primary transition-colors">
             {product.name}
           </h3>
         </Link>
-        <p className="text-[10px] sm:text-xs text-gray-500 mb-1 sm:mb-2 capitalize">{product.category}</p>
+        <p className="text-[10px] sm:text-xs text-gray-500 mb-2 capitalize">{product.category}</p>
         
         {/* Price Section - Simplified for better mobile experience */}
-        <div className="mb-2 sm:mb-3">
+        <div className="mb-3">
           {product.discounted_price ? (
-            <div className="flex items-baseline gap-1 sm:gap-2">
+            <div className="flex items-baseline gap-1.5 sm:gap-2">
               <span className="text-base sm:text-lg font-bold text-green-600">₹{Number(product.discounted_price).toFixed(2)}</span>
               <span className="text-xs sm:text-sm text-gray-500 line-through">₹{Number(product.price).toFixed(2)}</span>
             </div>
@@ -131,7 +131,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         </div>
 
         {/* Stock Status */}
-        <div className="flex items-center justify-between mb-2 sm:mb-3">
+        <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] sm:text-xs text-gray-600">Stock:</span>
           {product.stock > 0 ? (
             <Badge variant="default" className="bg-green-500 text-[10px] sm:text-xs">
@@ -142,7 +142,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           )}
         </div>
         
-        <div className="space-y-1.5 sm:space-y-2 mt-auto">
+        <div className="space-y-2 mt-auto">
           <AddToCartButton 
             productId={product.id}
             productName={product.name}

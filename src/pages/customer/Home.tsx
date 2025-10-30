@@ -108,14 +108,14 @@ const Home = () => {
                 const finalPrice = product.selling_price_with_tax || (basePrice + gstAmount);
 
                 return (
-                  <div key={product.id} className="group bg-white rounded-lg sm:rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border hover:-translate-y-1 flex flex-col h-full">
+                  <div key={product.id} className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border hover:-translate-y-1 flex flex-col h-full">
                     {/* Make the image area clickable */}
                     <Link to={`/products/${product.id}`} className="block">
-                      <div className="relative overflow-hidden">
+                      <div className="relative overflow-hidden bg-gray-50 flex items-center justify-center aspect-square">
                         <img
                           src={product.image || '/placeholder.svg'}
                           alt={product.name}
-                          className="w-full h-32 sm:h-48 md:h-64 object-contain group-hover:scale-105 transition-transform duration-300 p-1 sm:p-2"
+                          className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
                         />
                         {product.discounted_price && (
                           <div className="absolute top-2 sm:top-3 left-2 sm:left-3 bg-red-500 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold">
@@ -135,22 +135,22 @@ const Home = () => {
                       </div>
                     </Link>
                     
-                    <div className="p-3 sm:p-4 md:p-5 flex flex-col flex-grow">
+                    <div className="p-4 sm:p-5 flex flex-col flex-grow">
                       {/* Make product name clickable */}
                       <Link to={`/products/${product.id}`} className="block">
-                        <div className="flex items-center justify-between mb-1 sm:mb-2">
+                        <div className="flex items-start justify-between mb-2 sm:mb-3">
                           <h3 className="font-bold text-sm md:text-base text-gray-900 line-clamp-2 hover:text-primary transition-colors flex-grow">
                             {product.name}
                           </h3>
-                          <span className="bg-green-100 text-green-800 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ml-1 sm:ml-2">
+                          <span className="bg-green-100 text-green-800 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ml-2 flex-shrink-0">
                             {product.category}
                           </span>
                         </div>
                       </Link>
                       
-                      <div className="mb-2 sm:mb-3">
+                      <div className="mb-3 sm:mb-4">
                         {product.discounted_price ? (
-                          <div className="flex items-baseline gap-1 sm:gap-2">
+                          <div className="flex items-baseline gap-1.5 sm:gap-2">
                             <span className="text-lg sm:text-xl md:text-2xl font-bold text-green-600">₹{Number(product.discounted_price).toFixed(2)}</span>
                             <span className="text-xs sm:text-sm text-gray-500 line-through">₹{Number(product.price).toFixed(2)}</span>
                           </div>
@@ -173,7 +173,7 @@ const Home = () => {
                           </span>
                         )}
                       </div>
-                      <div className="space-y-1.5 sm:space-y-2 mt-auto">
+                      <div className="space-y-2 mt-auto">
                         <AddToCartButton 
                           productId={product.id}
                           productName={product.name}
