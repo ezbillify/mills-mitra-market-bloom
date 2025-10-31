@@ -89,19 +89,20 @@ serve(async (req) => {
       console.log('ℹ️ Sandbox mode - using X-VERIFY checksum authentication only (OAuth not supported)')
     }
 
-    // Prepare headers for status check
+    // Prepare headers - DIFFERENT FOR PRODUCTION vs SANDBOX
     const statusHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-MERCHANT-ID': merchantId,
       'accept': 'application/json'
     }
 
-    // Add Authorization header only for production
-    if (accessToken) {
+    // For production: Use OAuth Bearer token ONLY (no checksum)
+    // For sandbox: Use X-VERIFY checksum ONLY (no OAuth)
+    if (environment === 'production' && accessToken) {
       statusHeaders['Authorization'] = `Bearer ${accessToken}`
-      console.log('🔍 Using OAuth authentication for status check')
-    } else {
-      // For sandbox, we still need to use checksum authentication
+      console.log('🔍 Using OAuth Bearer token authentication (production)')
+    } else if (environment === 'sandbox') {
+      // Generate X-VERIFY checksum for sandbox
       const stringToHash = `/checkout/v2/order/${orderId}/status${saltKey}`
       const encoder = new TextEncoder()
       const data = encoder.encode(stringToHash)
@@ -109,7 +110,7 @@ serve(async (req) => {
       const hashArray = Array.from(new Uint8Array(hashBuffer))
       const checksum = `${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}###${saltIndex}`
       statusHeaders['X-VERIFY'] = checksum
-      console.log('🔍 Using Checksum-only authentication for status check')
+      console.log('🔍 Using X-VERIFY checksum authentication (sandbox)')
     }
 
     // Check payment status with PhonePe

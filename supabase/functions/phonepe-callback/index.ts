@@ -91,28 +91,28 @@ serve(async (req) => {
       console.log('ℹ️ Sandbox mode - using X-VERIFY checksum authentication only (OAuth not supported)')
     }
 
-    // Generate X-VERIFY checksum for status check
-    const stringToHash = `/checkout/v2/order/${orderId}/status${saltKey}`
-    const encoder = new TextEncoder()
-    const data = encoder.encode(stringToHash)
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    const checksum = `${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}###${saltIndex}`
-
-    // Prepare headers for status check with checksum (and OAuth token for production)
+    // Prepare headers - DIFFERENT FOR PRODUCTION vs SANDBOX
     const statusHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-MERCHANT-ID': merchantId,
       'accept': 'application/json'
     }
 
-    // Add Authorization header only for production
-    if (accessToken) {
+    // For production: Use OAuth Bearer token ONLY (no checksum)
+    // For sandbox: Use X-VERIFY checksum ONLY (no OAuth)
+    if (environment === 'production' && accessToken) {
       statusHeaders['Authorization'] = `Bearer ${accessToken}`
-      console.log('🔍 Using OAuth authentication for status check')
-    } else {
+      console.log('🔍 Using OAuth Bearer token authentication (production)')
+    } else if (environment === 'sandbox') {
+      // Generate X-VERIFY checksum for sandbox
+      const stringToHash = `/checkout/v2/order/${orderId}/status${saltKey}`
+      const encoder = new TextEncoder()
+      const data = encoder.encode(stringToHash)
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+      const hashArray = Array.from(new Uint8Array(hashBuffer))
+      const checksum = `${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}###${saltIndex}`
       statusHeaders['X-VERIFY'] = checksum
-      console.log('🔍 Using Checksum-only authentication for status check')
+      console.log('🔍 Using X-VERIFY checksum authentication (sandbox)')
     }
 
     // Check payment status with PhonePe
@@ -133,12 +133,12 @@ serve(async (req) => {
 
     const statusData = await statusResponse.json()
 
-    if (!statusData || !statusData.success) {
+    if (!statusData) {
       console.error('❌ Invalid response from PhonePe status API:', statusData)
       throw new Error('Invalid response from PhonePe status API')
     }
 
-    const paymentStatus = statusData.data.state
+    const paymentStatus = statusData.state
     console.log('🔍 PhonePe payment status:', paymentStatus);
 
     // If orderId not provided in URL, find it using transaction ID

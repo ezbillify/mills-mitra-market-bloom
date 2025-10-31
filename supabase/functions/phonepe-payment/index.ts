@@ -151,33 +151,28 @@ serve(async (req) => {
       saltIndex
     })
 
-    // Generate X-VERIFY checksum
-    const stringToHash = `${base64Payload}/checkout/v2/pay${saltKey}`
-    const encoder = new TextEncoder()
-    const data = encoder.encode(stringToHash)
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    const checksum = `${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}###${saltIndex}`
-
-    console.log('🔐 Checksum generated:', {
-      checksumLength: checksum.length,
-      checksumStart: checksum.substring(0, 20) + '...'
-    })
-
-    // Prepare headers with checksum (and OAuth token for production)
+    // Prepare headers - DIFFERENT FOR PRODUCTION vs SANDBOX
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-VERIFY': checksum,
       'X-MERCHANT-ID': merchantId,
       'accept': 'application/json'
     }
 
-    // Add Authorization header only for production
-    if (accessToken) {
+    // For production: Use OAuth Bearer token ONLY (no checksum)
+    // For sandbox: Use X-VERIFY checksum ONLY (no OAuth)
+    if (environment === 'production' && accessToken) {
       headers['Authorization'] = `Bearer ${accessToken}`
-      console.log('📤 Using OAuth + Checksum authentication')
-    } else {
-      console.log('📤 Using Checksum-only authentication')
+      console.log('📤 Using OAuth Bearer token authentication (production)')
+    } else if (environment === 'sandbox') {
+      // Generate X-VERIFY checksum for sandbox
+      const stringToHash = `${base64Payload}/checkout/v2/pay${saltKey}`
+      const encoder = new TextEncoder()
+      const data = encoder.encode(stringToHash)
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+      const hashArray = Array.from(new Uint8Array(hashBuffer))
+      const checksum = `${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}###${saltIndex}`
+      headers['X-VERIFY'] = checksum
+      console.log('📤 Using X-VERIFY checksum authentication (sandbox)')
     }
 
     console.log('📤 Request URL:', `${apiBaseUrl}/checkout/v2/pay`)
