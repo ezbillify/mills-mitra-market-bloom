@@ -63,13 +63,13 @@ serve(async (req) => {
     })
 
     // Determine API URL based on environment
-    const authBaseUrl = environment === 'sandbox' 
+    const authBaseUrl = environment === 'sandbox'
       ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
       : 'https://api.phonepe.com/apis/identity-manager';
-    
-    const apiBaseUrl = environment === 'sandbox' 
+
+    const apiBaseUrl = environment === 'sandbox'
       ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
-      : 'https://api.phonepe.com/apis/pg';
+      : 'https://api.phonepe.com/apis/pg/checkout/v2';
 
     // Step 1: Get OAuth Access Token (ONLY for production - sandbox doesn't support it)
     let accessToken: string | null = null
@@ -80,7 +80,7 @@ serve(async (req) => {
       const tokenParams = new URLSearchParams({
         client_id: clientId || merchantId,
         client_secret: saltKey,
-        clientVersion: saltIndex,
+        client_version: saltIndex,
         grant_type: 'client_credentials'
       })
 
@@ -152,16 +152,19 @@ serve(async (req) => {
     // Encode payload to base64
     const base64Payload = btoa(JSON.stringify(paymentPayload))
 
+    // Determine endpoint path for checksum based on environment
+    const endpointPath = environment === 'sandbox' ? '/pg/v1/pay' : '/pay'
+
     console.log('🔐 Checksum calculation:', {
       base64PayloadLength: base64Payload.length,
       base64PayloadStart: base64Payload.substring(0, 50),
-      endpoint: '/v1/pay',
+      endpoint: endpointPath,
       saltKeyStart: saltKey.substring(0, 8) + '...',
       saltIndex
     })
 
     // Generate X-VERIFY checksum
-    const stringToHash = `${base64Payload}/v1/pay${saltKey}`
+    const stringToHash = `${base64Payload}${endpointPath}${saltKey}`
     const encoder = new TextEncoder()
     const data = encoder.encode(stringToHash)
     const hashBuffer = await crypto.subtle.digest('SHA-256', data)
@@ -188,12 +191,17 @@ serve(async (req) => {
       console.log('📤 Using Checksum authentication (sandbox)')
     }
 
-    console.log('📤 Request URL:', `${apiBaseUrl}/v1/pay`)
+    // Determine full request URL based on environment
+    const requestUrl = environment === 'sandbox'
+      ? `${apiBaseUrl}/pg/v1/pay`
+      : `${apiBaseUrl}/pay`
+
+    console.log('📤 Request URL:', requestUrl)
     console.log('📤 Request headers:', headers)
     console.log('📤 Request body:', { request: base64Payload })
 
     // Create payment with PhonePe
-    const response = await fetch(`${apiBaseUrl}/v1/pay`, {
+    const response = await fetch(requestUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify({ request: base64Payload })
