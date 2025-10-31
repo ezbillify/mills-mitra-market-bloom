@@ -40,10 +40,10 @@ serve(async (req) => {
     // Determine API URL based on environment
     const apiBaseUrl = environment === 'sandbox' 
       ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
-      : 'https://api.phonepe.com/apis/hermes'
+      : 'https://api.phonepe.com/apis/pg'
 
     // Generate X-VERIFY checksum for status check
-    const stringToHash = `/pg/v1/status/${merchantId}/${transactionId}${saltKey}`
+    const stringToHash = `/v1/status/${merchantId}/${transactionId}${saltKey}`
     const encoder = new TextEncoder()
     const data = encoder.encode(stringToHash)
     const hashBuffer = await crypto.subtle.digest('SHA-256', data)
@@ -51,7 +51,7 @@ serve(async (req) => {
     const checksum = `${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}###${saltIndex}`
 
     // Check payment status with PhonePe
-    const statusResponse = await fetch(`${apiBaseUrl}/pg/v1/status/${merchantId}/${transactionId}`, {
+    const statusResponse = await fetch(`${apiBaseUrl}/v1/status/${merchantId}/${transactionId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
