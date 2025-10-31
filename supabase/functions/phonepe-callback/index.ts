@@ -33,6 +33,7 @@ serve(async (req) => {
     const merchantId = Deno.env.get('PHONEPE_MERCHANT_ID')
     const saltKey = Deno.env.get('PHONEPE_SALT_KEY')
     const saltIndex = Deno.env.get('PHONEPE_SALT_INDEX') || '1'
+    const clientId = Deno.env.get('PHONEPE_CLIENT_ID')
     const environment = Deno.env.get('PHONEPE_ENVIRONMENT') || 'production'
 
     if (!merchantId || !saltKey) {
@@ -40,27 +41,84 @@ serve(async (req) => {
     }
 
     // Determine API URL based on environment
-    const baseUrl = environment === 'sandbox' 
+    const authBaseUrl = environment === 'sandbox'
       ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
-      : 'https://api.phonepe.com/apis/hermes'
+      : 'https://api.phonepe.com/apis/identity-manager'
+      
+    const apiBaseUrl = environment === 'sandbox'
+      ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
+      : 'https://api.phonepe.com/apis/pg'
+
+    // Step 1: Get OAuth Access Token (ONLY for production - sandbox doesn't support it)
+    let accessToken: string | null = null
+
+    if (environment === 'production') {
+      console.log('🔐 Getting OAuth access token for production status check...')
+
+      const tokenParams = new URLSearchParams({
+        client_id: clientId || merchantId,
+        client_secret: saltKey,
+        client_version: saltIndex,
+        grant_type: 'client_credentials'
+      })
+
+      const tokenResponse = await fetch(`${authBaseUrl}/v1/oauth/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: tokenParams.toString()
+      })
+
+      if (!tokenResponse.ok) {
+        const errorText = await tokenResponse.text()
+        console.error('❌ OAuth token error:', {
+          status: tokenResponse.status,
+          body: errorText
+        })
+        throw new Error(`OAuth token error: ${tokenResponse.status}`)
+      }
+
+      const tokenData = await tokenResponse.json()
+      accessToken = tokenData.access_token
+
+      if (!accessToken) {
+        throw new Error('Failed to get access token')
+      }
+
+      console.log('✅ OAuth access token obtained for production')
+    } else {
+      console.log('ℹ️ Sandbox mode - using X-VERIFY checksum authentication only (OAuth not supported)')
+    }
 
     // Generate X-VERIFY checksum for status check
-    const stringToHash = `/pg/v1/status/${merchantId}/${transactionId}${saltKey}`
+    const stringToHash = `/checkout/v2/order/${orderId}/status${saltKey}`
     const encoder = new TextEncoder()
     const data = encoder.encode(stringToHash)
     const hashBuffer = await crypto.subtle.digest('SHA-256', data)
     const hashArray = Array.from(new Uint8Array(hashBuffer))
     const checksum = `${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}###${saltIndex}`
 
+    // Prepare headers for status check with checksum (and OAuth token for production)
+    const statusHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-MERCHANT-ID': merchantId,
+      'accept': 'application/json'
+    }
+
+    // Add Authorization header only for production
+    if (accessToken) {
+      statusHeaders['Authorization'] = `Bearer ${accessToken}`
+      console.log('🔍 Using OAuth authentication for status check')
+    } else {
+      statusHeaders['X-VERIFY'] = checksum
+      console.log('🔍 Using Checksum-only authentication for status check')
+    }
+
     // Check payment status with PhonePe
-    const statusResponse = await fetch(`${baseUrl}/pg/v1/status/${merchantId}/${transactionId}`, {
+    const statusResponse = await fetch(`${apiBaseUrl}/checkout/v2/order/${orderId}/status`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-VERIFY': checksum,
-        'X-MERCHANT-ID': merchantId,
-        'accept': 'application/json'
-      }
+      headers: statusHeaders
     })
 
     if (!statusResponse.ok) {
