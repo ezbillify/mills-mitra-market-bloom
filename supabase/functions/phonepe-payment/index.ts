@@ -124,29 +124,29 @@ serve(async (req) => {
       console.log('ℹ️ Sandbox mode - using X-VERIFY checksum authentication only (OAuth not supported)')
     }
 
-    // Generate unique transaction ID
-    const timestamp = Date.now()
-    const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase()
-    const merchantTransactionId = `TXN${timestamp}${randomSuffix}`
-
     // Get callback URL
     const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/phonepe-callback?orderId=${orderId}`
 
-    // Create payment payload for PhonePe (new API structure)
+    // Create payment payload for PhonePe (correct API structure)
     const paymentPayload = {
-      merchantOrderId: orderId,
+      merchantId: merchantId,
+      merchantTransactionId: `TXN${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      merchantUserId: `USER${orderId.substring(0, 8)}`,
       amount: Math.round(amount * 100), // Convert to paise
-      paymentFlow: {
-        type: "PG_CHECKOUT",
-        merchantUrls: {
-          redirectUrl: callbackUrl
-        }
-      }
+      redirectUrl: callbackUrl,
+      redirectMode: "POST",
+      mobileNumber: customerInfo.phone,
+      paymentInstrument: {
+        type: "PAY_PAGE"
+      },
+      merchantOrderId: orderId,
+      currency: currency,
     }
 
     console.log('📤 Sending request to PhonePe:', {
       merchantOrderId: paymentPayload.merchantOrderId,
-      amount: paymentPayload.amount
+      amount: paymentPayload.amount,
+      merchantTransactionId: paymentPayload.merchantTransactionId
     })
 
     // Encode payload to base64
@@ -155,44 +155,45 @@ serve(async (req) => {
     console.log('🔐 Checksum calculation:', {
       base64PayloadLength: base64Payload.length,
       base64PayloadStart: base64Payload.substring(0, 50),
-      endpoint: '/checkout/v2/pay',
+      endpoint: '/pg/v1/pay',
       saltKeyStart: saltKey.substring(0, 8) + '...',
       saltIndex
+    })
+
+    // Generate X-VERIFY checksum
+    const stringToHash = `${base64Payload}/pg/v1/pay${saltKey}`
+    const encoder = new TextEncoder()
+    const data = encoder.encode(stringToHash)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const checksum = `${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}###${saltIndex}`
+
+    console.log('🔐 Checksum generated:', {
+      checksumLength: checksum.length,
+      checksumStart: checksum.substring(0, 20) + '...'
     })
 
     // Prepare headers - DIFFERENT FOR PRODUCTION vs SANDBOX
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'X-VERIFY': checksum,
       'X-MERCHANT-ID': merchantId,
       'accept': 'application/json'
     }
 
-    // For production: Use OAuth Bearer token ONLY (no checksum)
-    // For sandbox: Use X-VERIFY checksum ONLY (no OAuth)
+    // For production: Still use checksum authentication (not OAuth for payment creation)
     if (environment === 'production' && accessToken) {
-      headers['Authorization'] = `O-Bearer ${accessToken}`
-      console.log('📤 Using OAuth Bearer token authentication (production)', {
-        tokenLength: accessToken.length,
-        tokenStart: accessToken.substring(0, 20) + '...'
-      });
+      console.log('📤 Using Checksum authentication (production)')
     } else if (environment === 'sandbox') {
-      // Generate X-VERIFY checksum for sandbox
-      const stringToHash = `${base64Payload}/checkout/v2/pay${saltKey}`
-      const encoder = new TextEncoder()
-      const data = encoder.encode(stringToHash)
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-      const hashArray = Array.from(new Uint8Array(hashBuffer))
-      const checksum = `${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}###${saltIndex}`
-      headers['X-VERIFY'] = checksum
-      console.log('📤 Using X-VERIFY checksum authentication (sandbox)')
+      console.log('📤 Using Checksum authentication (sandbox)')
     }
 
-    console.log('📤 Request URL:', `${apiBaseUrl}/checkout/v2/pay`)
+    console.log('📤 Request URL:', `${apiBaseUrl}/pg/v1/pay`)
     console.log('📤 Request headers:', headers)
     console.log('📤 Request body:', { request: base64Payload })
 
     // Create payment with PhonePe
-    const response = await fetch(`${apiBaseUrl}/checkout/v2/pay`, {
+    const response = await fetch(`${apiBaseUrl}/pg/v1/pay`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ request: base64Payload })
@@ -213,36 +214,23 @@ serve(async (req) => {
     // Log the full response for debugging
     console.log('📥 Full PhonePe response:', JSON.stringify(paymentData, null, 2));
 
-    if (!paymentData) {
+    if (!paymentData || !paymentData.success) {
       console.error('❌ Invalid response from PhonePe:', paymentData)
       throw new Error('Invalid response from PhonePe API')
     }
 
-    // Check if it's an error response
-    if (paymentData.code && paymentData.code !== 'SUCCESS') {
-      console.error('❌ PhonePe API error:', paymentData)
-      throw new Error(`PhonePe API error: ${paymentData.message || paymentData.code}`)
-    }
-
-    // Check if we have the required fields
-    if (!paymentData.redirectUrl) {
-      console.error('❌ Missing redirectUrl in PhonePe response:', paymentData)
-      throw new Error('Missing redirect URL in PhonePe response')
-    }
-
     console.log('✅ PhonePe order created successfully:', {
-      orderId: paymentData.orderId,
-      state: paymentData.state,
-      redirectUrl: paymentData.redirectUrl
+      merchantTransactionId: paymentData.data.merchantTransactionId,
+      redirectUrl: paymentData.data.instrumentResponse.redirectInfo.url
     })
 
     return new Response(
       JSON.stringify({
         success: true,
-        transactionId: paymentData.orderId, // Using orderId as transactionId
-        redirectUrl: paymentData.redirectUrl,
-        amount: Math.round(amount * 100), // Convert to paise
-        currency: 'INR',
+        transactionId: paymentData.data.merchantTransactionId,
+        redirectUrl: paymentData.data.instrumentResponse.redirectInfo.url,
+        amount: paymentData.data.amount,
+        currency: paymentData.data.currency,
         environment: environment,
         orderId: orderId
       }),

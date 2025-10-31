@@ -45,89 +45,25 @@ serve(async (req) => {
       
     const apiBaseUrl = environment === 'sandbox' 
       ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
-      : 'https://api.phonepe.com/apis/pg'
+      : 'https://api.phonepe.com/apis/hermes'
 
-    // Step 1: Get OAuth Access Token (ONLY for production - sandbox doesn't support it)
-    let accessToken: string | null = null
-
-    if (environment === 'production') {
-      console.log('🔐 Getting OAuth access token for production status check...')
-
-      const tokenParams = new URLSearchParams({
-        client_id: clientId || merchantId,
-        client_secret: saltKey,
-        clientVersion: saltIndex,
-        grant_type: 'client_credentials'
-      })
-
-      const tokenResponse = await fetch(`${authBaseUrl}/v1/oauth/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: tokenParams.toString()
-      })
-
-      if (!tokenResponse.ok) {
-        const errorText = await tokenResponse.text()
-        console.error('❌ OAuth token error:', {
-          status: tokenResponse.status,
-          body: errorText
-        })
-        throw new Error(`OAuth token error: ${tokenResponse.status}`)
-      }
-
-      const tokenData = await tokenResponse.json()
-      accessToken = tokenData.access_token
-
-      // Debug the token
-      console.log('🔐 OAuth token received:', {
-        tokenLength: accessToken?.length,
-        tokenStart: accessToken ? accessToken.substring(0, 20) + '...' : 'null',
-        expiresIn: tokenData.expires_in,
-        tokenType: tokenData.token_type
-      });
-
-      if (!accessToken) {
-        throw new Error('Failed to get access token')
-      }
-
-      console.log('✅ OAuth access token obtained for production')
-    } else {
-      console.log('ℹ️ Sandbox mode - using X-VERIFY checksum authentication only (OAuth not supported)')
-    }
-
-    // Prepare headers - DIFFERENT FOR PRODUCTION vs SANDBOX
-    const statusHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'X-MERCHANT-ID': merchantId,
-      'accept': 'application/json'
-    }
-
-    // For production: Use OAuth Bearer token ONLY (no checksum)
-    // For sandbox: Use X-VERIFY checksum ONLY (no OAuth)
-    if (environment === 'production' && accessToken) {
-      statusHeaders['Authorization'] = `O-Bearer ${accessToken}`
-      console.log('🔍 Using OAuth Bearer token authentication (production)', {
-        tokenLength: accessToken.length,
-        tokenStart: accessToken.substring(0, 20) + '...'
-      });
-    } else if (environment === 'sandbox') {
-      // Generate X-VERIFY checksum for sandbox
-      const stringToHash = `/checkout/v2/order/${orderId}/status${saltKey}`
-      const encoder = new TextEncoder()
-      const data = encoder.encode(stringToHash)
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-      const hashArray = Array.from(new Uint8Array(hashBuffer))
-      const checksum = `${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}###${saltIndex}`
-      statusHeaders['X-VERIFY'] = checksum
-      console.log('🔍 Using X-VERIFY checksum authentication (sandbox)')
-    }
+    // Generate X-VERIFY checksum for status check
+    const stringToHash = `/pg/v1/status/${merchantId}/${transactionId}${saltKey}`
+    const encoder = new TextEncoder()
+    const data = encoder.encode(stringToHash)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const checksum = `${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}###${saltIndex}`
 
     // Check payment status with PhonePe
-    const statusResponse = await fetch(`${apiBaseUrl}/checkout/v2/order/${orderId}/status`, {
+    const statusResponse = await fetch(`${apiBaseUrl}/pg/v1/status/${merchantId}/${transactionId}`, {
       method: 'GET',
-      headers: statusHeaders
+      headers: {
+        'Content-Type': 'application/json',
+        'X-VERIFY': checksum,
+        'X-MERCHANT-ID': merchantId,
+        'accept': 'application/json'
+      }
     })
 
     if (!statusResponse.ok) {
@@ -142,12 +78,12 @@ serve(async (req) => {
 
     const statusData = await statusResponse.json()
 
-    if (!statusData) {
+    if (!statusData || !statusData.success) {
       console.error('❌ Invalid response from PhonePe status API:', statusData)
       throw new Error('Invalid response from PhonePe status API')
     }
 
-    const paymentStatus = statusData.state
+    const paymentStatus = statusData.data.state
 
     console.log('🔍 PhonePe payment status:', paymentStatus);
 
@@ -207,7 +143,7 @@ serve(async (req) => {
         success: paymentStatus === 'COMPLETED',
         paymentStatus: paymentStatus,
         paymentMethod: 'phonepe',
-        amount: statusData.amount,
+        amount: statusData.data.amount,
         orderId: orderId,
         transactionId: transactionId,
         paymentId: actualPaymentId
