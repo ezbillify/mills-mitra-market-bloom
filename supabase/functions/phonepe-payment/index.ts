@@ -69,7 +69,7 @@ serve(async (req) => {
     
     const apiBaseUrl = environment === 'sandbox' 
       ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
-      : 'https://api.phonepe.com/apis/pg';
+      : 'https://api.phonepe.com/apis/hermes';
 
     // Step 1: Get OAuth Access Token (ONLY for production - sandbox doesn't support it)
     let accessToken: string | null = null

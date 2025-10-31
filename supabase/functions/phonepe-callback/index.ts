@@ -40,7 +40,7 @@ serve(async (req) => {
     }
 
     // Determine API URL based on environment
-    const baseUrl = environment === 'sandbox'
+    const apiBaseUrl = environment === 'sandbox'
       ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
       : 'https://api.phonepe.com/apis/hermes'
 
@@ -53,7 +53,7 @@ serve(async (req) => {
     const checksum = `${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}###${saltIndex}`
 
     // Check payment status with PhonePe
-    const statusResponse = await fetch(`${baseUrl}/pg/v1/status/${merchantId}/${transactionId}`, {
+    const statusResponse = await fetch(`${apiBaseUrl}/pg/v1/status/${merchantId}/${transactionId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

@@ -31,7 +31,6 @@ serve(async (req) => {
     const merchantId = Deno.env.get('PHONEPE_MERCHANT_ID')
     const saltKey = Deno.env.get('PHONEPE_SALT_KEY')
     const saltIndex = Deno.env.get('PHONEPE_SALT_INDEX') || '1'
-    const clientId = Deno.env.get('PHONEPE_CLIENT_ID')
     const environment = Deno.env.get('PHONEPE_ENVIRONMENT') || 'production'
     
     if (!merchantId || !saltKey) {
@@ -39,10 +38,6 @@ serve(async (req) => {
     }
 
     // Determine API URL based on environment
-    const authBaseUrl = environment === 'sandbox' 
-      ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
-      : 'https://api.phonepe.com/apis/identity-manager'
-      
     const apiBaseUrl = environment === 'sandbox' 
       ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
       : 'https://api.phonepe.com/apis/hermes'
