@@ -69,7 +69,7 @@ serve(async (req) => {
     
     const apiBaseUrl = environment === 'sandbox' 
       ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
-      : 'https://api.phonepe.com/apis/hermes';
+      : 'https://api.phonepe.com/apis/pg';
 
     // Step 1: Get OAuth Access Token (ONLY for production - sandbox doesn't support it)
     let accessToken: string | null = null
@@ -155,13 +155,13 @@ serve(async (req) => {
     console.log('🔐 Checksum calculation:', {
       base64PayloadLength: base64Payload.length,
       base64PayloadStart: base64Payload.substring(0, 50),
-      endpoint: '/pg/v1/pay',
+      endpoint: '/v1/pay',
       saltKeyStart: saltKey.substring(0, 8) + '...',
       saltIndex
     })
 
     // Generate X-VERIFY checksum
-    const stringToHash = `${base64Payload}/pg/v1/pay${saltKey}`
+    const stringToHash = `${base64Payload}/v1/pay${saltKey}`
     const encoder = new TextEncoder()
     const data = encoder.encode(stringToHash)
     const hashBuffer = await crypto.subtle.digest('SHA-256', data)
@@ -188,12 +188,12 @@ serve(async (req) => {
       console.log('📤 Using Checksum authentication (sandbox)')
     }
 
-    console.log('📤 Request URL:', `${apiBaseUrl}/pg/v1/pay`)
+    console.log('📤 Request URL:', `${apiBaseUrl}/v1/pay`)
     console.log('📤 Request headers:', headers)
     console.log('📤 Request body:', { request: base64Payload })
 
     // Create payment with PhonePe
-    const response = await fetch(`${apiBaseUrl}/pg/v1/pay`, {
+    const response = await fetch(`${apiBaseUrl}/v1/pay`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ request: base64Payload })
