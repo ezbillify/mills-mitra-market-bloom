@@ -63,66 +63,11 @@ serve(async (req) => {
     })
 
     // Determine API URL based on environment
-    const authBaseUrl = environment === 'sandbox'
-      ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
-      : 'https://api.phonepe.com/apis/identity-manager';
-
     const apiBaseUrl = environment === 'sandbox'
       ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
       : 'https://api.phonepe.com/apis/pg/checkout/v2';
 
-    // Step 1: Get OAuth Access Token (ONLY for production - sandbox doesn't support it)
-    let accessToken: string | null = null
-
-    if (environment === 'production') {
-      console.log('🔐 Getting OAuth access token for production...')
-
-      const tokenParams = new URLSearchParams({
-        client_id: clientId || merchantId,
-        client_secret: saltKey,
-        client_version: saltIndex,
-        grant_type: 'client_credentials'
-      })
-
-      const tokenResponse = await fetch(`${authBaseUrl}/v1/oauth/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: tokenParams.toString()
-      })
-
-      if (!tokenResponse.ok) {
-        const errorText = await tokenResponse.text()
-        console.error('❌ OAuth token error:', {
-          status: tokenResponse.status,
-          statusText: tokenResponse.statusText,
-          body: errorText
-        })
-        throw new Error(`OAuth token error: ${tokenResponse.status} - ${errorText}`)
-      }
-
-      const tokenData = await tokenResponse.json()
-      accessToken = tokenData.access_token
-
-      // Debug the token
-      console.log('🔐 OAuth token received:', {
-        tokenLength: accessToken?.length,
-        tokenStart: accessToken ? accessToken.substring(0, 20) + '...' : 'null',
-        expiresIn: tokenData.expires_in,
-        tokenType: tokenData.token_type,
-        fullTokenData: tokenData
-      });
-
-      if (!accessToken) {
-        console.error('❌ No access token received:', tokenData)
-        throw new Error('Failed to get access token')
-      }
-
-      console.log('✅ OAuth access token obtained for production')
-    } else {
-      console.log('ℹ️ Sandbox mode - using X-VERIFY checksum authentication only (OAuth not supported)')
-    }
+    console.log('ℹ️ Payment creation uses X-VERIFY checksum authentication only')
 
     // Get callback URL
     const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/phonepe-callback?orderId=${orderId}`
@@ -184,13 +129,8 @@ serve(async (req) => {
       'accept': 'application/json'
     }
 
-    // Add OAuth Authorization header for production
-    if (environment === 'production' && accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`
-      console.log('📤 Using OAuth + Checksum authentication (production)')
-    } else if (environment === 'sandbox') {
-      console.log('📤 Using Checksum authentication (sandbox)')
-    }
+    // Production v2 API uses ONLY checksum authentication (not OAuth for payment creation)
+    console.log('📤 Using Checksum authentication')
 
     // Determine full request URL based on environment
     const requestUrl = environment === 'sandbox'
