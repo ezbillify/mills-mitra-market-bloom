@@ -263,7 +263,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           shipping_address: shippingAddress,
           delivery_option_id: formData.shippingOptionId,
           delivery_price: finalShippingPrice,
-          payment_type: formData.paymentMethod,
+          payment_type: formData.paymentMethod, // Set payment type
         })
         .select()
         .single();
@@ -314,6 +314,10 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             phone: cleanPhone, // Use cleaned phone number
           },
           onSuccess: async (paymentId: string) => {
+            // This callback will be called from the PhonePe callback function
+            // when the user is redirected back to our application
+            console.log('Payment successful, paymentId:', paymentId);
+            
             // Clear cart after successful payment
             await supabase.from('cart_items').delete().eq('user_id', user.id);
             
@@ -323,6 +327,11 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           },
           onFailure: (error: any) => {
             console.error('Payment failed:', error);
+            toast({
+              title: 'Payment Failed',
+              description: error instanceof Error ? error.message : 'Payment was not completed successfully',
+              variant: 'destructive',
+            });
           },
         });
       } else {

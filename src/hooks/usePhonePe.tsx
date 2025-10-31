@@ -1,5 +1,6 @@
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Order } from '@/types/order';
 import { useState } from 'react';
 
 interface PhonePeOptions {
@@ -87,8 +88,10 @@ export const usePhonePe = () => {
         .from('orders')
         .update({
           phonepe_transaction_id: phonePeTransactionId,
-          payment_status: 'pending'
-        })
+          payment_status: 'pending',
+          payment_type: 'phonepe',
+          updated_at: new Date().toISOString()
+        } as Partial<Order>)
         .eq('id', options.orderId);
 
       if (updateError) {
@@ -102,9 +105,8 @@ export const usePhonePe = () => {
       console.log('🎯 Redirecting to PhonePe checkout...');
       window.location.href = data.redirectUrl;
 
-      // For PhonePe, we'll need to handle the callback separately
-      // The onSuccess callback will be called from the verification function
-      // when PhonePe redirects back to our callback URL
+      // Note: onSuccess will be called from the callback function
+      // when PhonePe redirects back to our application
 
     } catch (error) {
       console.error('❌ Payment initiation error:', error);
@@ -115,7 +117,9 @@ export const usePhonePe = () => {
       });
       options.onFailure(error);
     } finally {
-      setLoading(false);
+      // Note: We don't set loading to false here because the page will redirect
+      // The loading state will be reset when the user returns to our app
+      // setLoading(false); // This line is intentionally commented out
     }
   };
 

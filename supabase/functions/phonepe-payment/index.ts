@@ -202,23 +202,39 @@ serve(async (req) => {
 
     const paymentData = await response.json()
 
-    if (!paymentData || !paymentData.success) {
+    // Log the full response for debugging
+    console.log('📥 Full PhonePe response:', JSON.stringify(paymentData, null, 2));
+
+    if (!paymentData) {
       console.error('❌ Invalid response from PhonePe:', paymentData)
       throw new Error('Invalid response from PhonePe API')
     }
 
+    // Check if it's an error response
+    if (paymentData.code && paymentData.code !== 'SUCCESS') {
+      console.error('❌ PhonePe API error:', paymentData)
+      throw new Error(`PhonePe API error: ${paymentData.message || paymentData.code}`)
+    }
+
+    // Check if we have the required fields
+    if (!paymentData.redirectUrl) {
+      console.error('❌ Missing redirectUrl in PhonePe response:', paymentData)
+      throw new Error('Missing redirect URL in PhonePe response')
+    }
+
     console.log('✅ PhonePe order created successfully:', {
-      merchantTransactionId: paymentData.data.merchantTransactionId,
-      redirectUrl: paymentData.data.instrumentResponse.redirectInfo.url
+      orderId: paymentData.orderId,
+      state: paymentData.state,
+      redirectUrl: paymentData.redirectUrl
     })
 
     return new Response(
       JSON.stringify({
         success: true,
-        transactionId: merchantTransactionId,
-        redirectUrl: paymentData.data.instrumentResponse.redirectInfo.url,
-        amount: paymentData.data.amount,
-        currency: paymentData.data.currency,
+        transactionId: paymentData.orderId, // Using orderId as transactionId
+        redirectUrl: paymentData.redirectUrl,
+        amount: Math.round(amount * 100), // Convert to paise
+        currency: 'INR',
         environment: environment,
         orderId: orderId
       }),
