@@ -105,6 +105,14 @@ serve(async (req) => {
       const tokenData = await tokenResponse.json()
       accessToken = tokenData.access_token
 
+      // Debug the token
+      console.log('🔐 OAuth token received:', {
+        tokenLength: accessToken?.length,
+        tokenStart: accessToken ? accessToken.substring(0, 20) + '...' : 'null',
+        expiresIn: tokenData.expires_in,
+        tokenType: tokenData.token_type
+      });
+
       if (!accessToken) {
         console.error('❌ No access token received:', tokenData)
         throw new Error('Failed to get access token')
@@ -161,8 +169,11 @@ serve(async (req) => {
     // For production: Use OAuth Bearer token ONLY (no checksum)
     // For sandbox: Use X-VERIFY checksum ONLY (no OAuth)
     if (environment === 'production' && accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`
-      console.log('📤 Using OAuth Bearer token authentication (production)')
+      headers['Authorization'] = `O-Bearer ${accessToken}`
+      console.log('📤 Using OAuth Bearer token authentication (production)', {
+        tokenLength: accessToken.length,
+        tokenStart: accessToken.substring(0, 20) + '...'
+      });
     } else if (environment === 'sandbox') {
       // Generate X-VERIFY checksum for sandbox
       const stringToHash = `${base64Payload}/checkout/v2/pay${saltKey}`

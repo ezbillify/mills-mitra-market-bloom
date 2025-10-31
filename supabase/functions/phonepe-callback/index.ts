@@ -101,8 +101,11 @@ serve(async (req) => {
     // For production: Use OAuth Bearer token ONLY (no checksum)
     // For sandbox: Use X-VERIFY checksum ONLY (no OAuth)
     if (environment === 'production' && accessToken) {
-      statusHeaders['Authorization'] = `Bearer ${accessToken}`
-      console.log('🔍 Using OAuth Bearer token authentication (production)')
+      statusHeaders['Authorization'] = `O-Bearer ${accessToken}`
+      console.log('🔍 Using OAuth Bearer token authentication (production)', {
+        tokenLength: accessToken.length,
+        tokenStart: accessToken.substring(0, 20) + '...'
+      });
     } else if (environment === 'sandbox') {
       // Generate X-VERIFY checksum for sandbox
       const stringToHash = `/checkout/v2/order/${orderId}/status${saltKey}`
