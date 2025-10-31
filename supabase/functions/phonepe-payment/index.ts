@@ -184,9 +184,10 @@ serve(async (req) => {
       'accept': 'application/json'
     }
 
-    // For production: Still use checksum authentication (not OAuth for payment creation)
+    // Add OAuth Authorization header for production
     if (environment === 'production' && accessToken) {
-      console.log('📤 Using Checksum authentication (production)')
+      headers['Authorization'] = `Bearer ${accessToken}`
+      console.log('📤 Using OAuth + Checksum authentication (production)')
     } else if (environment === 'sandbox') {
       console.log('📤 Using Checksum authentication (sandbox)')
     }

@@ -33,34 +33,105 @@ serve(async (req) => {
     const merchantId = Deno.env.get('PHONEPE_MERCHANT_ID')
     const saltKey = Deno.env.get('PHONEPE_SALT_KEY')
     const saltIndex = Deno.env.get('PHONEPE_SALT_INDEX') || '1'
+    const clientId = Deno.env.get('PHONEPE_CLIENT_ID')
     const environment = Deno.env.get('PHONEPE_ENVIRONMENT') || 'production'
 
     if (!merchantId || !saltKey) {
       throw new Error('PhonePe credentials not configured')
     }
 
-    // Determine API URL based on environment
+    // Determine API URLs based on environment
+    const authBaseUrl = 'https://api.phonepe.com/apis/identity-manager'
     const apiBaseUrl = environment === 'sandbox'
       ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
-      : 'https://api.phonepe.com/apis/pg'
+      : 'https://api.phonepe.com/apis/pg/checkout/v2'
+
+    // Step 1: Get OAuth Access Token (ONLY for production)
+    let accessToken: string | null = null
+
+    if (environment === 'production') {
+      console.log('🔐 Getting OAuth access token for status check...')
+
+      const tokenParams = new URLSearchParams({
+        client_id: clientId || merchantId,
+        client_secret: saltKey,
+        client_version: saltIndex,
+        grant_type: 'client_credentials'
+      })
+
+      const tokenResponse = await fetch(`${authBaseUrl}/v1/oauth/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: tokenParams.toString()
+      })
+
+      if (!tokenResponse.ok) {
+        const errorText = await tokenResponse.text()
+        console.error('❌ OAuth token error:', {
+          status: tokenResponse.status,
+          body: errorText
+        })
+        throw new Error(`OAuth token error: ${tokenResponse.status}`)
+      }
+
+      const tokenData = await tokenResponse.json()
+      accessToken = tokenData.access_token
+
+      if (!accessToken) {
+        throw new Error('Failed to get access token')
+      }
+
+      console.log('✅ OAuth access token obtained for status check')
+    } else {
+      console.log('ℹ️ Sandbox mode - using checksum authentication only')
+    }
 
     // Generate X-VERIFY checksum for status check
-    const stringToHash = `/v1/status/${merchantId}/${transactionId}${saltKey}`
+    const statusEndpoint = environment === 'sandbox'
+      ? `/pg/v1/status/${merchantId}/${transactionId}`
+      : `/status/${merchantId}/${transactionId}`
+
+    const stringToHash = `${statusEndpoint}${saltKey}`
     const encoder = new TextEncoder()
     const data = encoder.encode(stringToHash)
     const hashBuffer = await crypto.subtle.digest('SHA-256', data)
     const hashArray = Array.from(new Uint8Array(hashBuffer))
     const checksum = `${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}###${saltIndex}`
 
+    console.log('🔍 Status check details:', {
+      endpoint: statusEndpoint,
+      merchantId,
+      transactionId,
+      hasOAuth: !!accessToken
+    })
+
+    // Prepare headers for status check
+    const statusHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-VERIFY': checksum,
+      'X-MERCHANT-ID': merchantId,
+      'accept': 'application/json'
+    }
+
+    // Add OAuth token for production
+    if (accessToken) {
+      statusHeaders['Authorization'] = `Bearer ${accessToken}`
+      console.log('🔍 Using OAuth + Checksum for status check')
+    }
+
+    // Build status check URL
+    const statusUrl = environment === 'sandbox'
+      ? `${apiBaseUrl}/pg/v1/status/${merchantId}/${transactionId}`
+      : `${apiBaseUrl}/status/${merchantId}/${transactionId}`
+
+    console.log('🔍 Status check URL:', statusUrl)
+
     // Check payment status with PhonePe
-    const statusResponse = await fetch(`${apiBaseUrl}/v1/status/${merchantId}/${transactionId}`, {
+    const statusResponse = await fetch(statusUrl, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-VERIFY': checksum,
-        'X-MERCHANT-ID': merchantId,
-        'accept': 'application/json'
-      }
+      headers: statusHeaders
     })
 
     if (!statusResponse.ok) {
