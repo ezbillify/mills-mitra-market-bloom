@@ -46,11 +46,18 @@ serve(async (req) => {
     const merchantId = Deno.env.get('PHONEPE_MERCHANT_ID')
     const saltKey = Deno.env.get('PHONEPE_SALT_KEY')
     const saltIndex = Deno.env.get('PHONEPE_SALT_INDEX') || '1'
+    const clientId = Deno.env.get('PHONEPE_CLIENT_ID')
     const environment = Deno.env.get('PHONEPE_ENVIRONMENT') || 'production'
-    
+
     if (!merchantId || !saltKey) {
       throw new Error('PhonePe credentials not configured')
     }
+
+    console.log('🔑 Using credentials:', {
+      merchantId,
+      hasClientId: !!clientId,
+      environment
+    })
 
     // Determine API URL based on environment
     const baseUrl = environment === 'sandbox' 
@@ -96,14 +103,25 @@ serve(async (req) => {
     const hashArray = Array.from(new Uint8Array(hashBuffer))
     const checksum = `${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}###${saltIndex}`
 
+    // Prepare headers
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-VERIFY': checksum,
+      'accept': 'application/json'
+    }
+
+    // Add Client ID header if available
+    if (clientId) {
+      headers['X-CLIENT-ID'] = clientId
+    }
+
+    console.log('📤 Request URL:', `${baseUrl}/pg/v1/pay`)
+    console.log('📤 Request headers:', Object.keys(headers))
+
     // Create payment with PhonePe
     const response = await fetch(`${baseUrl}/pg/v1/pay`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-VERIFY': checksum,
-        'accept': 'application/json'
-      },
+      headers,
       body: JSON.stringify({ request: base64Payload })
     })
 
