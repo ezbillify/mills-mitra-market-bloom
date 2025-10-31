@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { IndianRupee, MapPin, AlertCircle } from "lucide-react";
 import { PricingUtils } from "@/utils/pricingUtils";
-import { useCashfree } from "@/hooks/useCashfree";
+import { usePhonePe } from "@/hooks/usePhonePe";
 import AddressManager from "./AddressManager";
 
 interface CartItem {
@@ -65,7 +65,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { initiatePayment, loading: cashfreeLoading } = useCashfree();
+  const { initiatePayment, loading: phonepeLoading } = usePhonePe();
   
   const [formData, setFormData] = useState({
     paymentMethod: "cod",
@@ -244,7 +244,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   };
   
   const hasValidPhone = isValidPhoneNumber(existingPhone);
-  const needsPhoneForOnlinePayment = formData.paymentMethod === 'cashfree' && !hasValidPhone;
+  const needsPhoneForOnlinePayment = formData.paymentMethod === 'phonepe' && !hasValidPhone;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -288,7 +288,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
       if (itemsError) throw itemsError;
 
       // Handle payment based on method
-      if (formData.paymentMethod === 'cashfree') {
+      if (formData.paymentMethod === 'phonepe') {
         const customerName = userProfile?.first_name && userProfile?.last_name 
           ? `${userProfile.first_name} ${userProfile.last_name}`
           : userProfile?.email || user.email || 'Customer';
@@ -563,8 +563,8 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="cashfree" id="cashfree" />
-                  <Label htmlFor="cashfree">Online Payment via Cashfree</Label>
+                  <RadioGroupItem value="phonepe" id="phonepe" />
+                  <Label htmlFor="phonepe">Online Payment via PhonePe</Label>
                 </div>
               </RadioGroup>
               
@@ -593,7 +593,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
               disabled={
                 loading || 
                 loadingProfile || 
-                cashfreeLoading || 
+                phonepeLoading || 
                 !formData.shippingOptionId || 
                 shippingOptions.length === 0 ||
                 !selectedAddress ||
@@ -601,9 +601,9 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
               } 
               className="flex-1 bg-[#6A8A4E] hover:bg-[green] text-white"
             >
-              {loading || cashfreeLoading ? "Processing..." : (
+              {loading || phonepeLoading ? "Processing..." : (
                 <span className="flex items-center gap-1">
-                  {formData.paymentMethod === 'cashfree' ? 'Pay Now' : 'Place Order'} (<IndianRupee className="h-3 w-3" />{finalTotal.toFixed(2)})
+                  {formData.paymentMethod === 'phonepe' ? 'Pay Now' : 'Place Order'} (<IndianRupee className="h-3 w-3" />{finalTotal.toFixed(2)})
                 </span>
               )}
             </Button>

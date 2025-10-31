@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Mail, Phone, MapPin, Calendar, ShoppingBag, DollarSign } from "lucide-react";
+import { User, Mail, Phone, MapPin, Calendar, ShoppingBag, IndianRupeeIcon } from "lucide-react";
 
 interface Customer {
   id: string;
@@ -172,7 +172,7 @@ const CustomerDetailsDialog = ({ customer, open, onOpenChange, onCustomerUpdated
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4" />
+                    <IndianRupeeIcon className="h-4 w-4" />
                     <span className="text-sm">Total Spent</span>
                   </div>
                   <span className="font-medium">${customer.totalSpent.toFixed(2)}</span>

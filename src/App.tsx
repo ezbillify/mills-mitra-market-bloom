@@ -23,6 +23,9 @@ import AddressBook from "@/pages/customer/AddressBook";
 import Orders from "@/pages/customer/Orders";
 import OrderDetails from "@/pages/customer/OrderDetails";
 import PaymentSuccess from "@/pages/customer/PaymentSuccess";
+import PaymentFailed from "@/pages/customer/PaymentFailed";
+import PaymentPending from "@/pages/customer/PaymentPending";
+import PaymentError from "@/pages/customer/PaymentError";
 import AboutUs from "@/pages/customer/AboutUs";
 import TermsAndConditions from "@/pages/customer/TermsAndConditions";
 import PrivacyPolicy from "@/pages/customer/PrivacyPolicy";
@@ -70,6 +73,9 @@ const App = () => {
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/orders/:orderId" element={<OrderDetails />} />
                   <Route path="/payment-success" element={<PaymentSuccess />} />
+                  <Route path="/payment-failed" element={<PaymentFailed />} />
+                  <Route path="/payment-pending" element={<PaymentPending />} />
+                  <Route path="/payment-error" element={<PaymentError />} />
                   <Route path="/about-us" element={<AboutUs />} />
                   <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
                   <Route path="/privacy-policy" element={<PrivacyPolicy />} />

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, ShoppingCart, Package, DollarSign, TrendingUp, TrendingDown, Clock, Eye } from "lucide-react";
+import { Users, ShoppingCart, Package, DollarSign, TrendingUp, TrendingDown, Clock, Eye, IndianRupeeIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AnalyticsChart from "@/components/admin/AnalyticsChart";
 
@@ -105,7 +105,7 @@ const AdminDashboard = () => {
       value: `₹${stats.totalRevenue.toLocaleString()}`,
       change: "+12.5%",
       trend: "up",
-      icon: DollarSign,
+      icon: IndianRupeeIcon,
       color: "text-emerald-600",
       bgColor: "bg-emerald-50",
       iconColor: "text-emerald-600"

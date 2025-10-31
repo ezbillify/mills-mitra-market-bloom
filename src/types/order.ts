@@ -27,11 +27,11 @@ export interface Order {
     price: number;
   } | null;
   profiles?: OrderProfile | null;
-  payment_type?: string; // Keep as string to match database schema
-  payment_status?: string; // Keep as string to match database schema
-  payment_id?: string | null; // ADD THIS
-  cashfree_order_id?: string | null; // ADD THIS
-  payment_verified_at?: string | null; // ADD THIS
+  payment_type?: string; // 'cod' or 'phonepe'
+  payment_status?: string; // 'pending', 'completed', 'failed'
+  payment_id?: string | null; // Payment transaction ID
+  phonepe_transaction_id?: string | null; // PhonePe merchant transaction ID
+  payment_verified_at?: string | null; // Timestamp when payment was verified
 }
 
 export type OrderStatus = 

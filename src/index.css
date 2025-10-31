@@ -111,22 +111,3 @@
     box-shadow: 0 4px 8px rgba(0, 168, 3, 0.3);
   }
 }
-
-/* Add ONLY this to your src/index.css to fix green lines */
-
-/* Remove green borders/outlines from Cashfree elements */
-.cashfree-pg-container *,
-[id*="cashfree"] *,
-[class*="cashfree"] * {
-  border-color: transparent !important;
-  outline-color: transparent !important;
-  box-shadow: none !important;
-}
-
-/* Ensure Cashfree modal is on top and clickable */
-.cashfree-pg-container,
-[id*="cashfree"],
-[class*="cashfree"] {
-  z-index: 999999 !important;
-  pointer-events: auto !important;
-}
