@@ -80,7 +80,7 @@ serve(async (req) => {
       const tokenParams = new URLSearchParams({
         client_id: clientId || merchantId,
         client_secret: saltKey,
-        client_version: saltIndex,
+        clientVersion: saltIndex,
         grant_type: 'client_credentials'
       })
 
@@ -110,7 +110,8 @@ serve(async (req) => {
         tokenLength: accessToken?.length,
         tokenStart: accessToken ? accessToken.substring(0, 20) + '...' : 'null',
         expiresIn: tokenData.expires_in,
-        tokenType: tokenData.token_type
+        tokenType: tokenData.token_type,
+        fullTokenData: tokenData
       });
 
       if (!accessToken) {
@@ -187,7 +188,8 @@ serve(async (req) => {
     }
 
     console.log('📤 Request URL:', `${apiBaseUrl}/checkout/v2/pay`)
-    console.log('📤 Request headers:', Object.keys(headers))
+    console.log('📤 Request headers:', headers)
+    console.log('📤 Request body:', { request: base64Payload })
 
     // Create payment with PhonePe
     const response = await fetch(`${apiBaseUrl}/checkout/v2/pay`, {

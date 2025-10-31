@@ -58,7 +58,7 @@ serve(async (req) => {
       const tokenParams = new URLSearchParams({
         client_id: clientId || merchantId,
         client_secret: saltKey,
-        client_version: saltIndex,
+        clientVersion: saltIndex,
         grant_type: 'client_credentials'
       })
 
@@ -81,6 +81,14 @@ serve(async (req) => {
 
       const tokenData = await tokenResponse.json()
       accessToken = tokenData.access_token
+
+      // Debug the token
+      console.log('🔐 OAuth token received:', {
+        tokenLength: accessToken?.length,
+        tokenStart: accessToken ? accessToken.substring(0, 20) + '...' : 'null',
+        expiresIn: tokenData.expires_in,
+        tokenType: tokenData.token_type
+      });
 
       if (!accessToken) {
         throw new Error('Failed to get access token')
