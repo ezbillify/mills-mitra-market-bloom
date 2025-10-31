@@ -62,11 +62,15 @@ serve(async (req) => {
       environment
     })
 
-    // Determine API URL based on environment
+    // ✅ FIX #1: CORRECT API URLs - Both production and sandbox use /apis/pg/v1/pay
     const apiBaseUrl = environment === 'sandbox'
-      ? 'https://api-preprod.phonepe.com/apis/pg-sandbox'
-      : 'https://api.phonepe.com/apis/pg/checkout/v2';
+      ? 'https://api-preprod.phonepe.com'
+      : 'https://api.phonepe.com'
 
+    const requestUrl = `${apiBaseUrl}/apis/pg/v1/pay`
+
+    console.log('📤 API Base URL:', apiBaseUrl)
+    console.log('📤 Request URL:', requestUrl)
     console.log('ℹ️ Payment creation uses X-VERIFY checksum authentication only')
 
     // Get callback URL
@@ -97,8 +101,8 @@ serve(async (req) => {
     // Encode payload to base64
     const base64Payload = btoa(JSON.stringify(paymentPayload))
 
-    // Determine endpoint path for checksum based on environment
-    const endpointPath = environment === 'sandbox' ? '/pg/v1/pay' : '/pay'
+    // ✅ FIX #2: CORRECT CHECKSUM - Endpoint path is always /pay (not /v1/pay)
+    const endpointPath = '/pay'
 
     console.log('🔐 Checksum calculation:', {
       base64PayloadLength: base64Payload.length,
@@ -109,6 +113,7 @@ serve(async (req) => {
     })
 
     // Generate X-VERIFY checksum
+    // Format: SHA256(base64Payload + endpointPath + saltKey) + ### + saltIndex
     const stringToHash = `${base64Payload}${endpointPath}${saltKey}`
     const encoder = new TextEncoder()
     const data = encoder.encode(stringToHash)
@@ -118,10 +123,11 @@ serve(async (req) => {
 
     console.log('🔐 Checksum generated:', {
       checksumLength: checksum.length,
-      checksumStart: checksum.substring(0, 20) + '...'
+      checksumStart: checksum.substring(0, 20) + '...',
+      stringToHashStart: stringToHash.substring(0, 50) + '...'
     })
 
-    // Prepare headers - DIFFERENT FOR PRODUCTION vs SANDBOX
+    // Prepare headers
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-VERIFY': checksum,
@@ -129,17 +135,13 @@ serve(async (req) => {
       'accept': 'application/json'
     }
 
-    // Production v2 API uses ONLY checksum authentication (not OAuth for payment creation)
-    console.log('📤 Using Checksum authentication')
-
-    // Determine full request URL based on environment
-    const requestUrl = environment === 'sandbox'
-      ? `${apiBaseUrl}/pg/v1/pay`
-      : `${apiBaseUrl}/pay`
-
-    console.log('📤 Request URL:', requestUrl)
-    console.log('📤 Request headers:', headers)
-    console.log('📤 Request body:', { request: base64Payload })
+    console.log('📤 Request headers:', {
+      'Content-Type': headers['Content-Type'],
+      'X-VERIFY': headers['X-VERIFY'].substring(0, 20) + '...',
+      'X-MERCHANT-ID': headers['X-MERCHANT-ID'],
+      'accept': headers['accept']
+    })
+    console.log('📤 Request body:', { request: base64Payload.substring(0, 50) + '...' })
 
     // Create payment with PhonePe
     const response = await fetch(requestUrl, {
