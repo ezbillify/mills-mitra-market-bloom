@@ -27,7 +27,7 @@ const OrdersTableRow = ({ order, onViewDetails }: OrdersTableRowProps) => {
       );
     }
 
-    if (order.payment_type === 'phonepe') {
+    if (order.payment_type === 'razorpay') {
       // Check payment_status field if available
       if (order.payment_status === 'completed') {
         return (

@@ -27,10 +27,10 @@ export interface Order {
     price: number;
   } | null;
   profiles?: OrderProfile | null;
-  payment_type?: string; // 'cod' or 'phonepe'
+  payment_type?: string; // 'cod' or 'razorpay'
   payment_status?: string; // 'pending', 'completed', 'failed'
   payment_id?: string | null; // Payment transaction ID
-  phonepe_transaction_id?: string | null; // PhonePe merchant transaction ID
+  razorpay_order_id?: string | null; // RazorPay order ID
   payment_verified_at?: string | null; // Timestamp when payment was verified
 }
 

@@ -561,7 +561,7 @@ export class InvoiceGenerator {
   static getPaymentMethodText(paymentType?: string): string {
     switch (paymentType) {
       case 'cod': return 'Cash on Delivery (COD)';
-      case 'phonepe': return 'Online Payment (PhonePe)';
+      case 'razorpay': return 'Online Payment (RazorPay)';
       default: return 'Not Specified';
     }
   }
