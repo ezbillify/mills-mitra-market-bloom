@@ -11,8 +11,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { IndianRupee, MapPin, AlertCircle } from "lucide-react";
 import { PricingUtils } from "@/utils/pricingUtils";
-import { usePhonePe } from "@/hooks/usePhonePe";
 import AddressManager from "./AddressManager";
+
+// Extend window interface for RazorPay
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 interface CartItem {
   id: string;
@@ -65,7 +71,6 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { initiatePayment, loading: phonepeLoading } = usePhonePe();
   
   const [formData, setFormData] = useState({
     paymentMethod: "cod",
@@ -73,6 +78,28 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   });
 
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
+
+  // Function to load RazorPay SDK if not already loaded
+  const loadRazorPayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  // Preload RazorPay SDK when component mounts
+  useEffect(() => {
+    loadRazorPayScript();
+  }, []);
 
   // Fetch user profile, shipping options, COD settings, and free shipping settings when dialog opens
   useEffect(() => {
@@ -244,7 +271,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   };
   
   const hasValidPhone = isValidPhoneNumber(existingPhone);
-  const needsPhoneForOnlinePayment = formData.paymentMethod === 'phonepe' && !hasValidPhone;
+  const needsPhoneForOnlinePayment = formData.paymentMethod === 'razorpay' && !hasValidPhone;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -288,7 +315,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
       if (itemsError) throw itemsError;
 
       // Handle payment based on method
-      if (formData.paymentMethod === 'phonepe') {
+      if (formData.paymentMethod === 'razorpay') {
         const customerName = userProfile?.first_name && userProfile?.last_name 
           ? `${userProfile.first_name} ${userProfile.last_name}`
           : userProfile?.email || user.email || 'Customer';
@@ -305,35 +332,148 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           throw new Error('Phone number must be exactly 10 digits');
         }
 
-        await initiatePayment({
-          amount: finalTotal,
-          orderId: order.id,
-          customerInfo: {
-            name: customerName,
-            email: userProfile?.email || user.email || '',
-            phone: cleanPhone, // Use cleaned phone number
-          },
-          onSuccess: async (paymentId: string) => {
-            // This callback will be called from the PhonePe callback function
-            // when the user is redirected back to our application
-            console.log('Payment successful, paymentId:', paymentId);
-            
-            // Clear cart after successful payment
-            await supabase.from('cart_items').delete().eq('user_id', user.id);
-            
-            onOpenChange(false);
-            navigate('/payment-success');
-            onOrderComplete();
-          },
-          onFailure: (error: any) => {
-            console.error('Payment failed:', error);
-            toast({
-              title: 'Payment Failed',
-              description: error instanceof Error ? error.message : 'Payment was not completed successfully',
-              variant: 'destructive',
-            });
+        // Load RazorPay SDK if not already loaded (should be preloaded)
+        const isScriptLoaded = await loadRazorPayScript();
+        if (!isScriptLoaded) {
+          throw new Error('Failed to load payment gateway. Please try again.');
+        }
+
+        // Initiate RazorPay payment
+        const { data: paymentData, error: paymentError } = await supabase.functions.invoke('razorpay-payment', {
+          body: {
+            amount: finalTotal,
+            currency: 'INR',
+            orderId: order.id,
+            customerInfo: {
+              name: customerName,
+              email: userProfile?.email || user.email || '',
+              phone: cleanPhone,
+            },
           },
         });
+
+        if (paymentError) {
+          throw new Error(`Payment initiation failed: ${paymentError.message}`);
+        }
+
+        if (!paymentData || !paymentData.success) {
+          throw new Error(paymentData?.error || 'Failed to create payment order');
+        }
+
+        // Store the RazorPay order ID in the database
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({
+            razorpay_order_id: paymentData.razorpayOrderId,
+            payment_status: 'pending',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', order.id);
+
+        if (updateError) {
+          console.error('Failed to update order with RazorPay order ID:', updateError);
+          throw new Error('Failed to save payment details');
+        }
+
+        // Close the dialog immediately before opening RazorPay modal
+        onOpenChange(false);
+        
+        // Small delay to ensure dialog is closed before opening RazorPay
+        setTimeout(() => {
+          // Redirect to RazorPay checkout
+          const options = {
+            key: paymentData.keyId,
+            amount: paymentData.amount,
+            currency: paymentData.currency,
+            name: 'MILLS MITRA',
+            description: `Order #${order.id.slice(0, 8)}`,
+            order_id: paymentData.razorpayOrderId,
+            handler: async function (response: any) {
+              // Verify payment with backend
+              const { data: verifyData, error: verifyError } = await supabase.functions.invoke('razorpay-verify', {
+                body: {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  orderId: order.id,
+                },
+              });
+
+              if (verifyError || !verifyData?.success) {
+                toast({
+                  title: 'Payment Verification Failed',
+                  description: verifyData?.error || 'Unable to verify payment. Please contact support.',
+                  variant: 'destructive',
+                });
+                
+                // Mark order as cancelled when verification fails
+                supabase
+                  .from('orders')
+                  .update({ 
+                    status: 'cancelled',
+                    payment_status: 'failed',
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', order.id)
+                  .then(({ error }) => {
+                    if (error) {
+                      console.error('Failed to update order status:', error);
+                    } else {
+                      console.log('Order marked as cancelled due to verification failure:', order.id);
+                    }
+                  });
+                  
+                return;
+              }
+
+              // Clear cart after successful payment
+              await supabase.from('cart_items').delete().eq('user_id', user.id);
+              
+              navigate('/payment-success');
+              onOrderComplete();
+            },
+            prefill: {
+              name: customerName,
+              email: userProfile?.email || user.email || '',
+              contact: cleanPhone,
+            },
+            theme: {
+              color: '#6A8A4E',
+            },
+            modal: {
+              ondismiss: function() {
+                // User closed the modal without completing payment
+                toast({
+                  title: 'Payment Cancelled',
+                  description: 'You have cancelled the payment. Your order will be marked as cancelled.',
+                  variant: 'default',
+                });
+                
+                // Mark order as cancelled immediately
+                supabase
+                  .from('orders')
+                  .update({ 
+                    status: 'cancelled',
+                    payment_status: 'failed',
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', order.id)
+                  .then(({ error }) => {
+                    if (error) {
+                      console.error('Failed to update order status:', error);
+                    } else {
+                      console.log('Order marked as cancelled:', order.id);
+                    }
+                  });
+                
+                navigate('/orders');
+              }
+            }
+          };
+
+          const rzp = new window.Razorpay(options);
+          rzp.open();
+        }, 100); // 100ms delay
       } else {
         // COD - complete the order
         const { error: cartError } = await supabase
@@ -352,11 +492,13 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         onOpenChange(false);
       }
       
-      // Reset form
-      setFormData({
-        paymentMethod: "cod",
-        shippingOptionId: "",
-      });
+      // Reset form only for COD payments
+      if (formData.paymentMethod !== 'razorpay') {
+        setFormData({
+          paymentMethod: "cod",
+          shippingOptionId: "",
+        });
+      }
     } catch (error) {
       console.error('Error creating order:', error);
       toast({
@@ -364,7 +506,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         description: error instanceof Error ? error.message : "Failed to place order. Please try again.",
         variant: "destructive",
       });
-    } finally {
+      // Only reset loading state on error
       setLoading(false);
     }
   };
@@ -572,8 +714,8 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="phonepe" id="phonepe" />
-                  <Label htmlFor="phonepe">Online Payment via PhonePe</Label>
+                  <RadioGroupItem value="razorpay" id="razorpay" />
+                  <Label htmlFor="razorpay">Online Payment via RazorPay</Label>
                 </div>
               </RadioGroup>
               
@@ -602,7 +744,6 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
               disabled={
                 loading || 
                 loadingProfile || 
-                phonepeLoading || 
                 !formData.shippingOptionId || 
                 shippingOptions.length === 0 ||
                 !selectedAddress ||
@@ -610,9 +751,14 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
               } 
               className="flex-1 bg-[#6A8A4E] hover:bg-[green] text-white"
             >
-              {loading || phonepeLoading ? "Processing..." : (
+              {loading ? (
                 <span className="flex items-center gap-1">
-                  {formData.paymentMethod === 'phonepe' ? 'Pay Now' : 'Place Order'} (<IndianRupee className="h-3 w-3" />{finalTotal.toFixed(2)})
+                  <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
+                  Processing...
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  {formData.paymentMethod === 'razorpay' ? 'Pay Now' : 'Place Order'} (<IndianRupee className="h-3 w-3" />{finalTotal.toFixed(2)})
                 </span>
               )}
             </Button>

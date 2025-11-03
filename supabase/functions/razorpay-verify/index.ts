@@ -1,6 +1,7 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
+import { encode } from "https://deno.land/std@0.177.0/encoding/hex.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,28 +34,52 @@ serve(async (req) => {
 
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId }: VerifyRequest = await req.json();
 
-    // Verify signature
-    const crypto = await import("https://deno.land/std@0.177.0/crypto/mod.ts");
-    const encoder = new TextEncoder();
-    const data = encoder.encode(`${razorpay_order_id}|${razorpay_payment_id}`);
-    const key = encoder.encode(razorpayKeySecret);
-    
-    const signature = await crypto.subtle.sign("HMAC", await crypto.subtle.importKey(
-      "raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
-    ), data);
-    
-    const expectedSignature = Array.from(new Uint8Array(signature))
-      .map(b => b.toString(16).padStart(2, '0')).join('');
+    console.log('Verifying payment:', { razorpay_order_id, razorpay_payment_id, orderId });
 
-    if (expectedSignature !== razorpay_signature) {
+    // Verify signature using RazorPay's method
+    // Concatenate order_id and payment_id with | separator
+    const sign = `${razorpay_order_id}|${razorpay_payment_id}`;
+    
+    // Create HMAC hash
+    const encoder = new TextEncoder();
+    const key = encoder.encode(razorpayKeySecret);
+    const data = encoder.encode(sign);
+    
+    const hmac = await crypto.subtle.sign(
+      "HMAC",
+      await crypto.subtle.importKey(
+        "raw",
+        key,
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"]
+      ),
+      data
+    );
+    
+    // Convert to hex string
+    const generatedSignature = Array.from(new Uint8Array(hmac))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    console.log('Signature comparison:', {
+      generated: generatedSignature,
+      received: razorpay_signature,
+      match: generatedSignature === razorpay_signature
+    });
+
+    if (generatedSignature !== razorpay_signature) {
       throw new Error('Invalid payment signature');
     }
 
-    // Update order status in database
+    // Update order status in database for successful payment
     const { error: updateError } = await supabaseClient
       .from('orders')
       .update({ 
         status: 'processing',
+        payment_status: 'completed',
+        payment_id: razorpay_payment_id,
+        payment_verified_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
       .eq('id', orderId);
@@ -81,6 +106,43 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Payment verification error:', error);
+    
+    // If verification fails, mark the order as cancelled immediately
+    try {
+      // Extract orderId from request body
+      let orderId = null;
+      try {
+        const body = await req.json();
+        orderId = body.orderId;
+      } catch (parseError) {
+        console.error('Failed to parse request body:', parseError);
+      }
+      
+      if (orderId) {
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+        
+        const { error: updateError } = await supabaseClient
+          .from('orders')
+          .update({ 
+            status: 'cancelled',
+            payment_status: 'failed',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderId);
+          
+        if (updateError) {
+          console.error('Failed to update order status to cancelled:', updateError);
+        } else {
+          console.log('Order marked as cancelled due to payment failure:', orderId);
+        }
+      }
+    } catch (updateError) {
+      console.error('Failed to update order status to cancelled:', updateError);
+    }
+    
     return new Response(
       JSON.stringify({
         success: false,

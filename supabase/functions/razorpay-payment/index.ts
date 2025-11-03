@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -25,33 +24,18 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🔵 Razorpay payment function called');
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
     // Get Razorpay keys from Supabase secrets
     const razorpayKeyId = Deno.env.get('RAZORPAY_KEY_ID');
     const razorpayKeySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
 
-    console.log('🔑 Checking Razorpay keys:', {
-      keyIdExists: !!razorpayKeyId,
-      keySecretExists: !!razorpayKeySecret
-    });
-
     if (!razorpayKeyId || !razorpayKeySecret) {
-      console.error('❌ Razorpay API keys not configured');
       throw new Error('Razorpay API keys not configured');
     }
 
     let requestBody;
     try {
       requestBody = await req.json();
-      console.log('📝 Request body received:', JSON.stringify(requestBody, null, 2));
     } catch (error) {
-      console.error('❌ Failed to parse request body:', error);
       throw new Error('Invalid request body');
     }
 
@@ -59,13 +43,11 @@ serve(async (req) => {
 
     // Validate required fields
     if (!amount || !orderId || !customerInfo) {
-      console.error('❌ Missing required fields:', { amount, orderId, customerInfo });
       throw new Error('Missing required fields: amount, orderId, or customerInfo');
     }
 
     // Validate amount is a positive number
     if (typeof amount !== 'number' || amount <= 0) {
-      console.error('❌ Invalid amount:', amount);
       throw new Error('Amount must be a positive number');
     }
 
@@ -81,10 +63,7 @@ serve(async (req) => {
       }
     };
 
-    console.log('📤 Creating Razorpay order with data:', JSON.stringify(razorpayOrderData, null, 2));
-
     const authString = btoa(`${razorpayKeyId}:${razorpayKeySecret}`);
-    console.log('🔐 Auth string created (length):', authString.length);
 
     const razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
@@ -95,15 +74,8 @@ serve(async (req) => {
       body: JSON.stringify(razorpayOrderData),
     });
 
-    console.log('📥 Razorpay API response status:', razorpayResponse.status);
-
     if (!razorpayResponse.ok) {
       const errorText = await razorpayResponse.text();
-      console.error('❌ Razorpay API Error:', {
-        status: razorpayResponse.status,
-        statusText: razorpayResponse.statusText,
-        error: errorText
-      });
       
       // Try to parse error as JSON, fallback to text
       let errorMessage = 'Unknown Razorpay API error';
@@ -114,15 +86,35 @@ serve(async (req) => {
         errorMessage = errorText || `HTTP ${razorpayResponse.status}`;
       }
       
+      // Mark order as cancelled if payment creation fails
+      try {
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+        
+        const { error: updateError } = await supabaseClient
+          .from('orders')
+          .update({ 
+            status: 'cancelled',
+            payment_status: 'failed',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderId);
+          
+        if (updateError) {
+          console.error('Failed to update order status to cancelled:', updateError);
+        } else {
+          console.log('Order marked as cancelled due to payment creation failure:', orderId);
+        }
+      } catch (updateError) {
+        console.error('Failed to update order status to cancelled:', updateError);
+      }
+      
       throw new Error(`Razorpay API Error: ${errorMessage}`);
     }
 
     const razorpayOrder = await razorpayResponse.json();
-    console.log('✅ Razorpay order created successfully:', {
-      id: razorpayOrder.id,
-      amount: razorpayOrder.amount,
-      currency: razorpayOrder.currency
-    });
 
     const responseData = {
       success: true,
@@ -131,8 +123,6 @@ serve(async (req) => {
       currency: razorpayOrder.currency,
       keyId: razorpayKeyId, // Safe to send key ID to frontend
     };
-
-    console.log('📤 Sending success response:', JSON.stringify(responseData, null, 2));
 
     return new Response(
       JSON.stringify(responseData),
@@ -143,14 +133,10 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ Razorpay payment error:', error);
-    
     const errorResponse = {
       success: false,
       error: error.message || 'Unknown error occurred',
     };
-
-    console.log('📤 Sending error response:', JSON.stringify(errorResponse, null, 2));
     
     return new Response(
       JSON.stringify(errorResponse),
