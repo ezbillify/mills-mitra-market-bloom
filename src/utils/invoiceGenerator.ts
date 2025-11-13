@@ -348,6 +348,13 @@ export class InvoiceGenerator {
 
     const lines: Array<[string, string]> = [['Items Subtotal:', formatCurrency(detailedTotals.itemsSubtotal)]];
     if (detailedTotals.totalTax > 0) lines.push(['Total GST:', formatCurrency(detailedTotals.totalTax)]);
+    
+    // Add promo code discount if applicable
+    const discountInfo = this.calculateDiscountInfo(order);
+    if (discountInfo.discountAmount > 0) {
+      lines.push([`${discountInfo.promoCode || 'Promo Discount'}:`, `-${formatCurrency(discountInfo.discountAmount)}`]);
+    }
+    
     if (detailedTotals.shippingCost > 0) lines.push([`${detailedTotals.shippingMethodName}:`, formatCurrency(detailedTotals.shippingCost)]);
     if (detailedTotals.codCharges > 0) lines.push(['COD Charges:', formatCurrency(detailedTotals.codCharges)]);
     if (detailedTotals.otherCharges > 0) lines.push(['Other Charges:', formatCurrency(detailedTotals.otherCharges)]);
@@ -604,5 +611,26 @@ export class InvoiceGenerator {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  }
+
+  // Add this new helper method to calculate discount information
+  static calculateDiscountInfo(order: Order): { discountAmount: number; promoCode: string | null } {
+    const discountAmount = Number((order as any).discount_amount || 0);
+    const promoCodeId = (order as any).promo_code_id;
+    
+    if (discountAmount > 0 && promoCodeId) {
+      // Try to get the actual promo code from the joined data
+      // If not available, use a generic label
+      const promoCode = (order as any).promo_codes?.code || `Promo Discount`;
+      return {
+        discountAmount,
+        promoCode
+      };
+    }
+    
+    return {
+      discountAmount: 0,
+      promoCode: null
+    };
   }
 }

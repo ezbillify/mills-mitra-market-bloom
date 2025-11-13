@@ -96,6 +96,10 @@ const CustomerHeader = () => {
               src="/lovable-uploads/15f592d4-1f27-4123-b5d7-dcf05b8463c7.png" 
               alt="Mills Mitra Logo" 
               className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = '/placeholder.svg';
+              }}
             />
             <div className="text-white">
               <div className="text-base sm:text-lg font-bold text-primary">MILLS MITRA</div>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import OrderItemTable from "./OrderItemTable";
 import { supabase } from "@/integrations/supabase/client";
 import { generateCustomerName } from "@/utils/customerUtils";
-import { ArrowLeft, Truck, Download, IndianRupee, CreditCard } from "lucide-react";
+import { ArrowLeft, Truck, Download, IndianRupee, CreditCard, Tag } from "lucide-react";
 import { InvoiceService } from "@/services/invoiceService";
 import { useToast } from "@/hooks/use-toast";
 import { PricingUtils } from "@/utils/pricingUtils";
@@ -58,7 +58,8 @@ const OrderDetails = () => {
         .from("orders")
         .select(`
           *,
-          profiles!orders_user_id_profiles_fkey(*)
+          profiles!orders_user_id_profiles_fkey(*),
+          promo_codes(code, description, discount_type, discount_value)
         `)
         .eq("id", orderId)
         .maybeSingle();
@@ -313,6 +314,19 @@ const OrderDetails = () => {
                   {orderTotals.totalTax.toFixed(2)}
                 </span>
               </div>
+              {order.discount_amount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span className="flex items-center gap-1">
+                    <Tag className="h-3 w-3" />
+                    {order.promo_codes?.code ? `Promo Code (${order.promo_codes.code}):` : "Promo Code Discount:"}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="text-green-600">-</span>
+                    <IndianRupee className="h-3 w-3" />
+                    {Number(order.discount_amount).toFixed(2)}
+                  </span>
+                </div>
+              )}
               {orderTotals.shippingCost > 0 && (
                 <div className="flex justify-between">
                   <span>Shipping:</span>
@@ -333,6 +347,29 @@ const OrderDetails = () => {
               </div>
             </div>
           </div>
+
+          {/* Promo Code Details */}
+          {order.discount_amount > 0 && order.promo_codes && (
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="flex items-start gap-2">
+                <Tag className="h-5 w-5 text-green-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-green-800">Promo Code Applied</h4>
+                  <div className="mt-1 text-green-700">
+                    <p className="font-medium">{order.promo_codes.code}</p>
+                    {order.promo_codes.description && (
+                      <p className="text-sm mt-1">{order.promo_codes.description}</p>
+                    )}
+                    <p className="text-sm mt-1">
+                      Discount: {order.promo_codes.discount_type === 'percentage' 
+                        ? `${order.promo_codes.discount_value}%` 
+                        : `₹${order.promo_codes.discount_value}`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>

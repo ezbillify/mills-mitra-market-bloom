@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,6 +14,7 @@ import {
   Palette,
   ChevronLeft,
   ChevronRight,
+  Tag,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
@@ -44,6 +44,11 @@ const sidebarItems = [
     title: "Analytics",
     icon: BarChart3,
     href: "/admin/analytics",
+  },
+  {
+    title: "Promo Codes",
+    icon: Tag,
+    href: "/admin/promo-codes",
   },
   {
     title: "Banners",

@@ -44,6 +44,7 @@ import Banners from "@/pages/admin/Banners";
 import Categories from "@/pages/admin/Categories";
 import ShippingSettings from "@/pages/admin/ShippingSettings";
 import InvoiceSettings from "@/pages/admin/InvoiceSettings";
+import PromoCodes from "@/pages/admin/PromoCodes";
 
 import NotFound from "@/pages/NotFound";
 
@@ -99,6 +100,7 @@ const App = () => {
                   <Route path="orders" element={<AdminOrders />} />
                   <Route path="customers" element={<Customers />} />
                   <Route path="analytics" element={<Analytics />} />
+                  <Route path="promo-codes" element={<PromoCodes />} />
                   <Route path="banners" element={<Banners />} />
                   <Route path="categories" element={<Categories />} />
                   <Route path="shipping" element={<ShippingSettings />} />

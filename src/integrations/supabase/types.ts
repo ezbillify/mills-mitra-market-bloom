@@ -3,15 +3,10 @@ export type Json =
   | number
   | boolean
   | null
-  | { [key: string]: Json | undefined }
+  | { [key: string]: Json }
   | Json[]
 
-export type Database = {
-  // Allows to automatically instanciate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
-  }
+export interface Database {
   public: {
     Tables: {
       addresses: {
@@ -19,14 +14,14 @@ export type Database = {
           address_line_1: string
           address_line_2: string | null
           city: string
-          country: string | null
+          country: string
           created_at: string
-          first_name: string | null
+          first_name: string
           id: string
-          is_default: boolean | null
+          is_default: boolean
           label: string
-          last_name: string | null
-          phone: string | null
+          last_name: string
+          phone: string
           postal_code: string
           state: string
           updated_at: string
@@ -36,14 +31,14 @@ export type Database = {
           address_line_1: string
           address_line_2?: string | null
           city: string
-          country?: string | null
+          country?: string
           created_at?: string
-          first_name?: string | null
+          first_name: string
           id?: string
-          is_default?: boolean | null
+          is_default?: boolean
           label: string
-          last_name?: string | null
-          phone?: string | null
+          last_name: string
+          phone: string
           postal_code: string
           state: string
           updated_at?: string
@@ -53,20 +48,19 @@ export type Database = {
           address_line_1?: string
           address_line_2?: string | null
           city?: string
-          country?: string | null
+          country?: string
           created_at?: string
-          first_name?: string | null
+          first_name?: string
           id?: string
-          is_default?: boolean | null
+          is_default?: boolean
           label?: string
-          last_name?: string | null
-          phone?: string | null
+          last_name?: string
+          phone?: string
           postal_code?: string
           state?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
       }
       admin_settings: {
         Row: {
@@ -90,7 +84,6 @@ export type Database = {
           updated_at?: string
           value?: Json
         }
-        Relationships: []
       }
       analytics: {
         Row: {
@@ -126,7 +119,6 @@ export type Database = {
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: []
       }
       banners: {
         Row: {
@@ -165,7 +157,6 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: []
       }
       cart_items: {
         Row: {
@@ -192,15 +183,6 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "cart_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       categories: {
         Row: {
@@ -230,7 +212,6 @@ export type Database = {
           name?: string
           updated_at?: string
         }
-        Relationships: []
       }
       delivery_options: {
         Row: {
@@ -269,7 +250,6 @@ export type Database = {
           price?: number
           updated_at?: string
         }
-        Relationships: []
       }
       gstr1_exports: {
         Row: {
@@ -305,7 +285,6 @@ export type Database = {
           total_tax_amount?: number
           total_taxable_value?: number
         }
-        Relationships: []
       }
       invoice_settings: {
         Row: {
@@ -362,7 +341,6 @@ export type Database = {
           terms_and_conditions?: string | null
           updated_at?: string
         }
-        Relationships: []
       }
       order_items: {
         Row: {
@@ -389,22 +367,6 @@ export type Database = {
           product_id?: string
           quantity?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "order_items_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       orders: {
         Row: {
@@ -446,22 +408,6 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "orders_delivery_option_id_fkey"
-            columns: ["delivery_option_id"]
-            isOneToOne: false
-            referencedRelation: "delivery_options"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_user_id_profiles_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       product_images: {
         Row: {
@@ -491,15 +437,6 @@ export type Database = {
           product_id?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "product_images_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       products: {
         Row: {
@@ -559,15 +496,6 @@ export type Database = {
           stock?: number
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "products_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       profiles: {
         Row: {
@@ -612,7 +540,53 @@ export type Database = {
           state?: string | null
           updated_at?: string
         }
-        Relationships: []
+      }
+      promo_codes: {
+        Row: {
+          id: string
+          code: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          minimum_order_value: number
+          max_uses: number | null
+          used_count: number
+          valid_from: string | null
+          valid_until: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          description?: string | null
+          discount_type: string
+          discount_value: number
+          minimum_order_value?: number
+          max_uses?: number | null
+          used_count?: number
+          valid_from?: string | null
+          valid_until?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          minimum_order_value?: number
+          max_uses?: number | null
+          used_count?: number
+          valid_from?: string | null
+          valid_until?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
       }
       website_visits: {
         Row: {
@@ -645,7 +619,6 @@ export type Database = {
           user_agent?: string | null
           visitor_id?: string
         }
-        Relationships: []
       }
     }
     Views: {
@@ -657,7 +630,6 @@ export type Database = {
           total_revenue: number | null
           unique_customers: number | null
         }
-        Relationships: []
       }
     }
     Functions: {
@@ -676,9 +648,6 @@ export type Database = {
         | "accepted"
         | "out_for_delivery"
         | "completed"
-    }
-    CompositeTypes: {
-      [_ in never]: never
     }
   }
 }

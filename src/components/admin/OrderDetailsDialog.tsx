@@ -45,9 +45,9 @@ const OrderDetailsDialog = ({
 
     setIsUpdatingTracking(true);
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("orders")
-        .update({ tracking_number: trackingNumber })
+        .update({ tracking_number: trackingNumber } as any)
         .eq("id", orderDetails.id);
 
       if (error) throw error;
@@ -224,7 +224,10 @@ const OrderDetailsDialog = ({
               orderData={{
                 delivery_price: orderDetails.delivery_price,
                 payment_type: orderDetails.payment_type,
-                shipping_address: orderDetails.shipping_address
+                shipping_address: orderDetails.shipping_address,
+                discount_amount: orderDetails.discount_amount,
+                promo_code_id: orderDetails.promo_code_id,
+                promo_codes: orderDetails.promo_codes
               }}
             />
 

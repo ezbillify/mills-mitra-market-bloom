@@ -9,6 +9,14 @@ export interface OrderProfile {
   country?: string | null;
 }
 
+export interface PromoCode {
+  id: string;
+  code: string;
+  description: string | null;
+  discount_type: string;
+  discount_value: number;
+}
+
 export interface Order {
   id: string;
   user_id: string;
@@ -32,6 +40,10 @@ export interface Order {
   payment_id?: string | null; // Payment transaction ID
   razorpay_order_id?: string | null; // RazorPay order ID
   payment_verified_at?: string | null; // Timestamp when payment was verified
+  // Promo code fields
+  promo_code_id?: string | null;
+  discount_amount?: number;
+  promo_codes?: PromoCode | null;
 }
 
 export type OrderStatus = 
@@ -43,4 +55,3 @@ export type OrderStatus =
   | "accepted"
   | "out_for_delivery"
   | "completed";
-  

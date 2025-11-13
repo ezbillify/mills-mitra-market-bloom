@@ -1,0 +1,1 @@
+alter table public.promo_codes add column if not exists max_uses_per_user integer null;

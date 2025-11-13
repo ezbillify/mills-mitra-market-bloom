@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { IndianRupee, MapPin, AlertCircle } from "lucide-react";
 import { PricingUtils } from "@/utils/pricingUtils";
 import AddressManager from "./AddressManager";
+
+// Helper function to bypass TypeScript issues with Supabase types
+const supabaseUpdate = async (table: string, data: any, filter?: { column: string; value: any }) => {
+  let query: any = (supabase as any).from(table).update(data);
+  if (filter) {
+    query = query.eq(filter.column, filter.value);
+  }
+  return await query;
+};
+
+const supabaseInsert = async (table: string, data: any) => {
+  return await (supabase as any).from(table).insert(data);
+};
+
+const supabaseRpc = async (functionName: string, params: any) => {
+  return await (supabase as any).rpc(functionName, params);
+};
 
 // Extend window interface for RazorPay
 declare global {
@@ -75,9 +93,15 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   const [formData, setFormData] = useState({
     paymentMethod: "cod",
     shippingOptionId: "",
+    promoCode: "",
   });
 
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
+
+  const [promoCodeData, setPromoCodeData] = useState<any>(null);
+  const [promoCodeError, setPromoCodeError] = useState<string | null>(null);
+  const [promoCodeLoading, setPromoCodeLoading] = useState(false);
+  const [promoCodeApplied, setPromoCodeApplied] = useState(false);
 
   // Function to load RazorPay SDK if not already loaded
   const loadRazorPayScript = (): Promise<boolean> => {
@@ -114,7 +138,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   const fetchShippingOptions = async () => {
     try {
       console.log('Fetching shipping options...');
-      const { data, error } = await supabase
+      const { data, error }: any = await supabase
         .from('delivery_options')
         .select('*')
         .eq('is_active', true)
@@ -138,7 +162,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
 
   const fetchCODSettings = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error }: any = await supabase
         .from('admin_settings')
         .select('value')
         .eq('key', 'cod_charges')
@@ -162,7 +186,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
 
   const fetchFreeShippingSettings = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error }: any = await supabase
         .from('admin_settings')
         .select('value')
         .eq('key', 'free_shipping')
@@ -247,7 +271,17 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     0 // Pass 0 for shipping to calculate subtotal first
   );
 
-  // Check if eligible for free shipping
+  // Apply promo code discount
+  const discountedSubtotal = promoCodeData && orderTotals.totalFinalPrice >= (promoCodeData.minimum_order_value || 0)
+    ? promoCodeData.discount_type === 'percentage'
+      ? orderTotals.totalFinalPrice * (1 - (promoCodeData.discount_value || 0) / 100)
+      : orderTotals.totalFinalPrice - (promoCodeData.discount_value || 0)
+    : orderTotals.totalFinalPrice;
+
+  // Ensure discounted subtotal doesn't go below zero
+  const finalSubtotal = Math.max(0, discountedSubtotal);
+
+  // Check if eligible for free shipping - USE ORIGINAL SUBTOTAL FOR FREE SHIPPING ELIGIBILITY
   const isEligibleForFreeShipping = freeShippingSettings.enabled && 
     orderTotals.totalFinalPrice >= freeShippingSettings.minimum_amount;
   
@@ -257,8 +291,11 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
   // Calculate COD charges
   const codCharges = formData.paymentMethod === 'cod' && codSettings.enabled ? codSettings.amount : 0;
   
+  // Calculate discount amount for display
+  const discountAmount = orderTotals.totalFinalPrice - finalSubtotal;
+  
   // Calculate final total with actual shipping price
-  const finalTotal = orderTotals.totalFinalPrice + finalShippingPrice + codCharges;
+  const finalTotal = finalSubtotal + finalShippingPrice + codCharges;
 
   // Check if user has phone number from selected address or profile
   const existingPhone = selectedAddress?.phone || userProfile?.phone || user?.user_metadata?.phone;
@@ -281,9 +318,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
 
     try {
       // Create order first
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
+      const { data: order, error: orderError }: any = await supabaseInsert('orders', {
           user_id: user.id,
           total: finalTotal,
           status: 'pending',
@@ -291,9 +326,9 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           delivery_option_id: formData.shippingOptionId,
           delivery_price: finalShippingPrice,
           payment_type: formData.paymentMethod, // Set payment type
-        })
-        .select()
-        .single();
+          promo_code_id: promoCodeApplied && promoCodeData ? promoCodeData.id : null,
+          discount_amount: promoCodeApplied && promoCodeData ? discountAmount : 0,
+        }).then((query: any) => query.select().single());
 
       if (orderError) throw orderError;
 
@@ -308,9 +343,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         };
       });
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
+      const { error: itemsError }: any = await supabaseInsert('order_items', orderItems);
 
       if (itemsError) throw itemsError;
 
@@ -339,7 +372,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         }
 
         // Initiate RazorPay payment
-        const { data: paymentData, error: paymentError } = await supabase.functions.invoke('razorpay-payment', {
+        const { data: paymentData, error: paymentError }: any = await supabase.functions.invoke('razorpay-payment', {
           body: {
             amount: finalTotal,
             currency: 'INR',
@@ -361,18 +394,63 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         }
 
         // Store the RazorPay order ID in the database
-        const { error: updateError } = await supabase
+        const { error: updateError }: any = await supabase
           .from('orders')
           .update({
             razorpay_order_id: paymentData.razorpayOrderId,
             payment_status: 'pending',
             updated_at: new Date().toISOString()
-          })
+          } as any)
           .eq('id', order.id);
 
         if (updateError) {
           console.error('Failed to update order with RazorPay order ID:', updateError);
           throw new Error('Failed to save payment details');
+        }
+
+        // Update promo code usage if a promo code is applied
+        if (promoCodeApplied && promoCodeData?.id && user?.id) {
+          try {
+            // Increment global usage count
+            const { error: updateError }: any = await supabase.functions.invoke('promo-code-update-usage', {
+              body: {
+                promoCodeId: promoCodeData.id
+              }
+            });
+
+            // Fallback if function is not deployed or returns error
+            if (updateError && (
+              updateError.message?.includes('Failed to send a request to the Edge Function') || 
+              updateError.message?.includes('not found') ||
+              updateError.message?.includes('non-2xx status code')
+            )) {
+              console.log('Edge Function not available, using fallback database update');
+              const { error: dbError }: any = await supabase
+                .from('promo_codes')
+                .update({ 
+                  used_count: promoCodeData.used_count + 1
+                } as any)
+                .eq('id', promoCodeData.id);
+              
+              if (dbError) {
+                console.error('Failed to update promo code usage:', dbError);
+              }
+            } else if (updateError) {
+              console.error('Failed to update promo code usage:', updateError);
+            }
+
+            // Increment user-specific usage count
+            const { error: userUsageError }: any = await supabase.rpc('increment_promo_code_user_usage', {
+              p_promo_code_id: promoCodeData.id,
+              p_user_id: user.id
+            } as any);
+
+            if (userUsageError) {
+              console.error('Failed to update user promo code usage:', userUsageError);
+            }
+          } catch (updateError) {
+            console.error('Unexpected error updating promo code usage:', updateError);
+          }
         }
 
         // Close the dialog immediately before opening RazorPay modal
@@ -390,7 +468,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             order_id: paymentData.razorpayOrderId,
             handler: async function (response: any) {
               // Verify payment with backend
-              const { data: verifyData, error: verifyError } = await supabase.functions.invoke('razorpay-verify', {
+              const { data: verifyData, error: verifyError }: any = await supabase.functions.invoke('razorpay-verify', {
                 body: {
                   razorpay_order_id: response.razorpay_order_id,
                   razorpay_payment_id: response.razorpay_payment_id,
@@ -413,9 +491,9 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                     status: 'cancelled',
                     payment_status: 'failed',
                     updated_at: new Date().toISOString()
-                  })
+                  } as any)
                   .eq('id', order.id)
-                  .then(({ error }) => {
+                  .then(({ error }: any) => {
                     if (error) {
                       console.error('Failed to update order status:', error);
                     } else {
@@ -456,9 +534,9 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                     status: 'cancelled',
                     payment_status: 'failed',
                     updated_at: new Date().toISOString()
-                  })
+                  } as any)
                   .eq('id', order.id)
-                  .then(({ error }) => {
+                  .then(({ error }: any) => {
                     if (error) {
                       console.error('Failed to update order status:', error);
                     } else {
@@ -476,7 +554,41 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         }, 100); // 100ms delay
       } else {
         // COD - complete the order
-        const { error: cartError } = await supabase
+        // Update promo code usage if a promo code is applied
+        if (promoCodeApplied && promoCodeData?.id) {
+          try {
+            const { error: updateError }: any = await supabase.functions.invoke('promo-code-update-usage', {
+              body: {
+                promoCodeId: promoCodeData.id
+              }
+            });
+
+            // Fallback if function is not deployed or returns error
+            if (updateError && (
+              updateError.message?.includes('Failed to send a request to the Edge Function') || 
+              updateError.message?.includes('not found') ||
+              updateError.message?.includes('non-2xx status code')
+            )) {
+              console.log('Edge Function not available, using fallback database update');
+              const { error: dbError }: any = await supabase
+                .from('promo_codes')
+                .update({ 
+                  used_count: promoCodeData.used_count + 1
+                } as any)
+                .eq('id', promoCodeData.id);
+              
+              if (dbError) {
+                console.error('Failed to update promo code usage:', dbError);
+              }
+            } else if (updateError) {
+              console.error('Failed to update promo code usage:', updateError);
+            }
+          } catch (updateError) {
+            console.error('Unexpected error updating promo code usage:', updateError);
+          }
+        }
+
+        const { error: cartError }: any = await supabase
           .from('cart_items')
           .delete()
           .eq('user_id', user.id);
@@ -497,6 +609,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
         setFormData({
           paymentMethod: "cod",
           shippingOptionId: "",
+          promoCode: "",
         });
       }
     } catch (error) {
@@ -513,7 +626,220 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
 
   const getRemainingAmountForFreeShipping = () => {
     if (!freeShippingSettings.enabled || isEligibleForFreeShipping) return 0;
+    // Use original subtotal for free shipping calculation
     return freeShippingSettings.minimum_amount - orderTotals.totalFinalPrice;
+  };
+
+  const validatePromoCode = async () => {
+    if (!formData.promoCode.trim()) {
+      setPromoCodeData(null);
+      setPromoCodeError(null);
+      setPromoCodeApplied(false);
+      return;
+    }
+
+    setPromoCodeLoading(true);
+    setPromoCodeError(null);
+
+    try {
+      // Validate that we have a valid order total before making the request
+      const orderTotal = orderTotals.totalFinalPrice;
+      if (typeof orderTotal !== 'number' || isNaN(orderTotal)) {
+        console.error('Invalid order total:', orderTotal);
+        setPromoCodeError('Unable to validate promo code: Invalid order total');
+        setPromoCodeLoading(false);
+        return;
+      }
+
+      // Validate that we have a valid promo code
+      const promoCode = formData.promoCode.trim();
+      if (!promoCode) {
+        setPromoCodeError('Please enter a promo code');
+        setPromoCodeLoading(false);
+        return;
+      }
+
+      console.log('Sending request to Edge Function with:', { code: promoCode, orderTotal });
+
+      const { data, error }: any = await supabase.functions.invoke('promo-code-validate', {
+        body: {
+          code: promoCode,
+          orderTotal: orderTotal,
+          userId: user?.id
+        }
+      });
+
+      console.log('Received response from Edge Function:', { data, error });
+
+      // Check if the function is not deployed, unavailable, or returns non-2xx status
+      if (error && (
+        error.message?.includes('Failed to send a request to the Edge Function') || 
+        error.message?.includes('not found') ||
+        error.message?.includes('non-2xx status code') ||
+        error.status === 400 // Handle 400 Bad Request specifically
+      )) {
+        // Fallback: Check promo code directly in the database
+        console.log('Edge Function not available or returned error, using fallback database query');
+        await validatePromoCodeFallback();
+        return;
+      }
+
+      if (error) {
+        console.error('Promo code validation error:', error);
+        // Try fallback on any other error
+        console.log('Attempting fallback due to error');
+        await validatePromoCodeFallback();
+        return;
+      }
+
+      if (!data) {
+        setPromoCodeError('No response from promo code validation service');
+        setPromoCodeData(null);
+        setPromoCodeApplied(false);
+        return;
+      }
+
+      if (!data.success) {
+        setPromoCodeError(data.error || 'Invalid promo code');
+        setPromoCodeData(null);
+        setPromoCodeApplied(false);
+        return;
+      }
+
+      setPromoCodeData(data.promoCode);
+      setPromoCodeError(null);
+      setPromoCodeApplied(true);
+    } catch (error: any) {
+      console.error('Unexpected error during promo code validation:', error);
+      // Try fallback on unexpected errors
+      console.log('Attempting fallback due to unexpected error');
+      await validatePromoCodeFallback();
+    } finally {
+      setPromoCodeLoading(false);
+    }
+  };
+
+  const validatePromoCodeFallback = async () => {
+    try {
+      // Use the same logic as the Edge Function to avoid discrepancies
+      const { data: promoData, error: dbError }: any = await supabase
+        .from('promo_codes')
+        .select('*')
+        .eq('code', formData.promoCode.trim().toUpperCase())
+        .eq('is_active', true)
+        .or(`valid_from.is.null,valid_from.lte.${new Date().toISOString()}`);
+
+      if (dbError) {
+        console.error('Database query error:', dbError);
+        setPromoCodeError('Failed to validate promo code: Database error occurred');
+        setPromoCodeData(null);
+        setPromoCodeApplied(false);
+        return;
+      }
+
+      if (!promoData || promoData.length === 0) {
+        setPromoCodeError('Invalid or expired promo code');
+        setPromoCodeData(null);
+        setPromoCodeApplied(false);
+        return;
+      }
+
+      // Filter for valid until date on client side to avoid complex query
+      const now = new Date().toISOString();
+      const validPromos = promoData.filter((promo: any) => 
+        !promo.valid_until || new Date(promo.valid_until) > new Date(now)
+      );
+
+      if (validPromos.length === 0) {
+        setPromoCodeError('Invalid or expired promo code');
+        setPromoCodeData(null);
+        setPromoCodeApplied(false);
+        return;
+      }
+
+      const promo = validPromos[0];
+
+      // Check if promo code has reached max uses
+      if (promo.max_uses && promo.used_count >= promo.max_uses) {
+        setPromoCodeError('This promo code has reached its maximum usage limit');
+        setPromoCodeData(null);
+        setPromoCodeApplied(false);
+        return;
+      }
+
+      // Check if promo code has reached max uses per user
+      if (promo.max_uses_per_user && user?.id) {
+        // Check how many times this user has used this promo code
+        const { data: userUsageData, error: userUsageError }: any = await supabase
+          .from('promo_code_user_usage')
+          .select('usage_count')
+          .eq('promo_code_id', promo.id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (userUsageError) {
+          console.error('Database error when fetching user usage:', userUsageError);
+        } else if (userUsageData && userUsageData.usage_count >= promo.max_uses_per_user) {
+          setPromoCodeError(`You have reached the maximum usage limit for this promo code (${promo.max_uses_per_user} times)`);
+          setPromoCodeData(null);
+          setPromoCodeApplied(false);
+          return;
+        }
+      }
+
+      // Check if order meets minimum amount requirement
+      if (promo.minimum_order_value && orderTotals.totalFinalPrice < promo.minimum_order_value) {
+        setPromoCodeError(`Order must be at least ₹${promo.minimum_order_value.toFixed(2)} to use this promo code`);
+        setPromoCodeData(null);
+        setPromoCodeApplied(false);
+        return;
+      }
+
+      // Calculate discount amount
+      const discountAmount = promo.discount_type === 'percentage'
+        ? orderTotals.totalFinalPrice * (promo.discount_value / 100)
+        : promo.discount_value;
+
+      const promoCodeResponse = {
+        id: promo.id,
+        code: promo.code,
+        description: promo.description,
+        discount_type: promo.discount_type,
+        discount_value: promo.discount_value,
+        minimum_order_value: promo.minimum_order_value,
+        max_uses: promo.max_uses,
+        max_uses_per_user: promo.max_uses_per_user,
+        used_count: promo.used_count
+      };
+
+      setPromoCodeData(promoCodeResponse);
+      setPromoCodeError(null);
+      setPromoCodeApplied(true);
+    } catch (error: any) {
+      console.error('Error in fallback validation:', error);
+      setPromoCodeError(`Failed to validate promo code: ${error.message || 'Unknown error'}`);
+      setPromoCodeData(null);
+      setPromoCodeApplied(false);
+    }
+  };
+
+  // Apply promo code when it changes
+  useEffect(() => {
+    if (formData.promoCode) {
+      const timeoutId = setTimeout(validatePromoCode, 500);
+      return () => clearTimeout(timeoutId);
+    } else {
+      setPromoCodeData(null);
+      setPromoCodeError(null);
+      setPromoCodeApplied(false);
+    }
+  }, [formData.promoCode, orderTotals.totalFinalPrice]);
+
+  const removePromoCode = () => {
+    setFormData({ ...formData, promoCode: '' });
+    setPromoCodeData(null);
+    setPromoCodeError(null);
+    setPromoCodeApplied(false);
   };
 
   return (
@@ -550,6 +876,18 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                     {orderTotals.totalFinalPrice.toFixed(2)}
                   </span>
                 </div>
+                {promoCodeApplied && promoCodeData && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>
+                      Promo Code ({promoCodeData.code}):
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="text-green-600">-</span>
+                      <IndianRupee className="h-3 w-3" />
+                      {discountAmount.toFixed(2)}
+                    </span>
+                  </div>
+                )}
                 {selectedShippingOption && (
                   <div className="flex justify-between text-sm">
                     <span>
@@ -689,6 +1027,90 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
               </AlertDescription>
             </Alert>
           )}
+
+          {/* Promo Code Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Promo Code</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Label htmlFor="promoCode" className="text-sm font-medium">
+                    Enter Promo Code
+                  </Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      id="promoCode"
+                      value={formData.promoCode}
+                      onChange={(e) => setFormData({ ...formData, promoCode: e.target.value.toUpperCase() })}
+                      placeholder="Enter promo code"
+                      className="flex-1"
+                      disabled={promoCodeApplied || promoCodeLoading}
+                    />
+                    {promoCodeApplied ? (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={removePromoCode}
+                        className="border-red-500 text-red-500 hover:bg-red-50"
+                      >
+                        Remove
+                      </Button>
+                    ) : (
+                      <Button 
+                        type="button" 
+                        onClick={validatePromoCode}
+                        disabled={!formData.promoCode.trim() || promoCodeLoading}
+                        className="bg-[#6A8A4E] hover:bg-[green] text-white"
+                      >
+                        {promoCodeLoading ? (
+                          <span className="flex items-center gap-1">
+                            <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
+                            Applying...
+                          </span>
+                        ) : (
+                          "Apply"
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {promoCodeError && (
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-700">{promoCodeError}</p>
+                </div>
+              )}
+              
+              {promoCodeData && !promoCodeError && (
+                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm font-medium text-green-800">
+                        Promo code applied: {promoCodeData.code}
+                      </p>
+                      <p className="text-xs text-green-700 mt-1">
+                        {promoCodeData.description}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-green-800">
+                        -₹{discountAmount.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {!promoCodeApplied && !promoCodeError && (
+                <div className="mt-3 text-xs text-gray-500">
+                  Have a promo code? Enter it above to get a discount on your order.
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Payment Method */}
           <Card>

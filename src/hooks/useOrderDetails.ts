@@ -50,6 +50,12 @@ export const useOrderDetails = (orderId: string | null, open: boolean) => {
             postal_code,
             country,
             state
+          ),
+          promo_codes(
+            code,
+            description,
+            discount_type,
+            discount_value
           )
         `)
         .eq("id", id);

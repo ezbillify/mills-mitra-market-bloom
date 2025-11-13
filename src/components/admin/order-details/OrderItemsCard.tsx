@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Package, IndianRupee, Truck, CreditCard } from "lucide-react";
+import { Package, IndianRupee, Truck, CreditCard, Tag } from "lucide-react";
 import { PricingUtils } from "@/utils/pricingUtils";
 
 interface OrderItem {
@@ -22,6 +22,14 @@ interface OrderItemsCardProps {
     delivery_price?: number;
     payment_type?: string;
     shipping_address?: string;
+    discount_amount?: number;
+    promo_code_id?: string;
+    promo_codes?: {
+      code: string;
+      description: string | null;
+      discount_type: string;
+      discount_value: number;
+    } | null;
   };
 }
 
@@ -33,12 +41,14 @@ const OrderItemsCard = ({ orderItems, total, orderData }: OrderItemsCardProps) =
         totalTax: 0, 
         shippingCost: 0, 
         codCharges: 0,
+        discountAmount: 0,
         grandTotal: Number(total)
       };
     }
 
     const shippingAddress = orderData?.shipping_address || '';
     const shippingCost = Number(orderData?.delivery_price || 0);
+    const discountAmount = Number(orderData?.discount_amount || 0);
     
     const orderTotals = PricingUtils.calculateOrderTotals(
       orderItems.map(item => ({
@@ -68,6 +78,7 @@ const OrderItemsCard = ({ orderItems, total, orderData }: OrderItemsCardProps) =
       totalTax: orderTotals.totalTaxAmount,
       shippingCost: orderTotals.deliveryPrice,
       codCharges,
+      discountAmount,
       grandTotal: Number(total)
     };
   };
@@ -159,6 +170,20 @@ const OrderItemsCard = ({ orderItems, total, orderData }: OrderItemsCardProps) =
                 </div>
               )}
 
+              {totals.discountAmount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span className="flex items-center gap-1">
+                    <Tag className="h-3 w-3" />
+                    {orderData?.promo_codes?.code ? `Promo Code (${orderData.promo_codes.code}):` : "Promo Code Discount:"}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="text-green-600">-</span>
+                    <IndianRupee className="h-3 w-3" />
+                    {totals.discountAmount.toFixed(2)}
+                  </span>
+                </div>
+              )}
+
               {totals.shippingCost > 0 && (
                 <div className="flex justify-between">
                   <span className="flex items-center gap-1">
@@ -209,6 +234,29 @@ const OrderItemsCard = ({ orderItems, total, orderData }: OrderItemsCardProps) =
                   }`}>
                     {orderData.payment_type === 'cod' ? 'Cash on Delivery (COD)' : 'Online Payment'}
                   </span>
+                </div>
+              </div>
+            )}
+
+            {/* Promo Code Details */}
+            {totals.discountAmount > 0 && orderData?.promo_codes && (
+              <div className="mt-3 pt-3 border-t">
+                <div className="flex items-start gap-2 text-sm">
+                  <Tag className="h-4 w-4 text-gray-500 mt-0.5" />
+                  <div>
+                    <span className="font-medium">Promo Code Details:</span>
+                    <div className="mt-1 text-gray-600">
+                      <p className="font-medium">{orderData.promo_codes.code}</p>
+                      {orderData.promo_codes.description && (
+                        <p className="text-xs mt-1">{orderData.promo_codes.description}</p>
+                      )}
+                      <p className="text-xs mt-1">
+                        Discount: {orderData.promo_codes.discount_type === 'percentage' 
+                          ? `${orderData.promo_codes.discount_value}%` 
+                          : `₹${orderData.promo_codes.discount_value}`}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

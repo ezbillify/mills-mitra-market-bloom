@@ -116,6 +116,9 @@ export class InvoiceService {
             city,
             postal_code,
             country
+          ),
+          promo_codes!promo_code_id (
+            code
           )
         `)
         .eq("id", orderId);

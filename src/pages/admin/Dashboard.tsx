@@ -13,7 +13,9 @@ const AdminDashboard = () => {
     totalProducts: 0,
     recentOrders: [],
     salesData: [],
-    pendingOrders: 0
+    pendingOrders: 0,
+    activePromoCodes: 0,
+    totalPromoCodeUsage: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -37,28 +39,28 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       // Fetch orders data
-      const { data: orders, error: ordersError } = await supabase
+      const { data: orders, error: ordersError }: any = await supabase
         .from('orders')
         .select('*');
       
       if (ordersError) throw ordersError;
 
       // Fetch products count
-      const { count: productsCount, error: productsError } = await supabase
+      const { count: productsCount, error: productsError }: any = await supabase
         .from('products')
         .select('*', { count: 'exact', head: true });
       
       if (productsError) throw productsError;
 
       // Fetch customers count
-      const { count: customersCount, error: customersError } = await supabase
+      const { count: customersCount, error: customersError }: any = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true });
       
       if (customersError) throw customersError;
 
       // Fetch sales metrics
-      const { data: salesMetrics, error: salesError } = await supabase
+      const { data: salesMetrics, error: salesError }: any = await supabase
         .from('sales_metrics')
         .select('*')
         .order('date', { ascending: false })
@@ -66,15 +68,32 @@ const AdminDashboard = () => {
       
       if (salesError) throw salesError;
 
+      // Fetch promo code stats
+      const { count: activePromoCodes, error: promoCodesError }: any = await supabase
+        .from('promo_codes')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true);
+      
+      if (promoCodesError) throw promoCodesError;
+
+      // Fetch total promo code usage
+      const { data: promoCodeUsageData, error: promoCodeUsageError }: any = await supabase
+        .from('promo_codes')
+        .select('used_count');
+      
+      if (promoCodeUsageError) throw promoCodeUsageError;
+
+      const totalPromoCodeUsage = promoCodeUsageData?.reduce((sum: number, promo: any) => sum + (promo.used_count || 0), 0) || 0;
+
       // Calculate stats - only include orders that are out_for_delivery or beyond
       const fulfilledOrderStatuses = ['out_for_delivery', 'delivered', 'completed'];
-      const totalRevenue = orders?.filter(order => fulfilledOrderStatuses.includes(order.status))
-        .reduce((sum, order) => sum + Number(order.total), 0) || 0;
-      const pendingOrders = orders?.filter(order => order.status === 'pending').length || 0;
+      const totalRevenue = orders?.filter((order: any) => fulfilledOrderStatuses.includes(order.status))
+        .reduce((sum: number, order: any) => sum + Number(order.total), 0) || 0;
+      const pendingOrders = orders?.filter((order: any) => order.status === 'pending').length || 0;
       const recentOrders = orders?.slice(0, 5) || [];
 
       // Transform sales data for chart
-      const salesData = (salesMetrics || []).map(item => ({
+      const salesData = (salesMetrics || []).map((item: any) => ({
         date: new Date(item.date || '').toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric'
@@ -85,15 +104,19 @@ const AdminDashboard = () => {
 
       setStats({
         totalRevenue,
-        totalOrders: orders?.filter(order => fulfilledOrderStatuses.includes(order.status)).length || 0,
+        totalOrders: orders?.filter((order: any) => fulfilledOrderStatuses.includes(order.status)).length || 0,
         totalCustomers: customersCount || 0,
         totalProducts: productsCount || 0,
         recentOrders,
         salesData,
-        pendingOrders
+        pendingOrders,
+        activePromoCodes: activePromoCodes || 0,
+        totalPromoCodeUsage
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      // Show error toast to user
+      // Since we don't have access to toast here, we'll just log the error
     } finally {
       setLoading(false);
     }
@@ -139,6 +162,26 @@ const AdminDashboard = () => {
       color: "text-orange-600",
       bgColor: "bg-orange-50",
       iconColor: "text-orange-600"
+    },
+    {
+      title: "Active Promo Codes",
+      value: stats.activePromoCodes.toString(),
+      change: "+5.1%",
+      trend: "up",
+      icon: DollarSign,
+      color: "text-pink-600",
+      bgColor: "bg-pink-50",
+      iconColor: "text-pink-600"
+    },
+    {
+      title: "Promo Code Usage",
+      value: stats.totalPromoCodeUsage.toString(),
+      change: "+18.7%",
+      trend: "up",
+      icon: TrendingUp,
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50",
+      iconColor: "text-indigo-600"
     }
   ];
 
