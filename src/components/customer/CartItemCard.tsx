@@ -61,7 +61,7 @@ const CartItemCard = ({ item, onUpdate }: CartItemCardProps) => {
 
       setLoading(true);
       try {
-        const { error }: any = await supabase
+        const { error }: any = await (supabase as any)
           .from('cart_items')
           .update({ quantity: newQuantity } as any)
           .eq('id', item.id);
@@ -94,7 +94,7 @@ const CartItemCard = ({ item, onUpdate }: CartItemCardProps) => {
     const removeItem = async () => {
       setLoading(true);
       try {
-        const { error }: any = await supabase
+        const { error }: any = await (supabase as any)
           .from('cart_items')
           .delete()
           .eq('id', item.id);

@@ -393,25 +393,9 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           throw new Error(paymentData?.error || 'Failed to create payment order');
         }
 
-        // Store the RazorPay order ID in the database
-        const { error: updateError }: any = await supabase
-          .from('orders')
-          .update({
-            razorpay_order_id: paymentData.razorpayOrderId,
-            payment_status: 'pending',
-            updated_at: new Date().toISOString()
-          } as any)
-          .eq('id', order.id);
-
-        if (updateError) {
-          console.error('Failed to update order with RazorPay order ID:', updateError);
-          throw new Error('Failed to save payment details');
-        }
-
         // Update promo code usage if a promo code is applied
-        if (promoCodeApplied && promoCodeData?.id && user?.id) {
+        if (promoCodeApplied && promoCodeData?.id) {
           try {
-            // Increment global usage count
             const { error: updateError }: any = await supabase.functions.invoke('promo-code-update-usage', {
               body: {
                 promoCodeId: promoCodeData.id
@@ -425,7 +409,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
               updateError.message?.includes('non-2xx status code')
             )) {
               console.log('Edge Function not available, using fallback database update');
-              const { error: dbError }: any = await supabase
+              const { error: dbError }: any = await (supabase as any)
                 .from('promo_codes')
                 .update({ 
                   used_count: promoCodeData.used_count + 1
@@ -438,19 +422,24 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
             } else if (updateError) {
               console.error('Failed to update promo code usage:', updateError);
             }
-
-            // Increment user-specific usage count
-            const { error: userUsageError }: any = await supabase.rpc('increment_promo_code_user_usage', {
-              p_promo_code_id: promoCodeData.id,
-              p_user_id: user.id
-            } as any);
-
-            if (userUsageError) {
-              console.error('Failed to update user promo code usage:', userUsageError);
-            }
           } catch (updateError) {
             console.error('Unexpected error updating promo code usage:', updateError);
           }
+        }
+
+        // Store the RazorPay order ID in the database
+        const { error: updateError }: any = await (supabase as any)
+          .from('orders')
+          .update({
+            razorpay_order_id: paymentData.razorpayOrderId,
+            payment_status: 'pending',
+            updated_at: new Date().toISOString()
+          } as any)
+          .eq('id', order.id);
+
+        if (updateError) {
+          console.error('Failed to update order with RazorPay order ID:', updateError);
+          throw new Error('Failed to save payment details');
         }
 
         // Close the dialog immediately before opening RazorPay modal
@@ -485,7 +474,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                 });
                 
                 // Mark order as cancelled when verification fails
-                supabase
+                (supabase as any)
                   .from('orders')
                   .update({ 
                     status: 'cancelled',
@@ -505,7 +494,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
               }
 
               // Clear cart after successful payment
-              await supabase.from('cart_items').delete().eq('user_id', user.id);
+              await (supabase as any).from('cart_items').delete().eq('user_id', user.id);
               
               navigate('/payment-success');
               onOrderComplete();
@@ -528,7 +517,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
                 });
                 
                 // Mark order as cancelled immediately
-                supabase
+                (supabase as any)
                   .from('orders')
                   .update({ 
                     status: 'cancelled',
@@ -570,7 +559,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
               updateError.message?.includes('non-2xx status code')
             )) {
               console.log('Edge Function not available, using fallback database update');
-              const { error: dbError }: any = await supabase
+              const { error: dbError }: any = await (supabase as any)
                 .from('promo_codes')
                 .update({ 
                   used_count: promoCodeData.used_count + 1
@@ -588,7 +577,7 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
           }
         }
 
-        const { error: cartError }: any = await supabase
+        const { error: cartError }: any = await (supabase as any)
           .from('cart_items')
           .delete()
           .eq('user_id', user.id);
@@ -823,17 +812,8 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, total, onOrderComplete 
     }
   };
 
-  // Apply promo code when it changes
-  useEffect(() => {
-    if (formData.promoCode) {
-      const timeoutId = setTimeout(validatePromoCode, 500);
-      return () => clearTimeout(timeoutId);
-    } else {
-      setPromoCodeData(null);
-      setPromoCodeError(null);
-      setPromoCodeApplied(false);
-    }
-  }, [formData.promoCode, orderTotals.totalFinalPrice]);
+  // Remove the useEffect that was causing automatic validation
+  // Validation now only happens when user clicks the "Apply" button
 
   const removePromoCode = () => {
     setFormData({ ...formData, promoCode: '' });

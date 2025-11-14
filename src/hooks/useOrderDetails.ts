@@ -36,7 +36,7 @@ export const useOrderDetails = (orderId: string | null, open: boolean) => {
       const isAdmin = user.email === 'admin@ezbillify.com' || user.email === 'admin@millsmitra.com';
 
       // Updated query with LEFT JOIN instead of INNER JOIN to handle empty profiles
-      let orderQuery = supabase
+      let orderQuery: any = (supabase as any)
         .from("orders")
         .select(`
           *,
@@ -82,27 +82,27 @@ export const useOrderDetails = (orderId: string | null, open: boolean) => {
       // If profile data is missing key info, try to get address data as fallback
       let enhancedOrder: any = order; // Temporary TypeScript fix
       
-      console.log("🔍 Profile check:", order.profiles);
-      console.log("🔍 Should fetch address?", !order.profiles || (!order.profiles.phone || !order.profiles.address));
-      console.log("🔍 Order user_id:", order.user_id);
+      console.log("🔍 Profile check:", (order as any).profiles);
+      console.log("🔍 Should fetch address?", !(order as any).profiles || (!((order as any).profiles as any).phone || !((order as any).profiles as any).address));
+      console.log("🔍 Order user_id:", (order as any).user_id);
       
-      if (!order.profiles || (!order.profiles.phone || !order.profiles.address)) {
+      if (!(order as any).profiles || (!((order as any).profiles as any).phone || !((order as any).profiles as any).address)) {
         console.log("🔄 Fetching address data as fallback...");
         
         // First, let's check if there are any addresses for this user at all
-        const { data: allAddresses, error: allAddressError } = await supabase
+        const { data: allAddresses, error: allAddressError } = await (supabase as any)
           .from("addresses")
           .select("*")
-          .eq("user_id", order.user_id);
+          .eq("user_id", (order as any).user_id);
           
         console.log("📋 All addresses for user:", allAddresses);
         console.log("📋 All addresses error:", allAddressError);
         
         try {
-          const { data: addressData, error: addressError } = await supabase
+          const { data: addressData, error: addressError } = await (supabase as any)
             .from("addresses")
             .select("*")
-            .eq("user_id", order.user_id)
+            .eq("user_id", (order as any).user_id)
             .order("created_at", { ascending: false }) // Get most recent address
             .limit(1)
             .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 results
@@ -113,18 +113,18 @@ export const useOrderDetails = (orderId: string | null, open: boolean) => {
           if (addressData) {
             // Merge address data into profile if profile data is missing
             enhancedOrder = {
-              ...order,
+              ...(order as any),
               profiles: {
-                ...order.profiles,
+                ...((order as any).profiles || {}),
                 // Use address data if profile data is missing
-                first_name: order.profiles.first_name || addressData.first_name,
-                last_name: order.profiles.last_name || addressData.last_name,
-                phone: order.profiles.phone || addressData.phone,
-                address: order.profiles.address || addressData.address_line_1,
-                city: order.profiles.city || addressData.city,
-                postal_code: order.profiles.postal_code || addressData.postal_code,
-                country: order.profiles.country || addressData.country,
-                state: (order.profiles as any).state || addressData.state,
+                first_name: ((order as any).profiles as any)?.first_name || addressData.first_name,
+                last_name: ((order as any).profiles as any)?.last_name || addressData.last_name,
+                phone: ((order as any).profiles as any)?.phone || addressData.phone,
+                address: ((order as any).profiles as any)?.address || addressData.address_line_1,
+                city: ((order as any).profiles as any)?.city || addressData.city,
+                postal_code: ((order as any).profiles as any)?.postal_code || addressData.postal_code,
+                country: ((order as any).profiles as any)?.country || addressData.country,
+                state: ((order as any).profiles as any)?.state || addressData.state,
               },
               // Also store the address data separately for reference
               address_data: addressData
@@ -136,10 +136,10 @@ export const useOrderDetails = (orderId: string | null, open: boolean) => {
       }
 
       console.log("Order details fetched:", enhancedOrder);
-      setOrderDetails(enhancedOrder);
+      setOrderDetails(enhancedOrder as Order);
 
       // Fetch order items
-      const { data: items, error: itemsError } = await supabase
+      const { data: items, error: itemsError } = await (supabase as any)
         .from("order_items")
         .select(`
           *,
